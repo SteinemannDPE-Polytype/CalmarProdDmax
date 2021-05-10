@@ -1,0 +1,189 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_CameraTcpIp" Id="{c88746fd-4ca5-43f1-8f99-b1b2f4ff3dbc}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  Base camera system with TcpIp communicatiom
+  Implements callback function (rx_callback) for received TcpIp messages.   
+*)
+FUNCTION_BLOCK ABSTRACT FB_CameraTcpIp EXTENDS FB_CameraBase IMPLEMENTS I_TcpIp_RxMsgHandler
+
+VAR
+  sLastMessage              : STRING(GVL_TcpIp.TCP_RXDATA_SIZE);          (*rx telegram string*)
+  nLastMessageSz            : UDINT;                                      (*receive message length *)
+  sMemLastMessage           : STRING(GVL_TcpIp.TCP_RXDATA_SIZE);          (*mem rx telegram string*)
+  nRxMsg                    : UDINT;                (*rx telegram counter*)
+  bMsgReceived              : BOOL;                 (*we received a message*)
+  sState                    : STRING;               (*state change event as string*)
+
+  sLastErrorMessage         : STRING(GVL_TcpIp.TCP_RXDATA_SIZE);          (*rx telegram error string*)
+
+  _pFbTcpIpClient           : POINTER TO FB_TcpClient;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="ActivateCam" Id="{12a1c5fa-1758-4a26-a10c-4a0b3d7091e3}">
+      <Declaration><![CDATA[METHOD ActivateCam : BOOL
+VAR_INPUT
+  iCameraSink : I_CameraSink;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[ActivateCam := SUPER^.ActivateCam(iCameraSink:=iCameraSink);
+
+IF _pFbTcpIpClient = 0 THEN
+  LogError('No tcpip client assigned');
+  ActivateCam := 0;
+  RETURN;
+END_IF
+
+_pFbTcpIpClient^.bEnable := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="bConnectionErr" Id="{10259dfc-c5f6-4618-b96d-91af72caa18e}">
+      <Declaration><![CDATA[PROPERTY bConnectionErr : BOOL]]></Declaration>
+      <Get Name="Get" Id="{f1fa72e9-ad40-4962-8ffb-64268fd4ae99}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IF _pFbTcpIpClient = 0 THEN RETURN; END_IF
+
+IF _bActivated THEN
+  IF NOT _pFbTcpIpClient^.bConnected OR _pFbTcpIpClient^.bError THEN
+    bConnectionErr := TRUE;
+  END_IF 
+END_IF]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="CamTrigger" Id="{d48e1d35-2b38-4ef9-bdb8-dd4cb5e947c7}">
+      <Declaration><![CDATA[METHOD CamTrigger
+VAR_INPUT
+  bOk             : BOOL;     // trigger is ok
+	nPos            : DINT;     // camera triggered position
+  nPosDeviation   : DINT;     // camera started deviation
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SUPER^.CamTrigger(bOk:=bOk, nPos:=nPos, nPosDeviation:=nPosDeviation);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="DeactivateCam" Id="{0e77b3b1-585b-4e9f-9303-220734544750}">
+      <Declaration><![CDATA[METHOD DeactivateCam : BOOL
+VAR_INPUT
+  iSink : I_CameraSink;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[DeactivateCam := SUPER^.DeactivateCam(iSink:=iSink);
+
+IF _pFbTcpIpClient = 0 THEN
+  LogError('No tcpip client assigned');
+  DeactivateCam := 0;
+  RETURN;
+END_IF
+
+_pFbTcpIpClient^.bEnable := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetCamStatus" Id="{fb12ded9-d3e7-4322-82bd-b55cf34b8ea0}">
+      <Declaration><![CDATA[METHOD ABSTRACT GetCamStatus : BOOL
+VAR_OUTPUT
+  bConnectionOK  : BOOL;    // Camera connected
+  bTeachOk       : BOOL;    // Teach successful
+  nTeachedPoints : UDINT;   // Teached points for this job
+  nScannedPoints : UDINT;   // Scanned points on current sheet
+  bCamStarted    : BOOL;    // Camera trigger is active, cam started
+  bCamDone       : BOOL;    // Camera finished on last CT
+  bErrors        : ARRAY[1..GVL_Camera.nC_NbCamErrors] OF BOOL;  // generic error flag list
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="rx_callback" Id="{f5b898b0-840b-4d4a-abe9-5f3b24837698}">
+      <Declaration><![CDATA[METHOD rx_callback
+VAR_INPUT
+	sMessage	: CalmarCompTcpIp.ST_TcpMsg;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[sLastMessage  := sMessage.sMessage;   // store message locally
+nRxMsg        := nRxMsg + 1;
+nLastMessageSz := LEN2(ADR(sLastMessage));
+
+bMsgReceived  := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="setTcpIpClient" Id="{346367c7-f0bc-4cbd-a097-947ce35b8b9d}">
+      <Declaration><![CDATA[METHOD setTcpIpClient : BOOL
+VAR_INPUT
+  pTcpIpClient  : POINTER TO FB_TcpClient;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_pFbTcpIpClient := pTcpIpClient;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="state_callback" Id="{71dd0202-b6ed-419a-8b0d-d8281f9c0cee}">
+      <Declaration><![CDATA[METHOD state_callback
+VAR_INPUT
+	(* state change event as string (think to convert it to an enum for easier handling later)*)
+	state	: STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[sState := state;   // store state locally]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CameraTcpIp">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraTcpIp.ActivateCam">
+      <LineId Id="20" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="33" Count="5" />
+      <LineId Id="32" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraTcpIp.bConnectionErr.Get">
+      <LineId Id="2" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraTcpIp.CamTrigger">
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraTcpIp.DeactivateCam">
+      <LineId Id="15" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="25" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraTcpIp.GetCamStatus">
+      <LineId Id="13" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraTcpIp.rx_callback">
+      <LineId Id="8" Count="1" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraTcpIp.setTcpIpClient">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraTcpIp.state_callback">
+      <LineId Id="8" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

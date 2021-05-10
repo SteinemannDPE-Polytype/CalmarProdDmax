@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <Itf Name="I_CameraSink" Id="{c7f13400-6272-4109-9d42-da2a605cebc8}">
+    <Declaration><![CDATA[{attribute 'monitoring':='call'}
+INTERFACE I_CameraSink
+]]></Declaration>
+    <Method Name="AddCamPoint" Id="{8c397612-ef52-42b0-92b4-df25225c5d90}">
+      <Declaration><![CDATA[METHOD AddCamPoint : BOOL
+VAR_INPUT
+	sDeformationPoint	: ST_DeformationPointAccurate;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="AddTeachPoint" Id="{01dedd52-bc68-4f3e-b5ba-be065d82bed2}">
+      <Declaration><![CDATA[METHOD AddTeachPoint : BOOL
+VAR_INPUT
+  sTeachPoint : ST_DeformationPointAccurate;
+END_VAR
+]]></Declaration>
+    </Method>
+  </Itf>
+</TcPlcObject>

@@ -1,0 +1,204 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <Itf Name="I_Camera" Id="{5a5735ef-1b27-4919-a988-c4ee1ba8d032}">
+    <Declaration><![CDATA[INTERFACE I_Camera
+]]></Declaration>
+    <Method Name="ActivateCam" Id="{fae3b887-178c-45d6-a9a3-20aaf8ef6d6f}">
+      <Declaration><![CDATA[METHOD ActivateCam : BOOL
+VAR_INPUT
+  iCameraSink : I_CameraSink;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Property Name="bEnableTrigger" Id="{3dd53fcc-8a38-4b5c-bf21-ce33934bbd63}">
+      <Declaration><![CDATA[(*
+  Activate/Deactivate camera trigger device
+*)
+PROPERTY bEnableTrigger : BOOL]]></Declaration>
+      <Set Name="Set" Id="{b412f917-e3a1-4e76-b014-79fda0affdce}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="bManualTeach" Id="{b20bf340-dd2b-40a9-8a0e-d1411732527d}">
+      <Declaration><![CDATA[(*
+  Activate/Deactivate camera manual teach mode
+*)
+PROPERTY bManualTeach : BOOL]]></Declaration>
+      <Set Name="Set" Id="{e712c62f-9d4a-4c36-a56f-abaf4a213d65}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="bSimulate" Id="{ba45f110-c05e-4b8a-bdc5-7caf91d90608}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY bSimulate : BOOL]]></Declaration>
+      <Get Name="Get" Id="{14a47b60-e5c5-4e3e-bd4d-43bb1f965667}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{da47884a-4d27-4a5d-98a8-a51a5470a7db}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Method Name="DeactivateCam" Id="{7cb7f111-66de-4441-adae-8701dc83752a}">
+      <Declaration><![CDATA[METHOD DeactivateCam : BOOL
+VAR_INPUT
+  iSink : I_CameraSink;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Property Name="eCameraMode" Id="{284b9090-0487-4ee1-90cd-463d4bc4a887}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY ABSTRACT eCameraMode : E_CameraMode]]></Declaration>
+      <Get Name="Get" Id="{8c5a2292-82d3-4134-bccf-e71938ba6b55}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="eDeviceType" Id="{d7090d73-2cd2-4231-bda2-ac78ec037ad3}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY ABSTRACT eDeviceType : E_CameraDevice]]></Declaration>
+      <Get Name="Get" Id="{af37a2a1-5576-4b71-8106-b4bf84746086}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="fCameraToPrintOffset" Id="{d1031369-84d6-4c9b-b449-d5c4f8a01978}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY fCameraToPrintOffset : LREAL]]></Declaration>
+      <Get Name="Get" Id="{c463442c-6c66-47f8-b87c-c0160bd5b8a8}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="fDetectToCameraOffset" Id="{dc4c6472-6eca-4a2b-883d-cd964f650467}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY fDetectToCameraOffset : LREAL
+]]></Declaration>
+      <Get Name="Get" Id="{305cf5eb-ef0d-48d6-8b88-d673f669799f}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="fFrameLength" Id="{3231a058-304f-464b-ac0d-d7eda7a2767d}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+// camera frame size in [px]
+PROPERTY fFrameLength : LREAL]]></Declaration>
+      <Get Name="Get" Id="{4ab8378a-985e-4d80-8e6c-a9f7ff82ad8e}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{987bacc1-af9a-4b73-a338-35b5857964ea}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="fImageLength" Id="{ae757729-2e0d-4a86-999b-591085583480}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+(*Image Length/Depth in [m]*)
+PROPERTY fImageLength : LREAL
+]]></Declaration>
+      <Get Name="Get" Id="{90d2cc86-53e3-417c-8022-d8761af3687d}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{26dc12ff-f7e2-4662-90d3-2d5b71d06301}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="fImageWidth" Id="{5116007f-1478-4919-954d-3570f129ef95}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+(*Image Width in [m]*)
+PROPERTY fImageWidth : LREAL
+]]></Declaration>
+      <Get Name="Get" Id="{2dbbeab3-ee96-46f6-855f-2c15abb0300d}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{e98fbf65-18f7-4d0f-821b-ea3596667eb8}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="fSubstrateLength" Id="{f59c2eaa-8e5d-4c7c-9a60-ec6dd0984044}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+(*Substrate Length/Depth in [m]*)
+PROPERTY fSubstrateLength : LREAL]]></Declaration>
+      <Get Name="Get" Id="{5f429d22-f1dd-4451-a326-284ea07cd1e1}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{86e7e1ef-88d7-4945-a889-34f3540f2b90}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="fSubstrateWidth" Id="{a5613a03-c8ed-4e41-a5e0-7b7de8f593ef}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+(*Substrate Width in [m]*)
+PROPERTY fSubstrateWidth : LREAL]]></Declaration>
+      <Get Name="Get" Id="{3608df25-07cc-4a43-b6cc-ddd132d0371d}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{e677e67c-b315-40c9-92da-57f10790ebf4}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="fTriggerDistance" Id="{5e378ee3-01ea-408b-8ec0-29d58be5f402}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY fTriggerDistance : LREAL]]></Declaration>
+      <Get Name="Get" Id="{ea6b37ae-0d8b-4538-b635-929823bb23b4}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{ed2114b7-1296-4786-9621-c35cc0cb0345}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Method Name="GetCamStatus" Id="{3c541659-323c-4afa-8e99-f4a5b2cfccf4}">
+      <Declaration><![CDATA[(*
+  Get camera status.
+  :return: TRUE if camera is ok
+*)
+METHOD GetCamStatus : BOOL  // Camera Ok?
+VAR_OUTPUT
+  bConnectionOK  : BOOL;    // Camera connected
+  bTeachOk       : BOOL;    // Teach successful
+  nTeachedPoints : UDINT;   // Teached points for this job
+  nScannedPoints : UDINT;   // Scanned points on current CT
+  bCamStarted    : BOOL;    // Camera trigger is active, cam started
+  bCamDone       : BOOL;    // Camera finished on last CT
+  bErrors        : ARRAY[1..GVL_Camera.nC_NbCamErrors] OF BOOL;  // generic error flag list
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="mJobStart" Id="{3cedf996-fe3e-4639-82df-d5d8e29bd5a3}">
+      <Declaration><![CDATA[METHOD mJobStart : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="setCameraMode" Id="{611e73ac-5c26-448a-a158-aab1f5a999f7}">
+      <Declaration><![CDATA[(*
+  Set mode to camera.
+  :return: TRUE if success
+*)
+METHOD setCameraMode : BOOL
+VAR_INPUT
+  eCameraMode : E_CameraMode;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="setMsgInterface" Id="{3ca3b443-7ff5-4279-acb1-d1b415b2b714}">
+      <Declaration><![CDATA[METHOD setMsgInterface : BOOL
+VAR_INPUT
+  pMsgConfig  : POINTER TO ST_MSG_CONFIG;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Property Name="sName" Id="{b27c492e-856a-43d9-8d21-f666b1c91244}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY sName : STRING]]></Declaration>
+      <Get Name="Get" Id="{c0e9698b-0497-4a77-922c-33e6780157ae}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="sVisuName" Id="{4cf25fa8-247e-45ee-ac41-b644e9617dbd}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY sVisuName : STRING]]></Declaration>
+      <Get Name="Get" Id="{30ebcd2f-dd45-4e5e-91c2-c359d711c6f9}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+  </Itf>
+</TcPlcObject>

@@ -16,7 +16,7 @@
     <Implicit_Jitter_Distribution>{16d81fa0-13c7-4d29-a136-833127f063f5}</Implicit_Jitter_Distribution>
     <LibraryReferences>{ba6a19c6-5744-48f5-a170-b3a0509f6030}</LibraryReferences>
     <Released>false</Released>
-    <ProjectVersion>1.0.0.0</ProjectVersion>
+    <ProjectVersion>2.0.0</ProjectVersion>
     <Company>WIFAG-Polytype</Company>
     <Title>DMAX</Title>
     <Author>Wifag//Polytype</Author>
@@ -29,10 +29,11 @@ Fribourg/Switzerland (2021)</Description>
     <Folder Include="DUTs\Camera" />
     <Folder Include="GVLs" />
     <Folder Include="POUs" />
-    <Folder Include="POUs\Camera" />
-    <Folder Include="POUs\Print_DefGrid" />
-    <Folder Include="POUs\Print_DefGrid\_Test" />
-    <Folder Include="POUs\Print_DefGrid\_VISU_Templates" />
+    <Folder Include="POUs\Print" />
+    <Folder Include="POUs\Print\Camera" />
+    <Folder Include="POUs\Print\DefGrid" />
+    <Folder Include="POUs\Print\DefGrid\_Test" />
+    <Folder Include="POUs\Print\DefGrid\_VISU_Templates" />
     <Folder Include="Version" />
   </ItemGroup>
   <ItemGroup>
@@ -76,315 +77,315 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Camera\FB_CameraBase.TcPOU">
+    <Compile Include="POUs\Print\Camera\FB_CameraBase.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Camera\FB_CameraDummy.TcPOU">
+    <Compile Include="POUs\Print\Camera\FB_CameraDummy.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Camera\FB_CameraTcpIp.TcPOU">
+    <Compile Include="POUs\Print\Camera\FB_CameraTcpIp.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Camera\FB_CameraTrigger.TcPOU">
-      <SubType>Code</SubType>
-      <LinkAlways>true</LinkAlways>
-    </Compile>
-    <Compile Include="POUs\Camera\FB_LineCamera.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Camera\FB_LineCamera106.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Camera\FB_LineCamera76.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Camera\FB_MarkCamera.TcPOU">
+    <Compile Include="POUs\Print\Camera\FB_CameraTrigger.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Camera\FB_SystronCamera.TcPOU">
+    <Compile Include="POUs\Print\Camera\FB_LineCamera.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Print\Camera\FB_LineCamera106.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Print\Camera\FB_LineCamera76.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Print\Camera\FB_MarkCamera.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Camera\FB_TcpIpComm.TcPOU">
+    <Compile Include="POUs\Print\Camera\FB_SystronCamera.TcPOU">
+      <SubType>Code</SubType>
+      <LinkAlways>true</LinkAlways>
+    </Compile>
+    <Compile Include="POUs\Print\Camera\FB_TcpIpComm.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Camera\ImagePool.TcIPO">
+    <Compile Include="POUs\Print\Camera\ImagePool.TcIPO">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Camera\I_Camera.TcIO">
+    <Compile Include="POUs\Print\Camera\I_Camera.TcIO">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Camera\I_CameraSink.TcIO">
+    <Compile Include="POUs\Print\Camera\I_CameraSink.TcIO">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Camera\I_CameraTrigger.TcIO">
+    <Compile Include="POUs\Print\Camera\I_CameraTrigger.TcIO">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Camera\I_CameraTriggerDevice.TcIO">
+    <Compile Include="POUs\Print\Camera\I_CameraTriggerDevice.TcIO">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Camera\_VISU_LineCamera.TcVIS">
+    <Compile Include="POUs\Print\Camera\_VISU_CameraBase.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Camera\_VISU_MarkCamera.TcVIS">
+    <Compile Include="POUs\Print\Camera\_VISU_CameraBaseSetting.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Camera\_VISU_SystronCamera.TcVIS">
+    <Compile Include="POUs\Print\Camera\_VISU_CameraTcpIp.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Camera\_VISU_CameraBase.TcVIS">
+    <Compile Include="POUs\Print\Camera\_VISU_CameraTcpIpSetting.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Camera\_VISU_CameraBaseSetting.TcVIS">
+    <Compile Include="POUs\Print\Camera\_VISU_DeformationPoint.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Camera\_VISU_CameraTcpIp.TcVIS">
+    <Compile Include="POUs\Print\Camera\_VISU_LineCamera.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Camera\_VISU_CameraTcpIpSetting.TcVIS">
+    <Compile Include="POUs\Print\Camera\_VISU_MarkCamera.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Camera\_VISU_DeformationPoint.TcVIS">
+    <Compile Include="POUs\Print\Camera\_VISU_SystronCamera.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\E_DeformationStep.TcTLEO">
+    <Compile Include="POUs\Print\DefGrid\E_DeformationStep.TcTLEO">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_ContainerDefGrid.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_ContainerDefGrid.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_CTManagerDefGrid.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_CTManagerDefGrid.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_DefGridParamMediator.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_DefGridParamMediator.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_DeformationPointFIFO.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_DeformationPointFIFO.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_DropSpeedComp.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_DropSpeedComp.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_FineAlignement.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_FineAlignement.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_GridPointFIFO.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_GridPointFIFO.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_ImageDeformation.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_ImageDeformation.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_PH_Grid.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_PH_Grid.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_PH_Grid_Visu.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_PH_Grid_Visu.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_Pm_DMAX.TcPOU">
-      <SubType>Code</SubType>
-      <LinkAlways>true</LinkAlways>
-    </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_PointCorr.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_Pm_DMAX.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_PrintOverview.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_PointCorr.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_PrintPositionDmax.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_PrintOverview.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_PS_Grid.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_PrintPositionDmax.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_PythonDeformation.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_PS_Grid.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_PythonInterface.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_PythonDeformation.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_StartPositionDummy.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_PythonInterface.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_WorkerDefGrid.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_StartPositionDummy.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_WorkerDefGrid_Camera.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_WorkerDefGrid.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_WorkerDefGrid_Deformation.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_WorkerDefGrid_Camera.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_WorkerDefGrid_Delete.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_WorkerDefGrid_Deformation.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_WorkerDefGrid_Print.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_WorkerDefGrid_Delete.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_WorkerDefGrid_Python.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_WorkerDefGrid_Print.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\FB_WorkerDefGrid_Verify.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_WorkerDefGrid_Python.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\F_DecodeDeformationPoint.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_WorkerDefGrid_Verify.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\F_EncodeDeformationPoint.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\F_DecodeDeformationPoint.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\F_EncoderSpeedComp.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\F_EncodeDeformationPoint.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\F_MeterToSubPixelReal.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\F_EncoderSpeedComp.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\GVL_Deformation.TcGVL">
+    <Compile Include="POUs\Print\DefGrid\F_MeterToSubPixelReal.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\I_Correction_Grid.TcIO">
+    <Compile Include="POUs\Print\DefGrid\GVL_Deformation.TcGVL">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\ST_CameraGridSettings.TcDUT">
+    <Compile Include="POUs\Print\DefGrid\I_Correction_Grid.TcIO">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\ST_CameraPointTbl.TcDUT">
+    <Compile Include="POUs\Print\DefGrid\ST_CameraGridSettings.TcDUT">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\ST_DefGridSettings.TcDUT">
+    <Compile Include="POUs\Print\DefGrid\ST_CameraPointTbl.TcDUT">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\ST_DeformationPoint.TcDUT">
+    <Compile Include="POUs\Print\DefGrid\ST_DefGridSettings.TcDUT">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\ST_DeformationPointAccurate.TcDUT">
+    <Compile Include="POUs\Print\DefGrid\ST_DeformationPoint.TcDUT">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\ST_DeformationPointTbl.TcDUT">
+    <Compile Include="POUs\Print\DefGrid\ST_DeformationPointAccurate.TcDUT">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\ST_GridPoint.TcDUT">
+    <Compile Include="POUs\Print\DefGrid\ST_DeformationPointTbl.TcDUT">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\VISU_PH_Grid.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\ST_GridPoint.TcDUT">
+      <SubType>Code</SubType>
+      <LinkAlways>true</LinkAlways>
+    </Compile>
+    <Compile Include="POUs\Print\DefGrid\VISU_PH_Grid.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_ContainerDefGrid.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_ContainerDefGrid.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_CTsFlow.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_CTsFlow.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_DefGridTable.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_DefGridTable.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_GridPointView.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_GridPointView.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_ImageDeformation.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_ImageDeformation.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_PH_Grid.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_PH_Grid.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_PlacementXY.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_PlacementXY.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_PlacementXY_cross.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_PlacementXY_cross.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_PrintPositionDmax.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_PrintPositionDmax.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_StartPositionDummy.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_StartPositionDummy.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_WorkerDefGrid.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_WorkerDefGrid.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_WorkerDefGrid_Camera.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_WorkerDefGrid_Camera.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_WorkerDefGrid_Deformation.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_WorkerDefGrid_Deformation.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_WorkerDefGrid_Delete.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_WorkerDefGrid_Delete.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_WorkerDefGrid_Print.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_WorkerDefGrid_Print.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_WorkerDefGrid_Python.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_WorkerDefGrid_Python.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_WorkerDefGrid_small.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_WorkerDefGrid_small.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print_DefGrid\_VISU_Templates\_VISU_WorkerDefGrid_Verify.TcVIS">
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_WorkerDefGrid_Verify.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
@@ -396,17 +397,8 @@ Fribourg/Switzerland (2021)</Description>
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <SubObject Include="FB_CameraBase.GetCamState">
-      <ExcludeFromBuild>true</ExcludeFromBuild>
-    </SubObject>
-    <SubObject Include="FB_CameraTrigger.Reset" />
-    <SubObject Include="FB_Pm_DMAX.CT_Create" />
-    <SubObject Include="FB_Pm_DMAX.CT_Finish" />
-    <SubObject Include="FB_Pm_DMAX.CT_Produce" />
-    <SubObject Include="FB_Pm_DMAX.init" />
-    <SubObject Include="FB_PrintPositionDmax.test_OldPhMaster">
-      <ExcludeFromBuild>true</ExcludeFromBuild>
-    </SubObject>
+    <SubObject Include="FB_CameraBase.GetCamState" />
+    <SubObject Include="FB_PrintPositionDmax.test_OldPhMaster" />
   </ItemGroup>
   <ItemGroup>
     <PlaceholderReference Include="CalmarCommons">

@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <Itf Name="I_CameraTrigger" Id="{f6fe8ade-a673-4752-bf0e-75204e35586e}">
+    <Declaration><![CDATA[INTERFACE I_CameraTrigger
+]]></Declaration>
+    <Property Name="bManualTeach" Id="{8942bb4d-7fff-41ae-ac26-d17ba5c7fbdf}">
+      <Declaration><![CDATA[PROPERTY bManualTeach : BOOL]]></Declaration>
+      <Get Name="Get" Id="{8c81c400-0024-4392-bfc2-d99583283fa8}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{a8da1527-8cae-4301-bfc8-4b291e250ce3}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Method Name="Disable" Id="{6a65cf87-febc-4278-ae44-588cfcf44fb3}">
+      <Declaration><![CDATA[METHOD Disable : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="Enable" Id="{c875cfd7-7141-43f7-956d-6cca7d115346}">
+      <Declaration><![CDATA[METHOD Enable : BOOL
+VAR_INPUT
+  iCam : I_CameraTriggerDevice;
+  bUseCameraTrigger : BOOL; //Generate camera trigger
+  bUseCameraTriggerFeedback : BOOL; //Use feedback as trigger?
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="SetSubstrateLength" Id="{4349c25c-da43-4d50-ae9f-8805cdce4f75}">
+      <Declaration><![CDATA[METHOD SetSubstrateLength
+VAR_INPUT
+  fSubstrateLength : LREAL;
+END_VAR
+]]></Declaration>
+    </Method>
+  </Itf>
+</TcPlcObject>

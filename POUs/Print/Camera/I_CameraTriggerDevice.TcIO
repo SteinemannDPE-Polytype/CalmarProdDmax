@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <Itf Name="I_CameraTriggerDevice" Id="{e67ddc26-9f69-469c-859c-41db6fb7e18e}">
+    <Declaration><![CDATA[INTERFACE I_CameraTriggerDevice
+]]></Declaration>
+    <Method Name="CamTrigger" Id="{bfb43fb4-e294-436f-892b-cf8161aa62be}">
+      <Declaration><![CDATA[METHOD CamTrigger
+VAR_INPUT
+  bOk             : BOOL;     // trigger is ok
+	nPos            : DINT;     // camera triggered position
+  nPosDeviation   : DINT;     // camera started deviation
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="CamTriggerDone" Id="{65c05da4-1aa0-43df-97a3-270a72a0213e}">
+      <Declaration><![CDATA[METHOD CamTriggerDone
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Property Name="fTriggerDistance" Id="{889a1bd6-793d-40ef-9eac-cf89e5deb750}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY fTriggerDistance : LREAL]]></Declaration>
+      <Get Name="Get" Id="{69c8c39a-a25b-4415-8e2a-7b293277acc1}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="fTriggerPulseLength" Id="{06d2ff07-4e6b-45b1-98f4-bbb862827a93}">
+      <Declaration><![CDATA[PROPERTY fTriggerPulseLength : LREAL]]></Declaration>
+      <Get Name="Get" Id="{6a7d7594-5271-4891-a01d-50c330f05d77}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+  </Itf>
+</TcPlcObject>

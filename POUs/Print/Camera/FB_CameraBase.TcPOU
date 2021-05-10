@@ -1,0 +1,670 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_CameraBase" Id="{c8d0ba07-7a01-4a8a-a6e6-67ad2b34ba59}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  Base camera system
+  Implements I_Camera: set I_CameraSink.   
+*)
+FUNCTION_BLOCK ABSTRACT FB_CameraBase EXTENDS FB_Commons IMPLEMENTS I_Camera, I_CameraTriggerDevice
+
+VAR
+  _bInitialized             : BOOL;
+  _iCameraSink              : I_CameraSink;
+  _iCameraTrigger           : I_CameraTrigger;
+  _bSimulate                : BOOL;
+  _nPrintUnitResolution     : UDINT;           (*printhead pixel resolution [dpi]*)
+  _nPrintUnitSubPx          : UDINT;           (*print unit SubPixel resolution [SubPx]*)
+  _bUseCameraTrigger        : BOOL;            (*use a trigger output timestamp I/O*)
+  _bUseCameraTriggerFeedback : BOOL;           (*use a camera triggered feedback timestamp I/O*)
+  _eCameraMode              : E_CameraMode;    (*desired camera mode*)
+  _ePossibleMode            : E_CameraMode;    (*currently possible mode*)
+  _fSubstrateLength         : LREAL := 1;      (*Substrate length [m]*)
+  _fSubstrateWidth          : LREAL := 1;      (*Substrate width [m]*)
+  _fImageLength             : LREAL := 1;      (*Image length [m]*)
+  _fImageWidth              : LREAL := 1;      (*Image width [m]*)
+  _fFrameLength             : LREAL := 1;      (*Camera Frame width in [px]*)
+  _bActivated               : BOOL;
+  _sVisuName                : STRING := 'unvailable';     (*detail visualisation instance name*)
+  _nRxCamPoints             : UDINT;                      (*number of received cam points*)
+  stCamPoint                : ST_DeformationPointAccurate;(*actual camera point*)
+  
+  _bCamTriggerOk            : BOOL;
+  _bCamStarted              : BOOL;
+  _bCamDone                 : BOOL;   
+  _nCamStartPos             : DINT;    //Cam start position ideal [SubPx]
+  _nCamStartPosDeviation    : DINT;    //Cam stated position real [SubPx]
+  
+  // messaging
+  _pMsgConfig               : POINTER TO CalmarCommons.ST_MSG_CONFIG;
+END_VAR
+
+VAR PERSISTENT
+  _fTriggerDistance         : LREAL;           (*Distance between Sensor and Trigger [m]*)
+  _fTriggerPulseLength      : LREAL := 10;     (*Length of trigger signal in ms, min. 3 bus cycles*)
+  _fDetectToCameraOffset    : LREAL := 0.1;    (*Distance between innput trigger and camera, mech.*)
+  _fCameraToPrintOffset     : LREAL := 0.0;    (*Distance between Camera and PU, mech, This offset can be used to shift the reference of a camera/sheet-detect, e.g. because this reference is different from to one where the alignment Camera/sheetdetect-PrintUnit has been made*)
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="ActivateCam" Id="{33bd772a-5b9c-4915-8a51-eb63f24d6151}">
+      <Declaration><![CDATA[METHOD ActivateCam : BOOL
+VAR_INPUT
+  iCameraSink : I_CameraSink;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF iCameraSink = 0 THEN
+  LogError('Invalid parameter (0 pointer)');
+  ActivateCam := FALSE;
+  RETURN; 
+ELSIF _iCameraSink <> 0 AND iCameraSink <>_iCameraSink THEN
+  LogError('SetSink failed: other sink already exists');
+  ActivateCam := FALSE;
+  RETURN; 
+END_IF 
+
+_iCameraSink := iCameraSink;
+_iCameraTrigger.Enable(iCam := THIS^,bUseCameraTrigger:= _bUseCameraTrigger, bUseCameraTriggerFeedback:=_bUseCameraTriggerFeedback);
+
+_bActivated := TRUE;
+ActivateCam:=TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="bEnableTrigger" Id="{6c3ea2f9-cfbd-47bf-bc73-a8a64d85f37d}">
+      <Declaration><![CDATA[(*
+  Activate/Deactivate camera trigger device
+*)
+PROPERTY bEnableTrigger : BOOL
+]]></Declaration>
+      <Set Name="Set" Id="{bbe0ae21-ba88-43e7-9f3b-fcb04895ed56}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IF bEnableTrigger THEN
+  _iCameraTrigger.Enable(iCam := THIS^, bUseCameraTrigger:= _bUseCameraTrigger, bUseCameraTriggerFeedback:=_bUseCameraTriggerFeedback);
+ELSE
+  _iCameraTrigger.Disable();
+END_IF]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="bManualTeach" Id="{2054d80c-383b-481d-81a0-644a14a4d5ad}">
+      <Declaration><![CDATA[(*
+  Activate/Deactivate camera manual teach mode
+*)
+PROPERTY bManualTeach : BOOL
+]]></Declaration>
+      <Set Name="Set" Id="{72a37891-564f-4755-9c41-477a2aec5de7}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_iCameraTrigger.bManualTeach := bManualTeach;
+]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="bSimulate" Id="{e9ee4826-75da-4464-912c-d630e20ef560}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY bSimulate : BOOL]]></Declaration>
+      <Get Name="Get" Id="{5d6a4cfc-736a-4062-b9b1-3d95adb4a395}">
+        <Declaration><![CDATA[
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bSimulate := _bSimulate;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{32912b04-adf6-4d7b-9254-2821b8d2a7c1}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bSimulate := bSimulate;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="CamTrigger" Id="{c9e54620-5e47-4477-89e1-0544e896af19}">
+      <Declaration><![CDATA[METHOD CamTrigger
+VAR_INPUT
+  bOk             : BOOL;     // trigger is ok
+	nPos            : DINT;     // camera triggered position
+  nPosDeviation   : DINT;     // camera started deviation
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_nRxCamPoints := 0;
+_bCamStarted    := TRUE;
+_bCamDone       := FALSE;
+_bCamTriggerOk  := bOk;
+_nCamStartPos   := nPos;
+_nCamStartPosDeviation := nPosDeviation;
+
+IF _iCameraSink <> 0 THEN   // link to sink (wokerCam -> CT)
+  ;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CamTriggerDone" Id="{fb8288bc-dd74-44a9-91c5-11369148a052}">
+      <Declaration><![CDATA[METHOD CamTriggerDone
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_bCamStarted    := FALSE;  // this call marks the end of the camera trigger period
+_bCamDone       := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="DeactivateCam" Id="{a856b950-c2e0-49b9-8c57-589d4c82956d}">
+      <Declaration><![CDATA[METHOD DeactivateCam : BOOL
+VAR_INPUT
+  iSink : I_CameraSink;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _iCameraSink <> 0 AND iSink <> _iCameraSink THEN
+  LogError('remove sink failed: inconsistent');
+  DeactivateCam := FALSE;
+  RETURN;  
+END_IF
+
+_iCameraSink := 0;
+_iCameraTrigger.Disable();
+_bActivated := FALSE;
+DeactivateCam:=TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="eCameraMode" Id="{f5419f48-5fc8-416b-8961-a5ce5b9602fd}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY ABSTRACT eCameraMode : E_CameraMode
+]]></Declaration>
+      <Get Name="Get" Id="{e50c4622-1529-42ce-9864-e7bbd5630b93}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="eDeviceType" Id="{e06b0a89-0a7d-44c8-b80b-26b03709e855}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY ABSTRACT eDeviceType : E_CameraDevice]]></Declaration>
+      <Get Name="Get" Id="{4535ca3f-08e0-404b-a416-d770bd58b89d}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="fCameraToPrintOffset" Id="{647ab733-132a-4564-bd69-e5da7fa48f0a}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY fCameraToPrintOffset : LREAL
+]]></Declaration>
+      <Get Name="Get" Id="{67bad6d0-ab04-4bad-b252-a2f64eada85b}">
+        <Declaration><![CDATA[
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[//This offset can be used to shift the reference of a camera, e.g. because this reference is different from to one where the alignment Camera-PrintUnit has been made
+fCameraToPrintOffset := _fCameraToPrintOffset;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{ea33a1ea-98bd-47ee-b76a-a75a4408b9a1}">
+        <Declaration><![CDATA[
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fCameraToPrintOffset := fCameraToPrintOffset;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="fDetectToCameraOffset" Id="{89fc0a6f-2777-4714-88ac-113ce4abeb84}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY fDetectToCameraOffset : LREAL
+]]></Declaration>
+      <Get Name="Get" Id="{e3787fc9-30f7-42cf-b306-3975c5cbd8b8}">
+        <Declaration><![CDATA[
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[//This offset can be used to shift the reference of a camera, e.g. because this reference is different from to one where the alignment Camera-PrintUnit has been made
+fDetectToCameraOffset := _fDetectToCameraOffset;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{740e8823-2efa-4a58-ae83-960d5a7f5db9}">
+        <Declaration><![CDATA[
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fDetectToCameraOffset := fDetectToCameraOffset;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="fFrameLength" Id="{55652209-4cfa-4d5c-8c70-1bd64353e2e4}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+(* camera frame size in [px]*)
+PROPERTY fFrameLength : LREAL
+]]></Declaration>
+      <Get Name="Get" Id="{664c74cd-4f7a-4a03-a1fb-8dff67b52e22}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fFrameLength := _fFrameLength;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{9f909ab3-375b-462c-9f8e-e0d7df2240e3}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fFrameLength := fFrameLength;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="fImageLength" Id="{83396a01-ff57-47f5-8330-5d4582f2e532}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+(*Image Length/Depth in [m]*)
+PROPERTY fImageLength : LREAL
+]]></Declaration>
+      <Get Name="Get" Id="{273d71c6-79db-422f-a816-cb0eef0830fd}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fImageLength := _fImageLength;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{5eb28392-15c5-4f4b-9354-0f59ab739f0b}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fImageLength := fImageLength;
+]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="fImageWidth" Id="{88b7930b-57bc-4faf-a474-18efec119cfa}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+(*Image Width in [m]*)
+PROPERTY fImageWidth : LREAL
+]]></Declaration>
+      <Get Name="Get" Id="{12c106de-03d0-4cc7-a0ed-77fb0f695b9c}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fImageWidth := _fImageWidth;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{e21ca4b4-1e59-4cf3-84cc-bd5e7742a89b}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fImageWidth := fImageWidth;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="fSubstrateLength" Id="{edd4de7d-1d9c-4eb7-ac9b-28669eaf5cd9}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+(*Substrate Length/Depth in [m]*)
+PROPERTY fSubstrateLength : LREAL
+]]></Declaration>
+      <Get Name="Get" Id="{0ce2f61e-5346-4c66-9a9a-ec3019d4225b}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fSubstrateLength := _fSubstrateLength;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{043cee20-d35c-4c57-80be-2c160ef2d590}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[//ROI in Print direction
+IF _iCameraTrigger <> 0 THEN
+  _iCameraTrigger.SetSubstrateLength(fSubstrateLength := fSubstrateLength);   // save to camera trigger
+  _fSubstrateLength := fSubstrateLength;                                      // save to camera
+END_IF]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="fSubstrateWidth" Id="{20d2452f-aba8-4817-97e6-fc10e49a2ccd}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+(*Substrate Width in [m]*)
+PROPERTY fSubstrateWidth : LREAL
+]]></Declaration>
+      <Get Name="Get" Id="{0512c051-81ec-41c8-87a5-d2d408ae517d}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fSubstrateWidth := _fSubstrateWidth;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{38fbbb3f-66ed-4862-925f-d05ec848f4f7}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fSubstrateWidth := fSubstrateWidth;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="fTriggerDistance" Id="{4240e2de-52fb-4d48-a252-b6d6fe271b86}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY fTriggerDistance : LREAL
+]]></Declaration>
+      <Get Name="Get" Id="{eca96f48-5f88-41ff-ab23-f3d7cf5ba488}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fTriggerDistance := _fTriggerDistance;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{90087f81-8f35-46b4-8d51-6cd9020bbc07}">
+        <Declaration><![CDATA[
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fTriggerDistance := fTriggerDistance;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="fTriggerPulseLength" Id="{79315dcf-a401-4f0f-bd02-92222f94165e}">
+      <Declaration><![CDATA[PROPERTY fTriggerPulseLength : LREAL
+]]></Declaration>
+      <Get Name="Get" Id="{f5cab0bd-a79c-444f-92aa-3659fc98aa58}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fTriggerPulseLength := _fTriggerPulseLength;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="GetCamState" Id="{b831b968-37d2-485d-a924-64f42a25c439}">
+      <Declaration><![CDATA[METHOD ABSTRACT GetCamState : BOOL
+VAR_OUTPUT
+  bCamModeNotSupported  : BOOL;   // desired camera mode not supported
+  bCam
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetCamStatus" Id="{c732e507-4da9-4243-818b-ad4dce66447e}">
+      <Declaration><![CDATA[METHOD ABSTRACT GetCamStatus : BOOL
+VAR_OUTPUT
+  bConnectionOK  : BOOL;    // Camera connected
+  bTeachOk       : BOOL;    // Teach successful
+  nTeachedPoints : UDINT;   // Teached points for this job
+  nScannedPoints : UDINT;   // Scanned points on current sheet  
+  bCamStarted    : BOOL;    // Camera trigger is active, cam started
+  bCamDone       : BOOL;    // Camera finished on last CT
+  bErrors        : ARRAY[1..GVL_Camera.nC_NbCamErrors] OF BOOL;  // generic error flag list
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Init" Id="{f813a140-cfef-4675-8913-e7f23b490790}">
+      <Declaration><![CDATA[METHOD Init
+VAR_INPUT
+  nPrintUnitResolution         : UDINT;    (*printhead pixel resolution [dpi]*)
+  nPrintUnitSubPx              : UDINT;    (*print unit subPixel resolution [SubPx]*)
+  iCameraTrigger               : I_CameraTrigger;
+  bUseCameraTrigger            : BOOL;     (*use a trigger output timestamp I/O*)
+  bUseCameraTriggerFeedback    : BOOL;     (*use a camera triggered feedback timestamp I/O*)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nPrintUnitResolution <> 0 AND iCameraTrigger <> 0 THEN
+  _nPrintUnitResolution := nPrintUnitResolution;
+  _nPrintUnitSubPx      := nPrintUnitSubPx;
+  _iCameraTrigger       := iCameraTrigger;
+  
+  _bUseCameraTrigger := bUseCameraTrigger;
+  _bUseCameraTriggerFeedback := bUseCameraTriggerFeedback;
+  
+  _bInitialized := TRUE;
+ELSE
+  _bInitialized := FALSE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mJobStart" Id="{16387540-3352-4e72-abbe-1245d8a82836}">
+      <Declaration><![CDATA[METHOD mJobStart : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="setCameraMode" Id="{2d256e38-1ffa-4b78-a49c-ca9ba5c3a6e0}">
+      <Declaration><![CDATA[(*
+  Set mode to camera.
+  :return: TRUE if success
+*)
+METHOD ABSTRACT setCameraMode : BOOL
+VAR_INPUT
+  eCameraMode : E_CameraMode;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="setMsgInterface" Id="{4471ab02-28c1-4479-bc78-7216b66d17b1}">
+      <Declaration><![CDATA[METHOD setMsgInterface : BOOL
+VAR_INPUT
+	pMsgConfig	: POINTER TO CalmarCommons.ST_MSG_CONFIG;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_pMsgConfig := pMsgConfig;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="sName" Id="{477fe687-ffdf-4b57-bd1b-23b6c93d23f9}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY sName : STRING
+]]></Declaration>
+      <Get Name="Get" Id="{17fb1c31-7fee-4e3f-a38c-fe9d48801f9d}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sName := 'undefined';]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="sVisuName" Id="{5c77c27a-8f50-4d5a-9d47-f1d79a5105d5}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY sVisuName : STRING]]></Declaration>
+      <Get Name="Get" Id="{99122080-ac83-4afd-8b42-8dfb79d502fb}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sVisuName := _sVisuName;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{8f1fff78-d709-4059-8cf2-bb1e890a20a6}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_sVisuName := sVisuName;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <LineIds Name="FB_CameraBase">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.ActivateCam">
+      <LineId Id="10" Count="1" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="4" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="20" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.bEnableTrigger.Set">
+      <LineId Id="7" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="8" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.bManualTeach.Set">
+      <LineId Id="9" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.bSimulate.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.bSimulate.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.CamTrigger">
+      <LineId Id="21" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="32" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.CamTriggerDone">
+      <LineId Id="4" Count="0" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.DeactivateCam">
+      <LineId Id="7" Count="7" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="15" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.eCameraMode.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.eDeviceType.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.fCameraToPrintOffset.Get">
+      <LineId Id="6" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.fCameraToPrintOffset.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.fDetectToCameraOffset.Get">
+      <LineId Id="6" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.fDetectToCameraOffset.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.fFrameLength.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.fFrameLength.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.fImageLength.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.fImageLength.Set">
+      <LineId Id="6" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.fImageWidth.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.fImageWidth.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.fSubstrateLength.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.fSubstrateLength.Set">
+      <LineId Id="5" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.fSubstrateWidth.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.fSubstrateWidth.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.fTriggerDistance.Get">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.fTriggerDistance.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.fTriggerPulseLength.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.GetCamState">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.GetCamStatus">
+      <LineId Id="13" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.Init">
+      <LineId Id="25" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="34" Count="1" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="26" Count="2" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.mJobStart">
+      <LineId Id="4" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.setCameraMode">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.setMsgInterface">
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.sName.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.sVisuName.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CameraBase.sVisuName.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
