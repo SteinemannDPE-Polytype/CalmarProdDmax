@@ -1,0 +1,506 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_Pm_DMAX" Id="{ded3af19-1c0f-43ae-bbea-9b910b5389fa}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  Managing a production on a DigiRound machine.
+*)
+FUNCTION_BLOCK FB_Pm_DMAX EXTENDS FB_BasePrint IMPLEMENTS I_PrintStatusClient
+VAR
+ //references
+  _pPU                : POINTER TO FB_PU;               (*PU reference*)
+  _pAdsPU             : POINTER TO ST_ADS_PU;
+  
+  //settings
+  _defaultPrintData   : ST_PRINT_SETTING;               (*default PDI data if no CT present*)
+  _isVarData          : BOOL; 
+
+  //status
+  bPmActive           : BOOL;                           (*a production is active*)
+  rfTrig_PmActive     : RF_TRIG;
+  lastCreatedCT       : I_CT;                           (*last created container*)
+
+  (*lists*)
+  (*--list implementations*)
+  prodList            : FB_ListPointerDyn;              (*list fb [pointer to I_CT] - current production elements*)
+  _prodMem            : ARRAY[1..lNUM_LIST_SIZE] OF PVOID;   (*list memory for prodList*)
+  (*--job trace list*)
+  _currJobId          : STRING;                         (*id of current started job*)
+
+  (*internals*)
+  _pEcSrc : POINTER TO T_ErrSrc;                                    (*error source definition*)
+
+END_VAR
+VAR CONSTANT
+  lNUM_LIST_SIZE        : DINT := iCPr_MAX_CONTAINER;   (*number of max. list elements*)
+  // other logs
+  aC_Dbg_NotReject      : STRING := 'could not rejectNext CT';
+  aC_Dbg_InvPtrCT       : STRING := 'invalid pO_ContainerHead';
+  aC_Dbg_InvPtrJob      : STRING := 'invalid Job pointer';
+  aC_Ddb_GetNext        : STRING := 'getNext from: ';  
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT bInitialized THEN RETURN; END_IF  // ignore
+
+rfTrig_PmActive(CLK:=bPmActive);]]></ST>
+    </Implementation>
+    <Method Name="abortJob" Id="{e7b0b8e7-bea6-476d-a854-929acdccc5fe}">
+      <Declaration><![CDATA[(*
+  Job was stopped. 
+  :return: TRUE if some elements were aborted in machine.
+*)
+METHOD PRIVATE abortJob : BOOL
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// a job stopped.
+
+// NOTE: not implemented
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="bReady" Id="{e0a03d95-7c5f-4756-a4c7-db6451047a28}">
+      <Declaration><![CDATA[PROPERTY bReady : BOOL]]></Declaration>
+      <Get Name="Get" Id="{1a307eee-0ea6-4ec5-9039-0ef8b0e6ef3d}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bReady := bPmActive;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bStarted" Id="{7c0fae33-4bef-4ecf-8dec-a79b7a926ba8}">
+      <Declaration><![CDATA[PROPERTY bStarted : BOOL]]></Declaration>
+      <Get Name="Get" Id="{c0c7f381-648e-40d1-9b20-25a61a936d71}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bStarted := rfTrig_PmActive.RT;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bStopped" Id="{5264bbe5-2277-4b4d-8240-49acf02f844c}">
+      <Declaration><![CDATA[PROPERTY bStopped : BOOL]]></Declaration>
+      <Get Name="Get" Id="{f9659215-4887-4f54-a8d2-5ced01c25589}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bStopped := rfTrig_PmActive.FT;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="CT_Create" Id="{cfae3726-f5fa-4e02-87b3-782df27cdfaa}">
+      <Declaration><![CDATA[(*
+Create/Build a new container (CT) with next page to be printed.
+*)
+METHOD CT_Create : BOOL
+VAR_INPUT
+  sCT            : I_CT;                  // container to produce
+END_VAR
+VAR 
+  _created       : BOOL := FALSE;
+  sPage          : ST_PrintPageDef;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// prepare & checks
+lastCreatedCT := 0;                      // invalidate last created
+IF NOT bInitialized THEN RETURN; END_IF
+IF sCT = 0 THEN LogError(aC_Dbg_InvPtrCT); RETURN; END_IF
+
+(* getNext CT *)
+IF getNext(sCT := sCT) THEN
+  
+  // define printer output
+  sPage := sCT.sPageDef;
+  IF    sPage.lType = EN_PrintPageType.maintenance THEN // - maintenance
+    sCT.pCT^.lPrOutput := EN_PrinterOutput.trash;     // -> eject trash
+  ELSIF sPage.lType = EN_PrintPageType.production OR   // - production
+        sPage.lSrc = EN_PrintPageSrc.overprod OR       // - over-production
+        sPage.lType = EN_PrintPageType.separator THEN  // - separator 
+    sCT.pCT^.lPrOutput := EN_PrinterOutput.prod;      // -> production output
+  ELSE                                                // - rest
+    sCT.pCT^.lPrOutput := EN_PrinterOutput.trash;     // -> eject trash
+  END_IF
+
+  lastCreatedCT := sCT;                // successfully produced a CT, store last created CT (necessary for async access within this cycle)
+  sCT.pCT^.bCreated := TRUE;
+  _created := TRUE;
+ELSE
+  sCT.setError(EC_Print.ecPMInvGetNext, Src:=_pEcSrc^);   // getNext error
+END_IF
+
+(* logging *)
+LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=CONCAT('create CT: ', sCT.print(0)));
+
+(*return value*)
+CT_Create := _created;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CT_Finish" Id="{48660110-43aa-4a28-ada8-4734591eb4a3}">
+      <Declaration><![CDATA[METHOD CT_Finish : BOOL
+VAR_INPUT
+  sCT            : I_CT;               // container to produce
+  bSuccess       : BOOL;               // printed OK?
+END_VAR
+VAR
+  bErr           : BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* checks *)
+IF NOT bInitialized THEN RETURN; END_IF                             // exit if no production is active
+IF sCT = 0 THEN LogError(aC_Dbg_InvPtrCT); RETURN; END_IF  // log invalid pointer 
+
+// remove from production list
+IF NOT prodList.RemoveIndex(prodList.FindIndex(sCT.instance)) THEN
+  LogError('CT_Finish: could not find CT in prodList'); 
+END_IF
+
+// tag machine errors on CT
+IF sCT.pCT^.bValid AND NOT bSuccess THEN  
+    sCT.setError(EC_Print.ecPMCTMachineErr, Src:=_pEcSrc^);            // tag CT with: error from machine 
+END_IF
+
+// report page done to PU
+IF NOT sCT.pCT^.bReported AND sCT.pJob <> 0 THEN
+  IF _pPU^.endPage(sCT:=sCT, bSuccess:=bSuccess) THEN
+    ;
+  ELSE
+    sCT.setError(EC_Print.ecPMInvSet, Src:=_pEcSrc^);
+  END_IF
+END_IF
+
+(* logging *)
+IF bSuccess THEN
+  LogLvl(Lvl:=E_LogSeverity.Detail, Msg:=CONCAT('successCT: ', sCT.print(0)));
+ELSE
+  LogLvl(Lvl:=E_LogSeverity.Detail, Msg:=CONCAT('eject  CT: ', sCT.print(0)));  
+END_IF
+
+(* return value *)
+CT_Finish := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CT_Produce" Id="{79170766-8f0d-492b-9bd5-31d495803a1a}">
+      <Declaration><![CDATA[(*
+  Finalize/Produce a CT. Now we shouldhave all necessary information for configuring the CT.
+*)
+METHOD CT_Produce : BOOL
+VAR_INPUT
+  sCT                 : I_CT;               // container to produce
+END_VAR
+VAR
+  _produced           : BOOL := FALSE;
+  sPage               : ST_PrintPageDef;
+  bPresent            : BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* parameter checks *)
+IF NOT bInitialized THEN RETURN; END_IF
+IF sCT = 0 THEN LogError(aC_Dbg_InvPtrCT); RETURN; END_IF
+
+sCT.pCT^.bValid           := TRUE;                (* we have all data - CT is valid configured*)
+
+// reject page if no container present or overproduction
+sPage := sCT.sPageDef;
+bPresent := sCT.pCT^.bProductPresent;
+IF NOT bPresent AND sPage.lSrc <> EN_PrintPageSrc.overprod  THEN
+  (*   add it to rejected queue (high prio reproduction), we will try to produce this CT in next cycle*)
+  IF NOT _pPU^.rejPage(sCT:=sCT) THEN
+    LogLvl(Lvl:=E_LogSeverity.Info, aC_Dbg_NotReject);
+  END_IF
+END_IF
+
+(* logging *)
+IF bPresent THEN LogLvl(Lvl:=E_LogSeverity.Detail,  Msg:=CONCAT('produceCT: ', sCT.print(0)));
+            ELSE LogLvl(Lvl:=E_LogSeverity.Debug,   Msg:=CONCAT('produceCT: ', sCT.print(0))); END_IF
+
+(* return value*)
+CT_Produce := _produced; ]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="defaultPrData" Id="{d4ff3b2c-d300-4dce-9194-b58268f6b2c8}">
+      <Declaration><![CDATA[PROPERTY defaultPrData : ST_PRINT_SETTING]]></Declaration>
+      <Get Name="Get" Id="{2b1bfc3b-d8a9-4f2e-90bd-d918b2718f36}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[defaultPrData := _defaultPrintData;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="dynAddPage" Id="{de2d8972-ac34-45f3-bf1d-8e972539df15}">
+      <Declaration><![CDATA[METHOD PRIVATE dynAddPage : BOOL
+VAR_INPUT
+  lType     : EN_PrintPageType; 
+  lPageNr   : UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _pPU = 0 THEN F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); RETURN; END_IF
+IF lType <> EN_PrintPageType.maintenance THEN
+  LogError('dynAddPage: only supports maintenance pages'); 
+END_IF
+
+_pPU^.addPage(lMaintPageNr:=lPageNr);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="getNext" Id="{c716673d-cf8a-48fe-999c-d5d79147e5fe}">
+      <Declaration><![CDATA[(*
+  get next page to be printed.
+  :return:    TRUE if success.
+*)
+METHOD PRIVATE getNext : BOOL               (*get next image to be printed*)
+VAR_INPUT
+  sCT               : I_CT;                 (*container handle*)
+END_VAR
+VAR
+  bErr              : BOOL;
+  lRemainingPages   : UDINT;
+END_VAR
+VAR_INST
+  rTrig_PreStop     : R_TRIG;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bInitialized THEN RETURN; END_IF                    (* Exit if no production is active*)
+
+// ask pu for a next page
+bErr := NOT _pPU^.getPage(sCT:=sCT, lPagesLeft=>lRemainingPages);
+
+// add to producing list
+IF NOT prodList.AddItem(Item := sCT.instance) THEN 
+  LogError('getNext: could not add CT to prodList');
+  bErr := TRUE;
+END_IF
+
+getNext := NOT bErr;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="init" Id="{4fd111ef-fb9a-40a3-94de-9cee9fd4eb05}">
+      <Declaration><![CDATA[METHOD init : BOOL
+VAR_INPUT
+  pPU     : POINTER TO FB_PU;
+  pAdsPU  : POINTER TO ST_ADS_PU;
+  // machine specific
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// parameter checks
+IF pPU = 0 OR pAdsPU = 0 THEN
+  F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer);
+  RETURN;
+END_IF
+
+// register external references
+_pPU := pPU;
+_pAdsPU := pAdsPU;
+
+// init lists
+prodList(List:=_prodMem);  // initial call for list setup and init
+prodList.Clear();
+
+// init error source
+_pEcSrc := ErrorCodes.fbErrCodeMngr.registerErrSource(
+  nLocId:=0, 
+  aInstPath:=InstanceName, 
+  aLocDescr:='PrintManager DMAX'
+);
+IF _pEcSrc = 0 THEN LogError('could not register error source'); END_IF
+
+//reset setates
+bPmActive := FALSE;
+lastCreatedCT := 0;
+
+bInitialized := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="JobFinished" Id="{44e5f435-dba6-4bd8-af19-495cef403d0e}">
+      <Declaration><![CDATA[METHOD JobFinished : BOOL
+VAR_INPUT
+  aSeparatorId   : STRING;
+END_VAR
+VAR
+  pHandling      : POINTER TO ST_JobHandling;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Job Handling -----------------------
+
+// NOTE: nothing implemented for now]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="lastCreated" Id="{a3ab9eb1-04ba-45d9-a64e-2637ea8a4415}">
+      <Declaration><![CDATA[PROPERTY lastCreated : I_CT]]></Declaration>
+      <Get Name="Get" Id="{5aaf8360-3116-4008-9715-6093f500b8c9}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[lastCreated := lastCreatedCT;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="mJobStart" Id="{c39754c8-8852-498e-914a-4153cd085596}">
+      <Declaration><![CDATA[METHOD mJobStart
+VAR_INPUT
+	sJobDef	: I_JobDefinition;
+END_VAR
+VAR
+  lCt     : UDINT;
+  sHandling : ST_JobHandling;
+  pHandling : POINTER TO ST_JobHandling;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bInitialized THEN RETURN; END_IF
+IF sJobDef = 0 THEN RETURN; END_IF
+
+// start job 
+LogLvl(lvl:=E_LogSeverity.Detail, Msg:=F_Concat5('PM start job: ', sJobDef.aJobId, ' (', sJobDef.aJobName, ')'));
+
+// setup PrintManager with new job
+_currJobId := sJobDef.aJobId;
+_isVarData := sJobDef.isVarData();
+
+// -- init last created
+lastCreatedCT := 0;
+
+// -- init defaultPrintData (TODO: not sure why we really need this)
+MEMSET(ADR(_defaultPrintData), 0, SIZEOF(_defaultPrintData));   // reset default data
+
+// -- add pre-production pages (product specific) -> maintenance pages
+(*FOR lCt := 1 TO lStartEject DO 
+  dynAddPage(lType:=EN_PrintPageType.maintenance, 1);
+END_FOR*)
+
+bPmActive := TRUE;
+
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mJobStop" Id="{4e66d9c9-cbc8-4029-b2bc-ecfd2707f3e7}">
+      <Declaration><![CDATA[METHOD mJobStop
+VAR_INPUT
+	sStatus	: I_JobStatus;
+END_VAR
+VAR
+  eHandlingState  : EN_JobHandlingState;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bInitialized THEN RETURN; END_IF
+
+(*Stop job*)
+LogLvl(lvl:=E_LogSeverity.Detail, Msg:=
+  F_Concat7(
+    'PM stop job P(',
+    TO_STRING(sStatus.iJobProgress.lProductionCount), ') M(',
+    TO_STRING(sStatus.iJobProgress.lMaintenanceCount), ') S(',
+    TO_STRING(sStatus.iJobProgress.lScrapCount), ')'
+  )
+);
+
+abortJob();
+
+bPmActive := FALSE;
+lastCreatedCT := 0;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mProduced" Id="{6ef0a06c-a684-4fe5-a32d-bb8010ec7051}">
+      <Declaration><![CDATA[METHOD mProduced
+VAR_INPUT
+	(* current progress*)
+	sProgress	: I_JobProgress;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bInitialized THEN RETURN; END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_Pm_DMAX">
+      <LineId Id="3" Count="2" />
+    </LineIds>
+    <LineIds Name="FB_Pm_DMAX.abortJob">
+      <LineId Id="3" Count="0" />
+      <LineId Id="60" Count="1" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Pm_DMAX.bReady.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Pm_DMAX.bStarted.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Pm_DMAX.bStopped.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Pm_DMAX.CT_Create">
+      <LineId Id="3" Count="10" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="17" Count="16" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Pm_DMAX.CT_Finish">
+      <LineId Id="3" Count="30" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Pm_DMAX.CT_Produce">
+      <LineId Id="3" Count="20" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Pm_DMAX.defaultPrData.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Pm_DMAX.dynAddPage">
+      <LineId Id="3" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Pm_DMAX.getNext">
+      <LineId Id="3" Count="9" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Pm_DMAX.init">
+      <LineId Id="3" Count="8" />
+      <LineId Id="16" Count="3" />
+      <LineId Id="37" Count="5" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="22" Count="2" />
+      <LineId Id="28" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Pm_DMAX.JobFinished">
+      <LineId Id="3" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Pm_DMAX.lastCreated.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Pm_DMAX.mJobStart">
+      <LineId Id="3" Count="8" />
+      <LineId Id="16" Count="5" />
+      <LineId Id="49" Count="4" />
+      <LineId Id="36" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Pm_DMAX.mJobStop">
+      <LineId Id="3" Count="12" />
+      <LineId Id="28" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Pm_DMAX.mProduced">
+      <LineId Id="3" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

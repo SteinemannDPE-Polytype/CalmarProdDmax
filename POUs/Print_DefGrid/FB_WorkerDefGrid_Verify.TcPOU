@@ -1,0 +1,220 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_WorkerDefGrid_Verify" Id="{ba30a803-cb22-4c70-92de-a30f80d703f5}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Verify EXTENDS FB_WorkerDefGrid
+VAR_OUTPUT
+  bWateGateActive   AT%Q* : BOOL;     //  wate gate activation pulse
+END_VAR
+VAR
+  lastEjected   : BOOL;   // stores state if last CT was ejected 
+  tpEjectPulse  : TP := (PT:=T#100MS);
+  
+  // print manager reference
+  _pPm : POINTER TO FB_Pm_DMAX;
+END_VAR
+VAR PERSISTENT
+  _fWorkerToPu   : LREAL := 1.2;    (*Distance between PU and this worker, mechanisch*)
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="Attach" Id="{ed09302e-2885-443a-873e-e5493c07daba}">
+      <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
+VAR_INPUT
+  iCT              : I_CT;                         (*container at triggered event position*)
+END_VAR
+VAR 
+  bSuccess         : BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF SUPER^.Attach(iCT:=iCT) THEN
+  
+  // do CT supervision here and decice what happens with this sheet
+   bSuccess := TRUE;
+  IF NOT iCT.bValid AND iCT.bProductPresent AND iCT.pJob <> 0 THEN
+    bSuccess := FALSE;
+    // tag for ejection
+    iCT.pCT^.lPrOutput := EN_PrinterOutput.trash;
+	END_IF
+
+  // finish CT in production
+  IF _pPm <> 0 THEN 
+    _pPm^.CT_Finish(sCT:=iCT, bSuccess:=bSuccess);
+  ELSE
+    LogError('PrintManager not set');
+	END_IF
+  
+  // select output
+  IF iCT.pCT^.lPrOutput = EN_PrinterOutput.trash THEN
+    // create eject trigger
+    tpEjectPulse(IN:=TRUE);
+    lastEjected := TRUE;
+  ELSE
+    tpEjectPulse(IN:=FALSE);
+    lastEjected := FALSE;
+	END_IF
+  
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="fWorkerToPu" Id="{d213abe5-dfd5-4330-9682-099f2ba8982a}">
+      <Declaration><![CDATA[PROPERTY fWorkerToPu : LREAL]]></Declaration>
+      <Get Name="Get" Id="{530a8023-6b19-4384-9a2f-e3a75c3159cc}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fWorkerToPu := _fWorkerToPu;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="mJobStart" Id="{4a0a5887-5c40-49ea-8411-5fb79e221249}">
+      <Declaration><![CDATA[METHOD   mJobStart
+VAR_INPUT
+	sJobDef	: CalmarCompPrint.I_JobDefinition;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+_bJobActive := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mJobStop" Id="{d134956b-60c5-4e97-96a0-a8378694c410}">
+      <Declaration><![CDATA[METHOD  mJobStop
+VAR_INPUT
+	sStatus	: CalmarCompPrint.I_JobStatus;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_bJobActive := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Release" Id="{c5bbf20b-0ff6-499b-bfe5-090aa809106f}">
+      <Declaration><![CDATA[METHOD Release : BOOL
+VAR_INPUT
+  iCT              : I_CT;                         (*container at triggered event position*)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF SUPER^.Release(iCT := iCT) THEN
+  ;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="setPm" Id="{b89f6ac4-9ac9-4bfe-8bb7-e25e99bfe006}">
+      <Declaration><![CDATA[(*
+  Set PrintManager.
+*)
+METHOD setPm : BOOL
+VAR_INPUT
+  pPm : POINTER TO FB_Pm_DMAX;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF pPm = 0 THEN LogError('Invalid Pm given'); END_IF
+
+_pPm := pPm;  // register print manager reference]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="work" Id="{f3293130-827d-4f71-beb2-d681c617967b}">
+      <Declaration><![CDATA[METHOD  work
+VAR_INST
+  fT_Pulse  : F_TRIG;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SUPER^.work();
+
+//Worker position update
+IF _pParamMediator <> 0 AND _pAttachedCt = 0 THEN     // Update only without attached container
+  // WorkerPosition =  Worker<-PU<-CAM<-SheetDetect
+  fPosition := _fWorkerToPu + _pParamMediator^.fCameraToPrintOffset + _pParamMediator^.fDetectToCamera;
+END_IF
+
+IF _pAttachedCt <> 0 THEN
+  tpEjectPulse(Q=>bWateGateActive);
+  fT_Pulse(CLK:=bWateGateActive);
+  
+  // release
+  IF tpEjectPulse.IN THEN
+    IF fT_Pulse.Q THEN  
+      tpEjectPulse(IN:=FALSE);
+      LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('Eject CT: ', _pAttachedCt^.print(0)));
+      Release(iCT:=_pAttachedCt^);
+    END_IF
+  ELSE
+    Release(iCT:=_pAttachedCt^);
+  END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_WorkerDefGrid_Verify">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Verify.Attach">
+      <LineId Id="6" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="60" Count="1" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="38" Count="1" />
+      <LineId Id="42" Count="1" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Verify.fWorkerToPu.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Verify.mJobStart">
+      <LineId Id="19" Count="0" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Verify.mJobStop">
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Verify.Release">
+      <LineId Id="6" Count="0" />
+      <LineId Id="16" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Verify.setPm">
+      <LineId Id="5" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="13" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Verify.work">
+      <LineId Id="10" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="57" Count="3" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="29" Count="1" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="33" Count="2" />
+      <LineId Id="45" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,378 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_SystronCamera" Id="{15d4cd61-8a98-4498-b9e9-fcacf96bcd96}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  Systron camera system
+  Provides callback function (rx_callback) for received TcpIp messages.   
+*)
+FUNCTION_BLOCK FB_SystronCamera EXTENDS FB_CameraTcpIp
+
+VAR
+  stCameraResult            : ARRAY [1..cNbCameras] OF ST_CAMERA_RESULT;
+
+  nNbTrigger                : INT;
+END_VAR
+
+VAR CONSTANT                
+  cNbCameras                : UDINT := 2;                (*Number of Systron cameras*)
+
+  cErrorString              : T_MaxString := '<Error(';
+  cStartString              : T_MaxString := '<position(';
+  cEndingString             : T_MaxString := ');';
+
+  cCameraMinXY              : REAL := -20.0;  (*[mm]*)
+  cCameraMaxXY              : REAL := +20.0;  (*[mm]*)
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*Simulation*)
+IF _bSimulate THEN
+  SimulatePoints();
+END_IF]]></ST>
+    </Implementation>
+    <Property Name="eCameraMode" Id="{6e4025d5-a4aa-4bba-a3df-283c73ac76ba}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY eCameraMode : E_CameraMode
+]]></Declaration>
+      <Get Name="Get" Id="{a53f5a31-015f-4a0b-9758-5755fdb8e76a}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[eCameraMode := _eCameraMode;
+IF _eCameraMode = E_CameraMode.Auto THEN
+  eCameraMode := E_CameraMode.XYR;
+END_IF]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="eDeviceType" Id="{47ac5068-55cc-4358-a2cc-13033a743d62}">
+      <Declaration><![CDATA[PROPERTY eDeviceType : E_CameraDevice]]></Declaration>
+      <Get Name="Get" Id="{2a80ff5c-e37d-4ea7-a474-42fc98ac26c1}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[eDeviceType := E_CameraDevice.PrintMark;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="GetCamStatus" Id="{71a3b228-7e80-4fd1-823d-8dd03f3e92b9}">
+      <Declaration><![CDATA[METHOD GetCamStatus : BOOL
+VAR_OUTPUT
+  bConnectionOK  : BOOL;    // Camera connected
+  bTeachOk       : BOOL;    // Teach successful
+  nTeachedPoints : UDINT;   // Teached points for this job
+  nScannedPoints : UDINT;   // Scanned points on current sheet
+  bCamStarted    : BOOL;    // Camera trigger is active, cam started
+  bCamDone       : BOOL;    // Camera finished on last CT
+  bErrors        : ARRAY[1..GVL_Camera.nC_NbCamErrors] OF BOOL;  // generic error flag list
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bConnectionOK  := NOT bConnectionErr OR bSimulate;
+bTeachOk       := TRUE; //NO teach availabe (teached by a specific sheet from machine)
+nTeachedPoints := 0;
+nScannedPoints := 0;
+bCamStarted    := _bCamStarted;
+bCamDone       := _bCamDone; 
+{warning 'TODO: get real teach information'}
+
+GetCamStatus := bConnectionOK;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="rx_callback" Id="{878288a8-240f-42e4-93fe-3c0d06446a7d}">
+      <Declaration><![CDATA[METHOD rx_callback
+VAR_INPUT
+	sMessage	: CalmarCompTcpIp.ST_TcpMsg;
+END_VAR
+
+VAR
+  sAnalyzeLastMessage    : T_MaxString;          (*telegram string*)
+
+  nCounter               : UDINT;
+  nFindIndex             : INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SUPER^.rx_callback(sMessage := sMessage);
+
+sAnalyzeLastMessage := sLastMessage;
+
+nFindIndex := FIND(sAnalyzeLastMessage, cErrorString);
+IF nFindIndex > 0 THEN
+  (*Error received*)
+  sLastErrorMessage := (DELETE(sAnalyzeLastMessage, (nFindIndex + LEN(cErrorString) - 1), 1));
+
+  (*Extract error message*)
+  nFindIndex := FIND(sLastErrorMessage, cEndingString);
+  IF nFindIndex > 0 THEN
+    sLastErrorMessage := (DELETE(sLastErrorMessage, LEN(sLastErrorMessage) - nFindIndex, nFindIndex));
+  END_IF;
+ELSE
+  (*Search for start string*)
+  nFindIndex := FIND(sAnalyzeLastMessage, cStartString);
+  IF nFindIndex > 0 THEN
+    (*Search string found => remove string to generate index*)
+    sAnalyzeLastMessage := (DELETE(sAnalyzeLastMessage, (nFindIndex + LEN(cStartString) - 1), 1));
+
+    (*Search for trigger number*)
+    nFindIndex := FIND(sAnalyzeLastMessage, ',');
+    IF nFindIndex > 0 THEN
+      nNbTrigger := STRING_TO_INT(LEFT(sAnalyzeLastMessage, (nFindIndex - 1)));
+
+      sAnalyzeLastMessage := (DELETE(sAnalyzeLastMessage, nFindIndex, 1));
+    END_IF;
+
+    (*Search for rx, ry, v, x and y*)
+    FOR nCounter := 1 TO cNbCameras DO
+      stCameraResult[nCounter].valid := TRUE;
+
+      (*rx*)
+      nFindIndex := FIND(sAnalyzeLastMessage, ',');
+      IF nFindIndex > 0 THEN
+        stCameraResult[nCounter].x_ref := STRING_TO_REAL(LEFT(sAnalyzeLastMessage, (nFindIndex - 1)));
+
+        IF    (stCameraResult[nCounter].x_ref < cCameraMinXY)
+           OR (stCameraResult[nCounter].x_ref > cCameraMaxXY)
+        THEN
+          stCameraResult[nCounter].valid := FALSE;
+        END_IF;
+
+        sAnalyzeLastMessage := (DELETE(sAnalyzeLastMessage, nFindIndex, 1));
+      ELSE
+        stCameraResult[nCounter].valid := FALSE;
+      END_IF;
+      (*ry*)
+      nFindIndex := FIND(sAnalyzeLastMessage, ',');
+      IF nFindIndex > 0 THEN
+        stCameraResult[nCounter].y_ref := STRING_TO_REAL(LEFT(sAnalyzeLastMessage, (nFindIndex - 1)));
+
+        IF    (stCameraResult[nCounter].y_ref < cCameraMinXY)
+           OR (stCameraResult[nCounter].y_ref > cCameraMaxXY)
+        THEN
+          stCameraResult[nCounter].valid := FALSE;
+        END_IF;
+
+        sAnalyzeLastMessage := (DELETE(sAnalyzeLastMessage, nFindIndex, 1));
+      ELSE
+        stCameraResult[nCounter].valid := FALSE;
+      END_IF;
+      (*v*)
+      nFindIndex := FIND(sAnalyzeLastMessage, ',');
+      IF nFindIndex > 0 THEN
+        IF FIND(LEFT(sAnalyzeLastMessage, (nFindIndex - 1)), 'True') > 0 THEN
+          stCameraResult[nCounter].valid := TRUE;
+        ELSE
+          stCameraResult[nCounter].valid := FALSE;
+        END_IF;
+
+        sAnalyzeLastMessage := (DELETE(sAnalyzeLastMessage, nFindIndex, 1));
+      ELSE
+        stCameraResult[nCounter].valid := FALSE;
+      END_IF;
+      (*x*)
+      nFindIndex := FIND(sAnalyzeLastMessage, ',');
+      IF nFindIndex > 0 THEN
+        stCameraResult[nCounter].x := STRING_TO_REAL(LEFT(sAnalyzeLastMessage, (nFindIndex - 1)));
+
+        IF    (stCameraResult[nCounter].x < cCameraMinXY)
+           OR (stCameraResult[nCounter].x > cCameraMaxXY)
+        THEN
+          stCameraResult[nCounter].valid := FALSE;
+        END_IF;
+
+        sAnalyzeLastMessage := (DELETE(sAnalyzeLastMessage, nFindIndex, 1));
+      ELSE
+        stCameraResult[nCounter].valid := FALSE;
+      END_IF;
+      (*y*)
+      nFindIndex := FIND(sAnalyzeLastMessage, ',');
+      IF nFindIndex > 0 THEN
+        stCameraResult[nCounter].y := STRING_TO_REAL(LEFT(sAnalyzeLastMessage, (nFindIndex - 1)));
+
+        IF    (stCameraResult[nCounter].y < cCameraMinXY)
+           OR (stCameraResult[nCounter].y > cCameraMaxXY)
+        THEN
+          stCameraResult[nCounter].valid := FALSE;
+        END_IF;
+
+        sAnalyzeLastMessage := (DELETE(sAnalyzeLastMessage, nFindIndex, 1));
+      ELSE
+        nFindIndex := FIND(sAnalyzeLastMessage, ')');
+        IF nFindIndex > 0 THEN
+          stCameraResult[nCounter].y := STRING_TO_REAL(LEFT(sAnalyzeLastMessage, (nFindIndex - 1)));
+
+          IF    (stCameraResult[nCounter].y < cCameraMinXY)
+             OR (stCameraResult[nCounter].y > cCameraMaxXY)
+          THEN
+            stCameraResult[nCounter].valid := FALSE;
+          END_IF;
+
+          sAnalyzeLastMessage := (DELETE(sAnalyzeLastMessage, nFindIndex, 1));
+        ELSE
+          stCameraResult[nCounter].valid := FALSE;
+        END_IF;
+      END_IF;
+    END_FOR;
+  ELSE
+    (*Search string not found*)
+    FOR nCounter := 1 TO cNbCameras DO
+      stCameraResult[nCounter].valid := FALSE;
+    END_FOR;
+  END_IF;
+END_IF;
+
+IF _iCameraSink <> 0 THEN
+  FOR nCounter := 1 TO cNbCameras DO
+    stCamPoint.x_ref := F_MeterToSubPixelReal( stCameraResult[nCounter].x_ref * 0.001              (*[mm] => [m]*)
+                                         , UDINT_TO_LREAL(_nPrintUnitResolution));             (*Result should be in pixels*)
+    stCamPoint.y_ref := F_MeterToSubPixelReal( stCameraResult[nCounter].y_ref * 0.001              (*[m]*)
+                                         , UDINT_TO_LREAL(_nPrintUnitResolution));             (*Result should be in pixels*)
+    stCamPoint.dx    := F_MeterToSubPixelReal( (stCameraResult[nCounter].x_ref - stCameraResult[nCounter].x) * 0.001  (*[mm] => [m]*)
+                                         , UDINT_TO_LREAL(_nPrintUnitResolution));             (*Result should be in pixels*)
+    stCamPoint.dy    := F_MeterToSubPixelReal( (stCameraResult[nCounter].y_ref - stCameraResult[nCounter].y) * 0.001  (*[mm] => [m]*)
+                                         , UDINT_TO_LREAL(_nPrintUnitResolution));             (*Result should be in pixels*)
+
+    _iCameraSink.AddCamPoint(stCamPoint);
+  END_FOR
+END_IF;
+
+bMsgReceived := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="setCameraMode" Id="{145f9909-790b-4aee-a90d-fd991f7cd34f}">
+      <Declaration><![CDATA[(*
+  Set mode to camera.
+  :return: TRUE if success
+*)
+METHOD setCameraMode : BOOL
+VAR_INPUT
+  eCameraMode : E_CameraMode;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF eCameraMode = E_CameraMode.NoCorrection OR  // supported modi
+   eCameraMode = E_CameraMode.XYR THEN
+ 
+  _eCameraMode := eCameraMode;  // set desired mode
+  setCameraMode := TRUE;
+ELSE
+  LogError(F_Concat3('Camera mode=', TO_STRING(eCameraMode), ' not supported by camera'));
+  _eCameraMode := E_CameraMode.NoCorrection;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SimulatePoints" Id="{41feb64f-0629-4b93-bd6a-7af73e9948a5}">
+      <Declaration><![CDATA[(*
+  Simulate camera data
+*)
+METHOD SimulatePoints : BOOL
+VAR
+  fbTonTimer    : TON;    (*Send timer*)
+  nCounter      : UDINT;  (*Loop counter*)
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(*Test points*)
+stCameraResult[1].x_ref :=   54;  (*[mm]*)
+stCameraResult[1].y_ref := 1003;  (*[mm]*)
+stCameraResult[2].x_ref :=   46;  (*[mm]*)
+stCameraResult[2].y_ref :=  376;  (*[mm]*)
+
+(*Points are send every 15s*)
+fbTonTimer(IN := NOT fbTonTimer.Q, PT := T#15S);
+IF fbTonTimer.Q THEN
+  FOR nCounter := 1 TO 2 DO
+    stCamPoint.x_ref := F_MeterToSubPixelReal( stCameraResult[nCounter].x_ref * 0.001      (*[mm] => [m]*)
+                                             , UDINT_TO_LREAL(_nPrintUnitResolution));     (*Result should be in pixels*)
+    stCamPoint.y_ref := F_MeterToSubPixelReal( stCameraResult[nCounter].y_ref * 0.001      (*[m]*)
+                                             , UDINT_TO_LREAL(_nPrintUnitResolution));     (*Result should be in pixels*)
+    stCamPoint.dx    := F_MeterToSubPixelReal( 0.100 * UDINT_TO_REAL(nCounter) * 0.001     (*[mm] => [m]*)
+                                            , UDINT_TO_LREAL(_nPrintUnitResolution));     (*Result should be in pixels*)
+    stCamPoint.dy    := F_MeterToSubPixelReal( 0.200 * UDINT_TO_REAL(nCounter) * 0.001     (*[mm] => [m]*)
+                                            , UDINT_TO_LREAL(_nPrintUnitResolution));     (*Result should be in pixels*)
+  
+    _iCameraSink.AddCamPoint(stCamPoint);
+  END_FOR  
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="sName" Id="{234ef4c1-3afa-4291-8d7d-8e6945d30b05}">
+      <Declaration><![CDATA[{attribute 'monitoring':='variable'}
+PROPERTY sName : STRING
+]]></Declaration>
+      <Get Name="Get" Id="{3f3f88e0-9c6f-461b-b231-63570c3ac105}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sName := 'Systron';]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <LineIds Name="FB_SystronCamera">
+      <LineId Id="29" Count="2" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SystronCamera.eCameraMode.Get">
+      <LineId Id="13" Count="2" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SystronCamera.eDeviceType.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SystronCamera.GetCamStatus">
+      <LineId Id="20" Count="0" />
+      <LineId Id="11" Count="1" />
+      <LineId Id="4" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="21" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SystronCamera.rx_callback">
+      <LineId Id="7" Count="0" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="818" Count="26" />
+      <LineId Id="1079" Count="0" />
+      <LineId Id="929" Count="0" />
+      <LineId Id="939" Count="1" />
+      <LineId Id="949" Count="29" />
+      <LineId Id="1080" Count="12" />
+      <LineId Id="1024" Count="50" />
+      <LineId Id="1093" Count="2" />
+      <LineId Id="1223" Count="7" />
+      <LineId Id="1178" Count="1" />
+      <LineId Id="1181" Count="2" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SystronCamera.setCameraMode">
+      <LineId Id="34" Count="2" />
+      <LineId Id="51" Count="1" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SystronCamera.SimulatePoints">
+      <LineId Id="23" Count="0" />
+      <LineId Id="6" Count="3" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="69" Count="7" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="35" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SystronCamera.sName.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

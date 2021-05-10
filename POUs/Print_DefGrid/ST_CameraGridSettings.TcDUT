@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="ST_CameraGridSettings" Id="{293e8458-b723-4738-9579-a918fe2ed0a7}">
+    <Declaration><![CDATA[TYPE ST_CameraGridSettings :
+STRUCT
+  bValid            : BOOL;   // ?
+  eCameraMode       : E_CameraMode;
+  fGridFeaturePitch : LREAL;  // feature grid picth (cam frame width) [px]
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,307 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_PrintPositionDmax" Id="{726347b1-24f3-41dd-8d38-18de7bf18c3b}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_PrintPositionDmax EXTENDS FB_BasePrint IMPLEMENTS I_Simulation
+VAR_INPUT
+  IlEncoderPulse      AT%I* : UDINT;                // Encoder counter intput
+  IbEncoderWcState    AT%I* : BOOL;                 // Encoder EL5101 WcState
+END_VAR
+VAR_OUTPUT
+  bStarted                  : BOOL;                 // position started moving
+  bMoving                   : BOOL;                 // position is moving
+END_VAR
+// ----------------------------------
+// configuration
+VAR
+  // configuration (init)
+  _fPrintResolution         : LREAL := 600;         // print(head) resolution in [dpi]
+  _fSubPxResolution         : LREAL := 32;          // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
+  _fTaskCycleTime           : LREAL := 0.002;        // Task cycle time in [s]
+END_VAR
+VAR PERSISTENT
+  // config values changable during runtime (recipe, visu, property)
+  _fEncoderResolution       : LREAL := 2.00475;     // Encoder resolution
+  _bEnSpeedComp             : BOOL := FALSE;
+  _fSpeedCompFactor         : LREAL := 0.0;         // TODO: define value
+  _fSpeedCompRefSpeed       : LREAL := 0.0;         // TODO: define value
+END_VAR
+VAR CONSTANT
+  fC_MinSpeed               : LREAL := 0.05;
+END_VAR
+// ---------------------------------
+// internal variables
+VAR
+  // fb inst
+  fbPositionMaster          : FB_PositionMaster;
+
+  // internal vars
+  fEncoderReso              : LREAL;                // used encoder resolution
+  rTrigMoving               : R_TRIG;
+  // simulation
+  _bSim                     : BOOL;
+  rfTrig_Sim                : RF_TRIG;
+    
+  // test functions
+  (*bEnTestVsOld              : BOOL;    
+  fbVencoder                : FB_V_ENCODER;
+  Fb_Ph_Master              : FB_POSITION_MASTER;
+  *)
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[rfTrig_Sim(CLK:=_bSim);
+IF rfTrig_Sim.RT THEN SimEnter(); END_IF
+IF rfTrig_Sim.FT THEN SimExit(); END_IF
+IF _bSim THEN SimUpdate(); END_IF
+
+// set internal used resolution
+fEncoderReso := _fEncoderResolution;  
+
+// compensate resolution (if enabled)
+IF _bEnSpeedComp THEN
+  fEncoderReso := F_EncoderSpeedComp(   
+    fMasterSpeed:=fbPositionMaster.fMasterSpeed,
+    fResolution:=fEncoderReso,
+    fSpeedCompFactor:=_fSpeedCompFactor,
+    fSpeedCompRefSpeed:=_fSpeedCompRefSpeed
+  );
+END_IF
+
+// calc position / speed
+fbPositionMaster(fResolutionInput:=fEncoderReso, lPosReference:=IlEncoderPulse);
+// postion status
+bMoving := fbPositionMaster.fMasterSpeed >= fC_MinSpeed; 
+rTrigMoving(CLK:=bMoving);   // create started trigger output
+bStarted := rTrigMoving.Q OR fbPositionMaster.bSyncReq;]]></ST>
+    </Implementation>
+    <Folder Name="I_Simulation" Id="{bd8ec4af-70d9-4e9b-8cdc-91b3cc2e54db}" />
+    <Property Name="bSimEnable" Id="{30fe551a-b50f-4bf8-9016-a91da26e946e}" FolderPath="I_Simulation\">
+      <Declaration><![CDATA[PROPERTY bSimEnable : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{ba61aeca-91e8-4a46-b50a-3f72adba58be}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bSimEnable := _bSim;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{bfec738f-7656-45d1-b0ac-a7a5be9bcbcf}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bSim := bSimEnable;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="getPosition" Id="{f3e3b96b-183e-4641-b112-e525c3bb6c11}">
+      <Declaration><![CDATA[(*
+  Get current "default" position.
+  [SubPx] as return value and [um] as output
+  :return: position in SubPx resolution
+*)
+METHOD getPosition : DINT
+VAR_OUTPUT
+  nPosition_px       : DINT;                 // Master position in [px]
+  fPosition_um       : LREAL;                // Master position in [um]
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[getPosition := fbPositionMaster.lMasterPosition;
+nPosition_px := fbPositionMaster.lMasterPosition / LREAL_TO_DINT(_fSubPxResolution);
+fPosition_um := fbPositionMaster.fMasterPosition;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="getSpeed" Id="{89c2b88d-36bc-48c9-87d7-952cfd236342}">
+      <Declaration><![CDATA[(*
+  Get "default" speed.
+*)
+METHOD getSpeed : LREAL]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[getSpeed := fbPositionMaster.fMasterSpeed;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Init" Id="{0edf7ce9-df28-43fb-8910-213c45b50fdb}">
+      <Declaration><![CDATA[METHOD Init : BOOL
+VAR_INPUT
+  fPrintResolution    : LREAL := 600;         // print(head) resolution in [dpi]
+  fSubPxResolution    : LREAL := 32;          // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
+  fTaskCycleTime      : LREAL;                 // Task cycle time in [s]
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// store config
+_fPrintResolution := fPrintResolution;
+_fSubPxResolution := fSubPxResolution;
+_fTaskCycleTime   := fTaskCycleTime;
+
+// init fbs
+// - position master
+fbPositionMaster.init(
+  fI_PrintResolution:=fPrintResolution, 
+  fI_SubPxResolution:=fSubPxResolution, 
+  fI_TaskCycleTime:=fTaskCycleTime, 
+  bI_HWEncoder:=FALSE
+);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="reset" Id="{2192cbfc-67ef-40f5-ae03-86c2f311383b}">
+      <Declaration><![CDATA[METHOD reset
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// reset positioning system
+fbPositionMaster.reset();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SimEnter" Id="{18dac86d-19ba-4d47-91ad-308f9520a467}" FolderPath="I_Simulation\">
+      <Declaration><![CDATA[METHOD SimEnter : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_bSim := TRUE;
+fbPositionMaster.bSim := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SimExit" Id="{82b36d9c-34f8-4e76-b748-6f9668c98474}" FolderPath="I_Simulation\">
+      <Declaration><![CDATA[METHOD SimExit : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_bSim := FALSE;
+fbPositionMaster.bSim := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SimUpdate" Id="{fde6f37f-ac02-4cf3-9a0e-3488a85e6ee5}" FolderPath="I_Simulation\">
+      <Declaration><![CDATA[METHOD SimUpdate : BOOL]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//test_OldPhMaster(bEn:=bEnTestVsOld);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="test_OldPhMaster" Id="{33f767dd-1228-40e6-8bfe-89bd1959907c}">
+      <Declaration><![CDATA[METHOD PRIVATE test_OldPhMaster : BOOL
+VAR_INPUT
+  bEn : BOOL;
+END_VAR
+VAR_INST
+  trigEn  : RF_TRIG;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO: method to be deleted after successful verification
+
+trigEn(CLK:=bEn);
+
+IF trigEn.RT THEN
+  // enter
+
+  // comparison system
+  fbVencoder.bI_Simulate := TRUE;
+  fbVencoder.bI_TargetSpeedReached := TRUE; 
+  fbVencoder.fI_SetSpeed := 0.5;
+  fbVencoder.fI_Resolution := fEncoderReso;
+  fbVencoder.fI_MaxSpeed := 2;
+  fbVencoder.fI_TaskCycleTime:=_fTaskCycleTime;
+  Fb_Ph_Master.fI_ResolutionOutPh := _fPrintResolution;
+  Fb_Ph_Master.fI_ResolutionOutSubPx := _fSubPxResolution;
+  Fb_Ph_Master.bI_HWEncoder := FALSE;
+  Fb_Ph_Master.pI_ConversionErr := 0;
+  Fb_Ph_Master.fI_TaskCycleTime := LREAL_TO_REAL(_fTaskCycleTime);
+ELSIF trigEn.FT THEN
+  // exit
+  fbVencoder.bI_Simulate := FALSE;
+END_IF
+
+// call
+IF bEn OR trigEn.FT THEN
+  fbVencoder();
+  IlEncoderPulse := fbVencoder.lO_VEncoderPulse;
+  Fb_Ph_Master(fI_ResolutionInput:=fEncoderReso, lI_Reference:=fbVencoder.lO_VEncoderPulse);
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_PrintPositionDmax">
+      <LineId Id="101" Count="1" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="51" Count="2" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="187" Count="0" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="191" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintPositionDmax.bSimEnable.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintPositionDmax.bSimEnable.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintPositionDmax.getPosition">
+      <LineId Id="5" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="41" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintPositionDmax.getSpeed">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintPositionDmax.Init">
+      <LineId Id="39" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="24" Count="4" />
+      <LineId Id="49" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintPositionDmax.reset">
+      <LineId Id="5" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_PrintPositionDmax.SimEnter">
+      <LineId Id="4" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_PrintPositionDmax.SimExit">
+      <LineId Id="4" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_PrintPositionDmax.SimUpdate">
+      <LineId Id="4" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintPositionDmax.test_OldPhMaster">
+      <LineId Id="53" Count="1" />
+      <LineId Id="12" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="21" Count="2" />
+      <LineId Id="25" Count="1" />
+      <LineId Id="28" Count="4" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="38" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

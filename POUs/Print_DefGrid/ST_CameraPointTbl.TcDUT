@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="ST_CameraPointTbl" Id="{a387f86a-a962-4a4f-81c3-26f77a387de4}">
+    <Declaration><![CDATA[(*
+  Table representation of pointa
+*)
+TYPE ST_CameraPointTbl :
+STRUCT
+  bSet          : BOOL;
+  tTime         : T_DCTIME64;
+  sPoint        : ST_DeformationPointAccurate;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

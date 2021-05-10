@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="EN_CAMERA_TEACH" Id="{65954b39-ffc5-44af-b2bd-c7963296c683}">
+    <Declaration><![CDATA[TYPE EN_CAMERA_TEACH :
+(*************************************************************************************************)
+(*  FILENAME:    EN_CAMERA_TEACH                                                                 *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2018)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    Enumeration for camera teach.                                                              *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+(
+  eTeachInit         := 0,
+  eTeachStart        := 1,
+  eTeachCompleted    := 2,
+  eTeachCanceled     := 3,
+  eTeachError        := 4
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

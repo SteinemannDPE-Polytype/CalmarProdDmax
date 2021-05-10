@@ -1,0 +1,755 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_WorkerDefGrid_Camera" Id="{6056a89a-8aeb-47d0-8a92-08f600f3d0b4}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Camera EXTENDS FB_WorkerDefGrid IMPLEMENTS I_CameraSink
+VAR
+  // camera interface PUC
+  _pAdsCam        : POINTER TO ST_ADS_CAMERA;
+  
+  // camera list
+  _iCamList       : ARRAY[1..nMAXCAM] OF I_Camera; 
+  _sCamName       : ARRAY[1..5] OF STRING;
+  _nRegisteredCam : UDINT;    // number registered cameras
+  _iActiveCam     : I_Camera; // active selected camera interface
+  
+  _bCamValid      : BOOL;
+  _bCamReady      : BOOL;    // Camera no error
+  _bConnectionOk  : BOOL;    //
+  _bTeachOk       : BOOL;    // Teach successful
+  _nTeachedPoints : UDINT;   // Teached points for this job
+  _nScannedPoints : UDINT;   // Scanned points on current sheet
+  _bCamStarted    : BOOL;    // Camera started
+  _bCamDone       : BOOL;    // Camera done
+  _nAddedPoint    : UDINT;   // Added point to image deformation
+ 
+  _bLineCamType   : BOOL;    // TRUE if it's a LineCamera
+  _bSetInitCam    : BOOL;    // set initial camera
+  
+  // puc message
+  fb_MsgQueue                  : FB_MSG_QUEUE;                        (*Message queue*)
+  fb_MsgHandler                : FB_MSG_HANDLER;                      (*Message handler*)
+  sL_MsgConfig                 : ST_MSG_CONFIG;                       (*Message config*)
+  
+  bCamNotAvailable             : BOOL;
+  fbMsg_CamNotAvailable        : FB_MESSAGE;
+  bCamModeNotSupported         : BOOL;
+  fbMsg_CamModeNotSupported    : FB_MESSAGE;
+  fbMsg_CamNoConnection        : FB_MESSAGE;
+  
+END_VAR
+
+VAR PERSISTENT
+  _fFeatureGrid   : LREAL := 2048;  // feature grid witdh (feature pich in x of cam frames)
+  _nActiveCam     : UDINT := 1;     // active camera selection
+END_VAR
+
+VAR CONSTANT
+  nMAXCAM : UDINT := 5;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="ActivateCamera" Id="{99a01e14-fa02-42f4-a663-cfcdcb61b4bd}">
+      <Declaration><![CDATA[METHOD PRIVATE ActivateCamera : BOOL
+VAR_INPUT
+  iCam : I_Camera;
+END_VAR
+VAR
+  i : UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF iCam = 0 THEN F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); RETURN; END_IF
+
+IF _iActiveCam <> 0 THEN // Remove existing links
+  _iActiveCam.DeactivateCam(iSink := THIS^);
+END_IF
+
+IF iCam.ActivateCam(iCameraSink := THIS^) THEN
+  // get and set array index of registered cameras 
+  FOR i :=1 TO _nRegisteredCam DO
+    IF iCam = _iCamList[i] THEN
+      _nActiveCam := i;              // set array index for visu/drop down
+      EXIT; // select first found cam
+    END_IF
+  END_FOR
+  _iActiveCam := iCam;        // set new cam
+  ActivateCamera:=TRUE;
+ELSE
+  ActivateCamera:=FALSE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="AddCamPoint" Id="{f453464a-4078-41ca-a01d-17dc87f686bd}">
+      <Declaration><![CDATA[METHOD AddCamPoint : BOOL
+VAR_INPUT
+	sDeformationPoint	: ST_DeformationPointAccurate;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _pAttachedCt <> 0 THEN //Container attached?
+  AddCamPoint := _pAttachedCt^.AddCamPoint(sPoint:=sDeformationPoint);
+  IF AddCamPoint THEN 
+    _nAddedPoint :=_nAddedPoint+1;
+    //cameraImgProc(newDeformationPoint:=iDeformationPoint);  //Update image processing
+  ELSE
+    LogError(Msg:='addCamPoint failed, add to CT error');
+  END_IF;
+ELSE
+  LogWarning(Msg:='addCamPoint failed, no CT attached');
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="AddTeachPoint" Id="{f2606cab-e071-41ba-b4be-aa219442a713}">
+      <Declaration><![CDATA[METHOD AddTeachPoint : BOOL
+VAR_INPUT
+	sTeachPoint	: ST_DeformationPointAccurate;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// ignore the teach points for now]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Attach" Id="{af64d5ac-9c9c-46b2-994b-9271d2dee30d}">
+      <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
+VAR_INPUT
+  iCT              : I_CT;                         (*container at triggered event position*)
+END_VAR
+VAR
+  tempCt :  POINTER TO FB_ContainerDefGrid;
+  bDeformErr : BOOL;
+  eDeformStep : E_DeformationStep;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[Attach := FALSE;
+IF SUPER^.Attach(iCT:=iCT) THEN
+  // OK, attached (enabled, was ok to be attached)
+  
+  bDeformErr := _pAttachedCt^.getDeformationStatus(eDStep=>eDeformStep);   // get latest status 
+  
+  // Additional worker checks
+
+  // - deformation started? and no deformation error so far
+  IF bDeformErr OR eDeformStep = E_DeformationStep.nothing THEN
+    Release(iCT:=iCT);  // nothing to do anymore
+
+  // - job is valid?
+  ELSIF _pAttachedCt^.pJob = 0 OR NOT _bJobActive THEN
+    _pAttachedCt^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^);
+    Release(iCT:=iCT);
+       
+  // - camera ready
+  ELSIF (NOT _bCamValid OR NOT _bCamReady) THEN  // check if cam is ready
+    _pAttachedCt^.AbortDeformation(sReason:='Camera invalid or not ready for attach', Src:=_pEcSrc^);
+    Release(iCT:=iCT);
+  
+  // OK attach
+  ELSE
+    Attach := TRUE;
+	END_IF
+  
+  //Reset image processing
+  _nAddedPoint := 0;
+  _nScannedPoints := 0;
+
+ELSE
+  // parent attach failed case
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="bCamOk" Id="{5ecde9b0-3187-4838-9771-10aabc571882}">
+      <Declaration><![CDATA[PROPERTY bCamOk : BOOL]]></Declaration>
+      <Get Name="Get" Id="{a8d145ae-a852-4e60-a712-39a8f1889f94}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bCamOk := _bCamValid;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bConnError" Id="{134a7455-f42f-4d23-9774-a052257145a6}">
+      <Declaration><![CDATA[PROPERTY bConnError : BOOL]]></Declaration>
+      <Get Name="Get" Id="{923e802f-8818-4054-aa36-ae56db26c1db}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[// TODO: propose the communication error on a better way.
+bConnError := NOT _bConnectionOk;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bLineCamActive" Id="{76835a52-9212-491e-85d8-29398d3bbb8a}">
+      <Declaration><![CDATA[PROPERTY bLineCamActive : BOOL]]></Declaration>
+      <Get Name="Get" Id="{dfd3a19d-9364-487f-af97-eece4f64fd7b}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bLineCamActive := _bLineCamType;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="fCameraToPrintOffset" Id="{c7f93a14-f1d1-4c31-a277-d18b12fc9117}">
+      <Declaration><![CDATA[PROPERTY fCameraToPrintOffset : LREAL]]></Declaration>
+      <Get Name="Get" Id="{7463415f-08fd-4759-a1b6-38cdc37fe30e}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IF _iActiveCam <> 0 THEN
+  fCameraToPrintOffset := _iActiveCam.fCameraToPrintOffset;
+END_IF]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="fDetectToCamOffset" Id="{65907cba-8221-4545-9cde-7be24c978514}">
+      <Declaration><![CDATA[PROPERTY fDetectToCamOffset : LREAL]]></Declaration>
+      <Get Name="Get" Id="{b606aab6-d61a-48fb-b789-a7a91f4dddeb}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IF _iActiveCam <> 0 THEN
+  fDetectToCamOffset := _iActiveCam.fDetectToCameraOffset;
+END_IF]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="Init" Id="{476974fc-f01a-47ef-80b5-8dcae46aef5e}">
+      <Declaration><![CDATA[METHOD Init
+VAR_INPUT
+  pCtManager : POINTER TO FB_CTManagerDefGrid;   // CTManager
+  pParamMediator : POINTER TO FB_DefGridParamMediator;
+  pMsgConfig : POINTER TO ST_MSG_CONFIG;         // message config
+  fPrintResolution : LREAL := 1;                 // print(head) resolution in [dpi]
+  fSubPxResolution : LREAL := 1;                 // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
+END_VAR
+VAR
+  lCtr : UDINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SUPER^.Init(pCtManager:=pCtManager, pParamMediator:=pParamMediator, pMsgConfig:=pMsgConfig, fPrintResolution:=fPrintResolution, fSubPxResolution:=fSubPxResolution);
+
+IF _pAdsCam = 0 THEN LogError('Call InitAds() before, ads interface unknown'); RETURN; END_IF
+
+(*Messaging*)
+sL_MsgConfig.bI_Enable       := TRUE;
+sL_MsgConfig.pI_FbMsgHandler := ADR(fb_MsgHandler);
+fb_MsgHandler.pI_MsgQueue    := ADR(fb_MsgQueue);
+fb_MsgQueue.pI_MsgInterface  := ADR(_pAdsCam^.sO_Message);
+fb_MsgQueue.cI_MaxElement    := TO_INT(SIZEOF(_pAdsCam^.sO_Message.sO_MsgBuffer)/SIZEOF(_pAdsCam^.sO_Message.sO_MsgBuffer[1]));
+
+fbMsg_CamNotAvailable.pI_MsgConfig := ADR(sL_MsgConfig);
+fbMsg_CamNotAvailable.iI_MsgLocation := ePr_BLK_CAMERA;
+fbMsg_CamNotAvailable.iI_MsgNumber := eC_DMAX_CAM_NOTAVAIL;
+
+fbMsg_CamModeNotSupported.pI_MsgConfig := ADR(sL_MsgConfig);
+fbMsg_CamModeNotSupported.iI_MsgLocation := ePr_BLK_CAMERA;
+fbMsg_CamModeNotSupported.iI_MsgNumber := eC_DMAX_CAM_MODE_NOTSUPPORTED; // camera not available
+
+fbMsg_CamNoConnection.pI_MsgConfig := ADR(sL_MsgConfig);
+fbMsg_CamNoConnection.iI_MsgLocation := ePr_BLK_CAMERA;
+fbMsg_CamNoConnection.iI_MsgNumber := eCMa_TCPIP_COMM_ERROR;    // tcpip connection error
+
+_bSetInitCam := TRUE; // request a default camera
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="InitAds" Id="{d420bbaf-dc4a-4caf-9bae-af7a97686b3a}">
+      <Declaration><![CDATA[METHOD InitAds
+VAR_INPUT
+  pAdsIf  : POINTER TO ST_ADS_CAMERA;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_pAdsCam := pAdsIf;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="is_linecam" Id="{75d58c77-ff64-480b-987c-b901e93de9a9}">
+      <Declaration><![CDATA[METHOD PRIVATE is_linecam : BOOL
+VAR_INPUT
+  sCamName : STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[is_linecam := SEL(FIND(F_ToLCase(sCamName), 'linecam') > 0, FALSE, TRUE);  // is it a LineCamera?]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mJobStart" Id="{333f8056-01ee-443a-9254-a4a08a486903}">
+      <Declaration><![CDATA[METHOD   mJobStart
+VAR_INPUT
+	sJobDef	: CalmarCompPrint.I_JobDefinition;
+END_VAR
+VAR
+  iNewCam : I_Camera;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _pAdsCam <> 0 THEN
+
+  bCamNotAvailable := FALSE;
+  bCamModeNotSupported := FALSE;
+
+  // activate matching camera
+  iNewCam := selectCamera(eNewCam:=_pAdsCam^.eI_CameraDevice);    // get camera settings from ADS
+  IF NOT ActivateCamera(iCam:=iNewCam) THEN
+    LogError(F_Concat2('Could not activate camera', TO_STRING(_pAdsCam^.eI_CameraDevice)));
+    bCamNotAvailable := TRUE;
+  ELSE
+    // config camera from job
+    _iActiveCam.fSubstrateLength := sJobDef.fSubstrateDepth;      // [m]
+    _iActiveCam.fSubstrateWidth  := sJobDef.fSubstrateWidth;      // [m]
+    _iActiveCam.fImageLength     := sJobDef.fImageDepth  / 1000;  // [mm] -> [m]
+    _iActiveCam.fImageWidth      := sJobDef.fImageWidth  / 1000;  // [mm] -> [m]
+    _iActiveCam.fFrameLength     := _fFeatureGrid;                // [px]
+    bCamModeNotSupported := _iActiveCam.setCameraMode(eCameraMode := _pAdsCam^.eI_CameraMode);     // set camera mode
+    _iActiveCam.bEnableTrigger   := TRUE;    
+    _iActiveCam.bManualTeach     := FALSE;
+    _iActiveCam.mJobStart();
+
+    // check settings
+    IF _iActiveCam.fSubstrateLength = 0 THEN LogError('mJobStart() invalid SubstrateLength'); END_IF
+    IF _iActiveCam.fSubstrateWidth = 0 THEN LogError('mJobStart() invalid SubstrateWidth'); END_IF
+    IF _iActiveCam.fImageLength = 0 THEN LogError('mJobStart() invalid ImageLength'); END_IF
+    IF _iActiveCam.fImageWidth = 0 THEN LogError('mJobStart() invalid ImageWidth'); END_IF
+    
+    // special case
+    _bLineCamType := is_linecam(_iActiveCam.sName);  // is it a LineCamera?
+  END_IF
+END_IF
+
+_bJobActive := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mJobStop" Id="{113ca763-e1d2-471f-992c-fa941c7af403}">
+      <Declaration><![CDATA[METHOD  mJobStop
+VAR_INPUT
+	sStatus	: CalmarCompPrint.I_JobStatus;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_bJobActive := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RegisterCamera" Id="{b220f8fd-cae6-44e9-b212-d3281862fb7a}">
+      <Declaration><![CDATA[METHOD RegisterCamera : BOOL
+VAR_INPUT
+  iNewCam : I_Camera;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _nRegisteredCam < nMAXCAM AND iNewCam <> 0 THEN
+  // configure message interface
+  iNewCam.setMsgInterface(pMsgConfig:=ADR(sL_MsgConfig));     // set message interface
+  // add to internal list
+  _nRegisteredCam := _nRegisteredCam + 1;
+  _iCamList[_nRegisteredCam] := iNewCam;
+  _sCamName[_nRegisteredCam] := iNewCam.sName;
+  RegisterCamera := TRUE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="reviewState" Id="{202e01c9-d11c-44dc-96a6-afdbd379bab6}">
+      <Declaration><![CDATA[METHOD PRIVATE reviewState : BOOL
+VAR
+  bModeLowerThanRequested       : BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// review all camera states and set messages accordingly
+IF _bJobActive AND _iActiveCam <> 0 THEN
+
+  // -> mode less than desired
+  IF _pAdsCam^.eI_CameraMode < _iActiveCam.eCameraMode THEN
+    bModeLowerThanRequested := TRUE;
+  END_IF
+
+ELSE
+  ;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="sCameraGridSettings" Id="{a50fda04-430c-4b45-a5d1-808b5d907b05}">
+      <Declaration><![CDATA[PROPERTY sCameraGridSettings : ST_CameraGridSettings]]></Declaration>
+      <Get Name="Get" Id="{a97a3e24-418c-4e49-a9d0-b9786579a0f4}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sCameraGridSettings.bValid := _bCamValid;
+IF _bCamValid THEN
+  sCameraGridSettings.eCameraMode := SEL(_iActiveCam<>0, E_CameraMode.NoCorrection, _iActiveCam.eCameraMode);
+  sCameraGridSettings.fGridFeaturePitch := _fFeatureGrid;
+END_IF]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="selectCamera" Id="{68d1de2e-ca32-4101-91d2-cde38cfd0124}">
+      <Declaration><![CDATA[(*
+  Select a registered camera from the requested device type.
+*)
+METHOD PRIVATE selectCamera : I_Camera
+VAR_INPUT
+  eNewCam  : E_CameraDevice;      // requested camera type
+END_VAR
+VAR
+  bFound : BOOL;
+  i : UDINT;
+  sOld, sNew : STRING :='';
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// select related camera (choose first matching)
+bFound := FALSE;
+FOR i :=1 TO _nRegisteredCam DO
+  IF eNewCam = _iCamList[i].eDeviceType THEN
+    // found
+    selectCamera  := _iCamList[i]; // select new cam
+    bFound := TRUE;
+    EXIT; // select first found cam
+	END_IF
+END_FOR
+
+IF NOT bFound THEN
+  IF _iActiveCam <> 0 THEN sOld := _iActiveCam.sName; END_IF
+  IF _pAdsCam <> 0 THEN sNew := TO_STRING(_pAdsCam^.eI_CameraDevice); END_IF
+  
+  LogError(F_Concat4('Unavailable camera selected=', sNew, ', use cam=', sOld));
+  selectCamera  := _iActiveCam; // return camera to before
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="setManualTeach" Id="{2e7801cf-e1ac-475d-9d4e-5dbbc1b969bc}">
+      <Declaration><![CDATA[METHOD setManualTeach
+VAR_INPUT
+  eCameraDevice    : E_CameraDevice;  
+  fSubstrateLength : LREAL;   // teach substrate length
+  fSubstrateWidth  : LREAL;   // teach substrate width
+END_VAR
+VAR
+  iNewCam : I_Camera;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// activate Camera
+
+iNewCam := selectCamera(eNewCam:=eCameraDevice);    // Scanner
+IF NOT ActivateCamera(iCam:=iNewCam) THEN
+  LogError(F_Concat2('Could not activate camera', TO_STRING(eCameraDevice)));
+ELSE
+  // config camera from manual teach
+  _iActiveCam.fSubstrateLength := fSubstrateLength;
+  _iActiveCam.fSubstrateWidth  := fSubstrateWidth;
+  _iActiveCam.fImageLength     := fSubstrateLength;
+  _iActiveCam.fImageWidth      := fSubstrateWidth;
+  _iActiveCam.setCameraMode(eCameraMode :=E_CameraMode.Auto);     // set camera mode
+  _iActiveCam.bEnableTrigger   := TRUE;   // enables trigger in CameraTrigger
+  _iActiveCam.bManualTeach     := TRUE;   // enables manual trigger mode in CameraTrigger
+  
+  // special case
+  _bLineCamType := is_linecam(_iActiveCam.sName);  // is it a LineCamera?
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="work" Id="{51a4cd28-adfd-4791-8e23-e9bc638f5539}">
+      <Declaration><![CDATA[METHOD  work
+VAR_INST
+  rT_CamStarted : R_TRIG;
+  bDone : BOOL;
+  bError : BOOL;
+  eStep : E_DeformationStep;
+END_VAR
+VAR
+  lCtr : UDINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// get camera status
+IF _bSetInitCam AND _iActiveCam = 0 THEN
+  // try to a default camera at start
+  ActivateCamera(selectCamera(eNewCam:=E_CameraDevice.SheetDetect));
+  _bSetInitCam := FALSE;
+  _bCamValid := TRUE;
+  
+ELSIF _iActiveCam <> 0 THEN
+  _bCamValid := TRUE;
+  _bCamReady := _iActiveCam.GetCamStatus(
+                              bConnectionOK => _bConnectionOk, 
+                              bTeachOk => _bTeachOk, 
+                              nTeachedPoints => _nTeachedPoints, 
+                              nScannedPoints => _nScannedPoints,
+                              bCamStarted => _bCamStarted,
+                              bCamDone => _bCamDone
+                            );
+ELSE
+  _bCamValid := FALSE;
+END_IF
+
+// work
+SUPER^.work();
+
+rT_CamStarted(CLK:=_bCamStarted);
+
+IF _pAttachedCt <> 0 THEN
+  bError := _pAttachedCt^.getDeformationStatus(eDStep=>eStep, bDone=>bDone);
+  
+  IF _bCamReady AND eStep > E_DeformationStep.nothing AND NOT bDone AND NOT bError AND _bTeachOk THEN      // start only if py started
+    IF rT_CamStarted.Q THEN
+      // -- setup deformation with cam settings
+      _pAttachedCt^.SetupDeformation(eCameraMode:=_iActiveCam.eCameraMode);
+      _pAttachedCt^.StartDeformation(eDeformationStep:=E_DeformationStep.cameraStarted);
+		END_IF
+    IF eStep >= E_DeformationStep.cameraStarted AND _nScannedPoints > 3 THEN   // TODO: handle this in py script / select local Grid generation or script
+      _pAttachedCt^.UpdateDeformation(fUpdateInterval:=_fFeatureGrid);         // update with cam feature grid  
+      IF _bCamDone THEN
+        _pAttachedCt^.StartDeformation(eDeformationStep:=E_DeformationStep.cameraDone);
+        Release(_pAttachedCt^);
+      END_IF
+    END_IF
+  ELSE
+    IF _bCamStarted THEN
+      _pAttachedCt^.StartDeformation(eDeformationStep:=E_DeformationStep.cameraDone);
+      Release(_pAttachedCt^);
+    END_IF
+  END_IF
+END_IF
+
+// call messages
+fbMsg_CamNotAvailable    (bI_Status:=bCamNotAvailable);
+fbMsg_CamModeNotSupported(bI_Status:=bCamModeNotSupported);
+fbMsg_CamNoConnection    (bI_Status:=bConnError);
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_WorkerDefGrid_Camera">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.ActivateCamera">
+      <LineId Id="92" Count="1" />
+      <LineId Id="54" Count="4" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="100" Count="1" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="106" Count="1" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="59" Count="5" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.AddCamPoint">
+      <LineId Id="13" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="37" Count="1" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.AddTeachPoint">
+      <LineId Id="8" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.Attach">
+      <LineId Id="233" Count="0" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="215" Count="0" />
+      <LineId Id="268" Count="0" />
+      <LineId Id="267" Count="0" />
+      <LineId Id="260" Count="0" />
+      <LineId Id="262" Count="0" />
+      <LineId Id="273" Count="0" />
+      <LineId Id="263" Count="0" />
+      <LineId Id="254" Count="0" />
+      <LineId Id="266" Count="0" />
+      <LineId Id="280" Count="0" />
+      <LineId Id="275" Count="4" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="258" Count="0" />
+      <LineId Id="255" Count="1" />
+      <LineId Id="253" Count="0" />
+      <LineId Id="272" Count="0" />
+      <LineId Id="234" Count="1" />
+      <LineId Id="219" Count="3" />
+      <LineId Id="289" Count="0" />
+      <LineId Id="179" Count="0" />
+      <LineId Id="197" Count="0" />
+      <LineId Id="243" Count="0" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="33" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.bCamOk.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.bConnError.Get">
+      <LineId Id="2" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.bLineCamActive.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.fCameraToPrintOffset.Get">
+      <LineId Id="5" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.fDetectToCamOffset.Get">
+      <LineId Id="5" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.Init">
+      <LineId Id="3" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="78" Count="4" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="62" Count="4" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="39" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.InitAds">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.is_linecam">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.mJobStart">
+      <LineId Id="90" Count="0" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="176" Count="0" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="92" Count="4" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="97" Count="4" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="168" Count="0" />
+      <LineId Id="163" Count="4" />
+      <LineId Id="103" Count="5" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.mJobStop">
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.RegisterCamera">
+      <LineId Id="48" Count="1" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="51" Count="2" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.reviewState">
+      <LineId Id="5" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="16" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.sCameraGridSettings.Get">
+      <LineId Id="26" Count="3" />
+      <LineId Id="19" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.selectCamera">
+      <LineId Id="6" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="50" Count="1" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.setManualTeach">
+      <LineId Id="6" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="7" Count="4" />
+      <LineId Id="13" Count="5" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="20" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.work">
+      <LineId Id="115" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="247" Count="0" />
+      <LineId Id="260" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="276" Count="0" />
+      <LineId Id="301" Count="0" />
+      <LineId Id="251" Count="7" />
+      <LineId Id="269" Count="0" />
+      <LineId Id="250" Count="0" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="122" Count="1" />
+      <LineId Id="215" Count="0" />
+      <LineId Id="213" Count="1" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="135" Count="0" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="184" Count="0" />
+      <LineId Id="281" Count="0" />
+      <LineId Id="279" Count="0" />
+      <LineId Id="283" Count="0" />
+      <LineId Id="187" Count="0" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="165" Count="0" />
+      <LineId Id="284" Count="0" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="203" Count="0" />
+      <LineId Id="285" Count="0" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="310" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="311" Count="0" />
+      <LineId Id="315" Count="0" />
+      <LineId Id="317" Count="0" />
+      <LineId Id="316" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

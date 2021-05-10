@@ -1,0 +1,140 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_DeformationPointFIFO" Id="{1c595d80-10e4-4767-bff8-0ee27da948ff}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_DeformationPointFIFO
+VAR_OUTPUT
+	nCount    : UINT;                 // Fill level
+END_VAR
+VAR
+	sBuffer 	: ARRAY[0..(MAX_BUFFER_SIZE-1)] OF ST_DeformationPoint;
+	nHeadPtr  : UINT := 0;            // Point to the first non-empty idx
+	nTailPtr  : UINT := 0;            // Pointer to the first free idx
+  _bError    : BOOL;
+END_VAR
+VAR CONSTANT
+	MAX_BUFFER_SIZE   : UINT := 1000;  // max. buffer size
+	BUFFER_ITEM_SIZE  : UINT := SIZEOF(ST_DeformationPoint)/4; // Divide by 4 as we packed the ST_POINT with 32bits steps
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+(* now done async in method, this was dangerous...
+// FIFO level
+IF nTailPtr <= nHeadPtr THEN
+	nCount := nHeadPtr - nTailPtr;
+ELSE
+	nCount := MAX_BUFFER_SIZE + nHeadPtr - nTailPtr;
+END_IF
+*)]]></ST>
+    </Implementation>
+    <Property Name="bError" Id="{2c0c8ac4-7879-4f9b-ac5a-6b595df476ae}">
+      <Declaration><![CDATA[PROPERTY bError : BOOL]]></Declaration>
+      <Get Name="Get" Id="{d3e01224-9b76-4141-90f9-3c5b23c5a32b}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bError := _bError;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="Pop" Id="{1407fd01-3e55-406d-afdb-7f3babec0896}">
+      <Declaration><![CDATA[(*
+  Get point from fifo queue. 
+  :return: TRUE on success
+*)
+METHOD Pop : BOOL
+VAR_OUTPUT
+	sGridPoint : ST_DeformationPoint;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nCount = 0 THEN
+  F_LogError('FB_DeformationPointFIFO is empty, cannot return an element');
+  _bError := TRUE; 
+  RETURN;
+END_IF
+
+sGridPoint := sBuffer[nTailPtr];
+nTailPtr := (nTailPtr + 1) MOD MAX_BUFFER_SIZE;
+nCount := nCount - 1;
+_bError := FALSE;
+Pop := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Push" Id="{ad235f3c-7a4c-4435-a3a6-ef3cf622a917}">
+      <Declaration><![CDATA[(*
+  Add a new point to the fifo queue.
+  :return: TRUE on success.
+*)
+METHOD Push : BOOL
+VAR_INPUT
+	sNewPoint : ST_DeformationPoint;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nCount >= MAX_BUFFER_SIZE THEN
+  F_LogError('FB_DeformationPointFIFO overflow, element ignored');
+  _bError := TRUE;
+  RETURN;
+END_IF
+
+sBuffer[nHeadPtr] := sNewPoint;
+nHeadPtr := (nHeadPtr + 1) MOD MAX_BUFFER_SIZE;
+nCount := nCount + 1;
+_bError := FALSE;
+Push := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Reset" Id="{49c6e9ec-a40e-42ed-96a8-eff7c0fd072c}">
+      <Declaration><![CDATA[METHOD Reset : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nTailPtr := 0;
+nHeadPtr := 0;
+nCount := 0;
+_bError := 0;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_DeformationPointFIFO">
+      <LineId Id="52" Count="0" />
+      <LineId Id="32" Count="1" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="29" Count="2" />
+      <LineId Id="34" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DeformationPointFIFO.bError.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DeformationPointFIFO.Pop">
+      <LineId Id="24" Count="0" />
+      <LineId Id="27" Count="1" />
+      <LineId Id="25" Count="1" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="17" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DeformationPointFIFO.Push">
+      <LineId Id="19" Count="1" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DeformationPointFIFO.Reset">
+      <LineId Id="5" Count="1" />
+      <LineId Id="10" Count="1" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

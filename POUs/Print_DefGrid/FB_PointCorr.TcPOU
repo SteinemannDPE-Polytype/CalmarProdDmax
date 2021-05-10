@@ -1,0 +1,179 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_PointCorr" Id="{26dce410-3ea3-4f52-a45b-7e55ad528458}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_PointCorr
+VAR PERSISTENT
+  _fX_Pos, _fX_Ref : LREAL;   // x position (correction / reference)
+  _fY_Pos, _fY_Ref : LREAL;   // y position (correction / reference)
+END_VAR
+VAR
+  bCmd_X_minus : BOOL;    // command x minus
+  bCmd_X_plus  : BOOL;    // command x plus
+  bCmd_Y_minus : BOOL;    // command y minus
+  bCmd_Y_plus  : BOOL;    // command y plus
+  bAny         : BOOL;    // any pressed
+  tSlow, tFast : TON;
+  rTrig        : R_TRIG;
+  nIncr        : LREAL;
+  nBtnColor    : UDINT;
+  // settings (init)
+  _aName       : STRING(3);   // name of element
+  _aUnit       : STRING(10);  // element intended [unit]
+  _fX_Min, _fX_Max : LREAL;   // limit x
+  _fY_Min, _fY_Max : LREAL;   // limit y
+  _fIncrStep    : LREAL;      // incr. step slow (stay on button), fast *10
+  _bButnInvertX, _bButnInvertY : BOOL;  // change buttons
+  _bValInvertX, _bValInvertY   : BOOL;  // value *-1
+END_VAR
+VAR CONSTANT
+  RED          : UDINT := 16#FFFF0000;
+  GREEN        : UDINT := 16#FF00FF00;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[bAny := bCmd_X_minus OR bCmd_X_plus OR bCmd_Y_minus OR bCmd_Y_plus;
+rTrig(CLK:=bAny);
+tSlow(IN:=bAny AND NOT tSlow.Q, PT:=T#500MS);
+tFast(IN:=bAny AND NOT rTrig.Q, PT:=T#2S);
+
+IF    tFast.Q AND tSlow.Q THEN nIncr := 10*_fIncrStep;
+ELSIF tSlow.Q OR rTrig.Q THEN nIncr := _fIncrStep;
+ELSE               nIncr := 0;
+END_IF
+
+nBtnColor := GREEN;
+//    button pressed     increment +/-                show limit
+IF    (bCmd_X_minus AND NOT _bButnInvertX) OR (bCmd_X_plus  AND _bButnInvertX) THEN _fX_Pos := _fX_Pos - nIncr; IF _fX_Pos<=_fX_Min THEN nBtnColor:=RED; END_IF
+ELSIF (bCmd_X_plus  AND NOT _bButnInvertX) OR (bCmd_X_minus AND _bButnInvertX) THEN _fX_Pos := _fX_Pos + nIncr; IF _fX_Pos>=_fX_Max THEN nBtnColor:=RED; END_IF
+ELSIF (bCmd_Y_minus AND NOT _bButnInvertY) OR (bCmd_Y_plus  AND _bButnInvertY) THEN _fY_Pos := _fY_Pos - nIncr; IF _fY_Pos<=_fY_Min THEN nBtnColor:=RED; END_IF
+ELSIF (bCmd_Y_plus  AND NOT _bButnInvertY) OR (bCmd_Y_minus AND _bButnInvertY) THEN _fY_Pos := _fY_Pos + nIncr; IF _fY_Pos>=_fY_Max THEN nBtnColor:=RED; END_IF
+END_IF
+
+// apply limit
+IF _fX_Pos<=_fX_Min THEN _fX_Pos:=_fX_Min; END_IF
+IF _fX_Pos>=_fX_Max THEN _fX_Pos:=_fX_Max; END_IF
+IF _fY_Pos<=_fY_Min THEN _fY_Pos:=_fY_Min; END_IF
+IF _fY_Pos>=_fY_Max THEN _fY_Pos:=_fY_Max; END_IF
+]]></ST>
+    </Implementation>
+    <Property Name="fX" Id="{525b6b57-3f78-4df9-8238-4b1829d37546}">
+      <Declaration><![CDATA[(*correction value in X*)
+PROPERTY fX : LREAL]]></Declaration>
+      <Get Name="Get" Id="{2dfc8c39-4fc0-4e95-a53d-3da45db26936}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fX := SEL(_bValInvertX, _fX_Pos, -1*_fX_Pos);
+]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="fX_Ref" Id="{88a42ec6-eee5-4150-8b90-87a805146048}">
+      <Declaration><![CDATA[PROPERTY fX_Ref : LREAL]]></Declaration>
+      <Get Name="Get" Id="{74654c86-ca8c-4a7a-8ea7-7f6f838d428e}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fX_Ref := _fX_Ref;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{ed71f6a4-2050-4ccf-82bf-2e474326bdfe}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fX_Ref := fX_Ref;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="fY" Id="{58fae2e8-1ba9-437b-8d17-701c295c3887}">
+      <Declaration><![CDATA[(*correction value in Y*)
+PROPERTY fY : LREAL]]></Declaration>
+      <Get Name="Get" Id="{c1458e08-6817-492b-b919-4e53a7767d9d}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fY := SEL(_bValInvertY, _fY_Pos, -1*_fY_Pos);
+]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="fY_Ref" Id="{7718ef6e-d7c5-4e02-9bb5-b5f9f83625f0}">
+      <Declaration><![CDATA[PROPERTY fY_Ref : LREAL]]></Declaration>
+      <Get Name="Get" Id="{75beda1f-6937-4794-8088-2d2cc96f3309}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fY_Ref := _fY_Ref;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{ce0798df-87c4-4060-b253-b7b6b5e18fa6}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fY_Ref := fY_Ref;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="init" Id="{f9e13d1c-84a6-4c36-b358-d3b1f6d75c9a}">
+      <Declaration><![CDATA[METHOD init : BOOL
+VAR_INPUT
+  aName : STRING(3);       // name
+  aUnit : STRING(10);      // display unit
+  fX_Min, fX_Max : LREAL;  // Limits
+  fY_Min, fY_Max : LREAL;  // Limits
+  fIncrStep      : LREAL;  // Increment step (slow) VISU
+  bButnInvertX, bButnInvertY : BOOL;  // change buttons
+  bValInvertX,  bValInvertY  : BOOL;  // value *-1
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_aName := aName;
+_aUnit := aUnit;
+_fX_Min := fX_Min; _fX_Max := fX_Max;
+_fY_Min := fY_Min; _fY_Max := fY_Max;
+_fIncrStep := fIncrStep;
+_bButnInvertX := bButnInvertX;
+_bButnInvertY := bButnInvertY;
+_bValInvertX := bValInvertX;
+_bValInvertY := bValInvertY;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_PointCorr">
+      <LineId Id="467" Count="16" />
+      <LineId Id="496" Count="0" />
+      <LineId Id="484" Count="4" />
+      <LineId Id="434" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PointCorr.fX.Get">
+      <LineId Id="5" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_PointCorr.fX_Ref.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PointCorr.fX_Ref.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PointCorr.fY.Get">
+      <LineId Id="6" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PointCorr.fY_Ref.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PointCorr.fY_Ref.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PointCorr.init">
+      <LineId Id="13" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="25" Count="3" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="ST_TeachPoint" Id="{2bb24e19-d1aa-4fae-a2fb-5fa8205daa2a}">
+    <Declaration><![CDATA[TYPE ST_TeachPoint :
+STRUCT
+  (*Valus for printer [mm]*)
+  x_ref_Print         : LREAL := 0;      (*Referenz x deviation [mm]*)
+  y_ref_Print         : LREAL := 0;      (*Referenz y deviation [mm]*)
+  x_teach_Print       : LREAL := 0;      (*Teach x deviation [mm]*)
+  y_teach_Print       : LREAL := 0;      (*Teach y deviation [mm]*)
+  x_Print             : LREAL := 0;      (*x deviation [mm]*)
+  y_Print             : LREAL := 0;      (*y deviation [mm]*)
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

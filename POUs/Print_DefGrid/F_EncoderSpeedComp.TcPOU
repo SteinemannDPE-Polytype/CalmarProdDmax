@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="F_EncoderSpeedComp" Id="{64c688c5-e9c6-4c97-8800-0d843acdc51d}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  Encoder speed compensation.
+  
+  NOTE: Calculation can be disabled by setting fSpeedCompFactor=0
+  :return: compensated encoder resolution
+*)
+FUNCTION F_EncoderSpeedComp : LREAL
+VAR_INPUT
+  (* live value *)
+  fMasterSpeed                  : LREAL;		        (*Current Speed in [m/s]*)
+  (* configuration *)
+  fResolution                   : LREAL := 0.0;     (*default encoder resolution*)
+  fSpeedCompFactor              : LREAL := 0.0;     (*TODO: define value*)
+  fSpeedCompRefSpeed            : LREAL := 0.0;     (*TODO: define value*)
+END_VAR
+VAR
+  fL_Compensation               : LREAL := 0.0;
+  nErrCt                        : UDINT;            (*temporary conversion error counter*)
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF (fSpeedCompFactor <> 0) AND (fMasterSpeed <> 0) THEN
+  
+  (*Calculate compensation*)
+  fL_Compensation := (fMasterSpeed - fSpeedCompRefSpeed) * fSpeedCompFactor;
+  fL_Compensation := DINT_TO_LREAL(FC_LREAL_TO_DINT(fL_Compensation * 10_000, ADR(nErrCt))) / 10_000;	(*Rounding to prevent small changes oscillation*)
+  
+  F_EncoderSpeedComp := fResolution * (1 + fL_Compensation);
+ELSE
+  
+  (*return input resolution*)
+  F_EncoderSpeedComp := fResolution;
+END_IF;]]></ST>
+    </Implementation>
+    <LineIds Name="F_EncoderSpeedComp">
+      <LineId Id="144" Count="0" />
+      <LineId Id="157" Count="0" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="152" Count="1" />
+      <LineId Id="145" Count="0" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="146" Count="0" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="147" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

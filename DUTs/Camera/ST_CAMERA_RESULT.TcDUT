@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="ST_CAMERA_RESULT" Id="{4cdb1f6f-5295-4b01-bc8b-533f17ba8e6d}">
+    <Declaration><![CDATA[TYPE ST_CAMERA_RESULT :
+(*************************************************************************************************)
+(*  FILENAME:    ST_CAMERA_RESULT.EXP                                                            *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    Output of smart camera Systron.                                                            *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+  x_ref               : REAL := 0;      (*Referenz x deviation [mm]*)
+  y_ref               : REAL := 0;      (*Referenz y deviation [mm]*)
+  valid               : BOOL := TRUE;   (*TRUE = PASS, FALSE = FAIL*)
+  x                   : REAL := 0;      (*x deviation [mm]*)
+  y                   : REAL := 0;      (*y deviation [mm]*)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

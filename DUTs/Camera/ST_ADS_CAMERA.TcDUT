@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="ST_ADS_CAMERA" Id="{552d0fda-3188-40d4-86c0-339b89e8eaf3}">
+    <Declaration><![CDATA[TYPE ST_ADS_CAMERA :
+(*************************************************************************************************)
+(*  FILENAME:    ST_ADS_CAMERA                                                                   *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2018)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    ADS structure for camera (Systron, QualiVision).                                           *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+  iO_Version                : INT    := 010200;  (*1.2.0*)
+  aO_Type                   : STRING := 'Camera';
+  aO_Name                   : STRING := 'Camera';
+  sO_Message                : ST_ADS_MSG_IF;
+
+  (*In*)
+  bI_Enable                 : BOOL := TRUE;      (*Enable this device*)
+
+  eI_CameraDevice           : E_CameraDevice;    (*Camera device*)
+  eI_CameraMode             : E_CameraMode;      (*Camera mode*)
+
+  eI_TeachProgress          : EN_CAMERA_TEACH;   (*Teach progress*)
+  sI_TeachPointsQV          : ARRAY[1..GVL_Camera.cC_QUALIVISION_MAX_NB_MARKS] OF ST_CAMERA_TEACH_QV;
+
+  (*Out*)
+  iO_MaxNbMarksQV           : INT := GVL_Camera.cC_QUALIVISION_MAX_NB_MARKS; 
+  sO_PointsReadQV           : ST_COMMAND_PLC;    (*New points read by QualiVision*)
+  iO_AvailableNbReadPointQV : INT; 
+  sO_ReadPointsQV           : ARRAY[1..GVL_Camera.cC_QUALIVISION_MAX_NB_MARKS] OF ST_CAMERA_CORRECTION_QV;
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

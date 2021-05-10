@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_WorkerDefGrid_Delete" Id="{7527e8ae-b298-40c4-9d5c-225c5c9f33be}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Delete EXTENDS FB_WorkerDefGrid
+VAR PERSISTENT
+  _fWorkerToPu   : LREAL := 3;    (*Distance between PU and this worker, mechanisch*)
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="Attach" Id="{ba44b2bb-b602-4351-b884-27d38546747f}">
+      <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
+VAR_INPUT
+  iCT              : I_CT;                         (*container at triggered event position*)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF SUPER^.Attach(iCT:=iCT) THEN
+  ;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="fWorkerToPu" Id="{89984a29-c49f-4fef-962c-903196b3c502}">
+      <Declaration><![CDATA[PROPERTY fWorkerToPu : LREAL]]></Declaration>
+      <Get Name="Get" Id="{69475d99-e2f1-4a28-885b-7624fa90c9a3}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fWorkerToPu := _fWorkerToPu;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="mJobStart" Id="{35dee294-0abe-481b-9d05-6c256fb62d03}">
+      <Declaration><![CDATA[METHOD   mJobStart
+VAR_INPUT
+	sJobDef	: CalmarCompPrint.I_JobDefinition;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+_bJobActive := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mJobStop" Id="{78e31b74-c4ab-4dcf-9c3a-eb2545757f78}">
+      <Declaration><![CDATA[METHOD  mJobStop
+VAR_INPUT
+	sStatus	: CalmarCompPrint.I_JobStatus;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_bJobActive := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Release" Id="{7ef7389d-1596-4a7c-82f8-404606f272e5}">
+      <Declaration><![CDATA[METHOD Release : BOOL
+VAR_INPUT
+  iCT              : I_CT;                         (*container at triggered event position*)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF SUPER^.Release(iCT := iCT) THEN
+  
+  // it's the last worker so distroy attached CT
+  IF _pCtManager <> 0 THEN
+    LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('DestroyCT: ', TO_STRING(iCT.pCT^.iId)));
+    _pCtManager^.DestroyCT(iCT:=iCT);
+  END_IF
+  
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="work" Id="{7026ea79-caca-4595-a7ed-707178d44865}">
+      <Declaration><![CDATA[METHOD  work]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SUPER^.work();
+
+//Worker position update
+IF _pParamMediator <> 0 AND _pAttachedCt = 0 THEN     // Update only without attached container
+  // WorkerPosition =  Worker<-PU<-CAM<-SheetDetect
+  fPosition := _fWorkerToPu + _pParamMediator^.fCameraToPrintOffset + _pParamMediator^.fDetectToCamera;
+END_IF
+
+IF _pAttachedCt <> 0 THEN
+  Release(iCT:=_pAttachedCt^);
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_WorkerDefGrid_Delete">
+      <LineId Id="57" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Delete.Attach">
+      <LineId Id="6" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Delete.fWorkerToPu.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Delete.mJobStart">
+      <LineId Id="19" Count="0" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Delete.mJobStop">
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Delete.Release">
+      <LineId Id="6" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="15" Count="2" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Delete.work">
+      <LineId Id="10" Count="0" />
+      <LineId Id="47" Count="4" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="45" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

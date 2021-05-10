@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <Itf Name="I_Correction_Grid" Id="{a9481e94-4426-4487-8521-4c59b38f93bd}">
+    <Declaration><![CDATA[INTERFACE I_Correction_Grid
+]]></Declaration>
+    <Property Name="bPointQueueBusy" Id="{665f5367-fa2f-47d0-9232-5975d7d06750}">
+      <Declaration><![CDATA[PROPERTY bPointQueueBusy : BOOL]]></Declaration>
+      <Get Name="Get" Id="{73353c73-6336-40a2-82b9-3dd2d927d0ba}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="bPointQueueError" Id="{fbb0c1cc-99ad-4e5c-94fc-6dee208de45d}">
+      <Declaration><![CDATA[PROPERTY bPointQueueError : BOOL]]></Declaration>
+      <Get Name="Get" Id="{caf9fd67-0cbb-4593-8ce1-c0d904658aaa}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="nHeadWidth" Id="{be22ef65-d640-4c82-b6cf-a51bc121e29a}">
+      <Declaration><![CDATA[PROPERTY nHeadWidth : DINT]]></Declaration>
+      <Get Name="Get" Id="{6326e706-b030-436f-bac2-38039a62bf72}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Method Name="setGrid" Id="{e5e3b631-bcac-44a0-8e30-a19a9de7b704}">
+      <Declaration><![CDATA[METHOD setGrid
+VAR_INPUT
+  sGrid : ST_DefGridSettings;
+END_VAR]]></Declaration>
+    </Method>
+    <Method Name="writeCorrectionPoint" Id="{80110971-6e8e-4d7d-b2aa-73e9625539f1}">
+      <Declaration><![CDATA[(*
+  Write a new grid point to the hardware. 
+  New added points will be synchroniced with the hardware with a FIFO queue.
+*)
+METHOD writeCorrectionPoint : BOOL
+VAR_INPUT
+  sPoint  : ST_DeformationPoint;    // add a new grid point
+END_VAR
+]]></Declaration>
+    </Method>
+  </Itf>
+</TcPlcObject>

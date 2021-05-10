@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="ST_GridPoint" Id="{3d89f861-f6f0-4909-a3fb-7dda32053d79}">
+    <Declaration><![CDATA[{attribute 'pack_mode' := '0'}
+TYPE ST_GridPoint :
+STRUCT
+  dx      : UINT;       // [16bit] correction in x
+  dy      : UINT;       // [16bit] correction in y
+  node    : UINT;       // [16bit] node id (absolute node address in grid)
+END_STRUCT
+END_TYPE
+(*
+  Grid point definition to be transferred to the CB.
+  NOT: do not modify this structure unless you are are sure this matches the PDI and CB implementation.
+*)]]></Declaration>
+  </DUT>
+</TcPlcObject>

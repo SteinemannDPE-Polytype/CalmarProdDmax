@@ -1,0 +1,410 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_WorkerDefGrid" Id="{3650ee95-10b0-4788-8cb9-9677368dce0d}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK ABSTRACT FB_WorkerDefGrid EXTENDS FB_Worker
+VAR_OUTPUT
+  bError        : BOOL;       // an error is active
+  nError        : UDINT;      // error code if error active, =0 else
+END_VAR
+VAR
+  // config
+  _pCtManager       : POINTER TO FB_CTManagerDefGrid;  // CT Manager reference
+  _pParamMediator   : POINTER TO FB_DefGridParamMediator;
+  _pMsgConfigExt    : POINTER TO ST_MSG_CONFIG;        // external message config (puc message interface)
+  _nTrackPosDomain  : E_PosDomain;    // Tracking position domain 
+  _fPrintResolution : LREAL := 1;     // print(head) resolution in [dpi]
+  _fSubPxResolution : LREAL := 1;     // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution
+  _name             : STRING;         // Worker name
+  _sVisuName        : STRING := 'VISU_WorkerDefGrid'; // Worker visu instance name
+  _pEcSrc           : POINTER TO T_ErrSrc;       // Error source definition
+
+  // job
+  _bJobActive       : BOOL;           // a job is active
+  // ct
+  _pAttachedCt      : POINTER TO FB_ContainerDefGrid;  // currently attached container
+  fCtPosition       : LREAL;          // Container position relative to worker position in [SubPx (E_PosDomain.master_pos)]
+  _bForceRelease    : BOOL;
+END_VAR
+VAR_STAT
+  // static variables, same for all Workers
+  _fImageWidthM     : LREAL;          // image width in [m]
+  _fImageDepthM     : LREAL;          // image depth in [m]
+  _fCtSecurityReleasePos : LREAL := 0;     // [SubPx] position where to release current ct at last (security release)
+END_VAR
+VAR PERSISTENT
+  _fWorkerPosition  : LREAL;          // worker position relative to X0 in [m]
+END_VAR
+VAR CONSTANT
+  {warning 'TODO: get this value dynamically from Print system '}
+  fC_MIN_SHEET_GAP : LREAL := 0.5;  // 50cm 
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="Abort" Id="{ce16643b-cda2-4181-95e0-0beb74e4ff08}">
+      <Declaration><![CDATA[(*
+  Generic abort implementation of DefGrid CT.
+*)
+METHOD Abort
+VAR_INPUT
+  iCT       : I_CT;
+  sReason   : STRING;
+END_VAR
+VAR
+  _pCt   : POINTER TO FB_ContainerDefGrid;
+  eStep     : E_DeformationStep;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF getCtInst(iCT:=iCT, pCT=>_pCt) <> 0 THEN  // get specific container
+  
+  // Do generic known aborts on CT
+  // - Deformation
+  _pCt^.getDeformationStatus(eDStep=>eStep);
+  IF eStep >= E_DeformationStep.nothing THEN
+    _pCt^.AbortDeformation(sReason:=sReason, Src:=_pEcSrc^);
+	END_IF
+  
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Attach" Id="{ff11ad4e-4599-4f27-9b16-1afbb01604bb}">
+      <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
+VAR_INPUT
+  iCT       : I_CT;            (*container at triggered event position*)
+END_VAR
+VAR
+  _pNewCt   : POINTER TO FB_ContainerDefGrid;
+
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF iCT = 0 THEN
+  LogError(Msg:='attach failed -> not ct given');
+  
+ELSIF bEnable AND _pAttachedCt = 0 THEN           // enabled and free to attach
+  IF getCtInst(iCT:=iCT, pCT=>_pNewCt) <> 0 THEN  // get specific container
+    _pAttachedCt := _pNewCt;
+    Attach:=TRUE;                                 // attach new
+  ELSE
+    LogError(Msg:='attach failed');
+  END_IF
+  
+ELSIF bEnable AND _pAttachedCt <> 0 THEN    // enabled and already a CT attached
+  LogError(Msg:='another container already attached -> ignore new (set error)');
+  Abort(iCT:=iCT, sReason:='attach failed');  // abort new CT
+    
+ELSIF NOT bEnable AND _pAttachedCt <> 0 THEN // disabled and already a CT attached
+  // force release if any hanging, and ignore attach
+  Release(iCT:=_pAttachedCt^);
+
+ELSIF NOT bEnable AND _pAttachedCt = 0 THEN  
+  ;   // nothing to do, ignore attach
+
+ELSE      // unspecified (error)case just log it
+  LogError(Msg:='not tracked case');
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="bAttached" Id="{d663ef8d-4de3-4339-bb43-068fdf551e47}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY bAttached : BOOL]]></Declaration>
+      <Get Name="Get" Id="{02ef1e0c-6e3d-4b78-a33e-9b7da2b704a6}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IF _pAttachedCt <> 0 THEN
+  bAttached := TRUE;
+END_IF]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="fPosition" Id="{72aed42f-b4ca-40a5-97ba-45c8273c2d69}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY fPosition : LREAL]]></Declaration>
+      <Get Name="Get" Id="{1b62f39a-72fb-46df-8d2d-82b64e6e95db}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fPosition := _fWorkerPosition;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{c5124a02-dd31-4a8c-a934-986e277cf211}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fWorkerPosition := fPosition;
+setupPosition();]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="getCtInst" Id="{5f5eb595-b978-4be3-8880-cabf095f9d48}">
+      <Declaration><![CDATA[(*
+  Get specific container from interface.
+  Returns specific container in return value and output parameter.
+*)
+METHOD INTERNAL getCtInst : POINTER TO FB_ContainerDefGrid
+VAR_INPUT
+  iCT              : I_CT;                         (*container at triggered event position*)
+END_VAR
+VAR_OUTPUT
+  pCT              : POINTER TO FB_ContainerDefGrid;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[pCT := 0;
+IF _pCtManager <> 0 THEN
+  getCtInst := _pCtManager^.GetContainerInstance(iCT);   // get real ct fb inst
+  IF getCtInst <> 0 THEN
+    pCT := getCtInst;   // OK all good
+  ELSE
+    LogError(Msg:='specific container not found');
+	END_IF
+ELSE
+  LogError(Msg:='no container manager');
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Init" Id="{d856b57f-d00a-4db7-9b79-38cb4ce2b8d2}">
+      <Declaration><![CDATA[METHOD Init
+VAR_INPUT
+  pCtManager : POINTER TO FB_CTManagerDefGrid;   // CTManager
+  pParamMediator : POINTER TO FB_DefGridParamMediator;
+  pMsgConfig : POINTER TO ST_MSG_CONFIG;         // message config
+  fPrintResolution : LREAL := 1;                 // print(head) resolution in [dpi]
+  fSubPxResolution : LREAL := 1;                 // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_pAttachedCt:=0;
+
+IF pCtManager = 0 OR pParamMediator = 0 THEN
+  LogError(Msg:='Init: invalid parameter');
+  RETURN;
+END_IF
+
+// save config
+_pCtManager := pCtManager; 
+_pParamMediator := pParamMediator;
+_pMsgConfigExt := pMsgConfig;
+_fPrintResolution := fPrintResolution;
+_fSubPxResolution := fSubPxResolution;
+_fCtSecurityReleasePos := 0;
+setupPosition();
+
+setName('');
+
+// register worker CTManager/Tracker event subject
+_nTrackPosDomain := E_PosDomain.master_pos;
+_pCtManager^.RegisterPosition(nPosDomain:=_nTrackPosDomain, iPositionEvent:=THIS^);
+
+// init error source reference
+_pEcSrc := ErrorCodes.fbErrCodeMngr.registerErrSource(
+ nLocId := 0,
+ aInstPath := InstanceName,
+ aLocDescr := _name
+);
+IF _pEcSrc = 0 THEN LogError('could not register error source'); END_IF
+
+bInitialized := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mJobStart" Id="{c627219d-988f-43f2-9b2d-62671e653543}">
+      <Declaration><![CDATA[METHOD  ABSTRACT mJobStart
+VAR_INPUT
+	sJobDef	: CalmarCompPrint.I_JobDefinition;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mJobStop" Id="{d1727830-648d-4092-ac5b-0913487c823b}">
+      <Declaration><![CDATA[METHOD ABSTRACT mJobStop
+VAR_INPUT
+	sStatus	: CalmarCompPrint.I_JobStatus;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Release" Id="{93d9817b-e0fc-453a-98a3-5fa1fab9a696}">
+      <Declaration><![CDATA[(*
+  Release CT from Worker.
+  :return: TRUE if CT was released, FALSE if no CT was registered 
+*)
+METHOD Release : BOOL
+VAR_INPUT
+  iCT              : I_CT;                         (*container at triggered event position*)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF iCT <> 0 AND _pAttachedCt <> 0 THEN Release := TRUE; END_IF
+_pAttachedCt:=0;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="setName" Id="{f4399b02-f69d-4f1d-8a54-2e3c9b492253}">
+      <Declaration><![CDATA[METHOD PRIVATE setName : BOOL
+VAR_INPUT
+  sName : STRING;
+END_VAR
+VAR
+  nIdx : INT;
+  bDone : BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF sName = '' THEN
+  // generate worker name
+  _name := THIS^.InstanceName;
+  WHILE NOT bDone DO
+    nIdx := FIND(_name, '_');
+    IF nIdx = 0 THEN bDone := TRUE; EXIT; 
+    ELSE
+      _name := RIGHT(_name,LEN(_name)-nIdx);
+    END_IF 
+  END_WHILE
+ELSE
+  _name := sName;  
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="setupPosition" Id="{6e3bb9fc-2b58-4b26-9d9f-a6a1876a11c6}">
+      <Declaration><![CDATA[METHOD PROTECTED setupPosition
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_nTrackOffset := F_MeterToSubPixel(fPosMeter:=fPosition, fResoSubPx:=_fPrintResolution*_fSubPxResolution);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="work" Id="{39f716aa-387e-47c7-bab0-59397ba81c1f}">
+      <Declaration><![CDATA[METHOD  work]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//Work only with attached container
+IF _pAttachedCt <> 0 THEN 
+  
+  // update CT position
+  fCtPosition := _pAttachedCt^.GetPos(nPosDomain:=E_PosDomain.master_pos) - _nTrackOffset; 
+
+  // release CT (manually and security)
+  IF _bForceRelease THEN
+    LogWarning(F_Concat2('Manually realease CTId=', TO_STRING(_pAttachedCt^.pCT^.iId)));
+    Release(iCT:=_pAttachedCt^);
+  ELSIF _fCtSecurityReleasePos > 0 AND (fCtPosition > _fCtSecurityReleasePos) THEN
+    LogError(F_Concat2('Security released CTId=', TO_STRING(_pAttachedCt^.pCT^.iId)));
+    Release(iCT:=_pAttachedCt^);
+  END_IF
+  
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_WorkerDefGrid">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.Abort">
+      <LineId Id="10" Count="0" />
+      <LineId Id="14" Count="5" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.Attach">
+      <LineId Id="100" Count="0" />
+      <LineId Id="131" Count="1" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="125" Count="0" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="128" Count="1" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="116" Count="0" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="103" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.bAttached.Get">
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.fPosition.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.fPosition.Set">
+      <LineId Id="3" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.getCtInst">
+      <LineId Id="29" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="27" Count="1" />
+      <LineId Id="14" Count="1" />
+      <LineId Id="25" Count="1" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.Init">
+      <LineId Id="3" Count="9" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="15" Count="6" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="43" Count="2" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.mJobStart">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.mJobStop">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.Release">
+      <LineId Id="3" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.setName">
+      <LineId Id="3" Count="12" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.setupPosition">
+      <LineId Id="3" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.work">
+      <LineId Id="19" Count="0" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="4" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="22" Count="1" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

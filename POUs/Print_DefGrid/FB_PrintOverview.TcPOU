@@ -1,0 +1,236 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_PrintOverview" Id="{57a6df33-c5fc-4b78-b796-858abcecd4f4}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_PrintOverview
+VAR_INPUT
+  fX_m,  fY_m   : LREAL;
+  nX_px, nY_px  : DINT;
+  fPxToMRatio   : LREAL;
+  fResSubPx     : LREAL;   // Subpixel pulse resolution
+END_VAR
+
+VAR
+  // helper
+  bInit   : BOOL;
+  nCtr    : UDINT;
+  nNum    : UDINT;
+  
+  // config
+  _pCTM   : POINTER TO FB_CTManagerDefGrid;
+  _pWorkerDefGrid : POINTER TO FB_WorkerDefGrid;
+  _pPositioning : POINTER TO FB_PrintPositionDmax;
+  _fPrintResolution : LREAL;      // [dpi]
+  _fSubPixelResolution : LREAL;   // sub pixel resolution [x]
+  
+  // Container view list
+  iCT     : I_CT;
+  aCTV    : ARRAY[1..iCPr_MAX_CONTAINER] OF FB_ContainerView;
+  // Worker view list
+  iWorker : I_Worker;
+  aWorkerV: ARRAY[1..nC_MAX_WORKER_VIEWS] OF FB_ViewPositionControl;
+  aWorkerFb: ARRAY[1..nC_MAX_WORKER_VIEWS] OF POINTER TO FB_WorkerDefGrid;
+  
+  // motion and position
+  bMovingInd : BOOL;
+  fSpeed  : LREAL;
+  fbBlink : FB_BLINK;
+  t : TIME;
+  
+  // last container debug
+  nGridRowStart : UDINT;  // starting grid colum for Grid debug Visu
+  nGridColStart : UDINT;  // starting grid colum for Grid debug Visu
+  pLastCT : POINTER TO FB_ContainerDefGrid;   // pointer to last created container
+  
+  // time
+  sCurrentDateTime : STRING;
+  
+END_VAR
+VAR CONSTANT
+  nC_MAX_WORKER_VIEWS : UINT := 10;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT checkConfig() THEN RETURN; END_IF    // check config
+
+// -- show CTs -----------------------
+nNum := _pCTM^.nCount;
+FOR nCtr := 1 TO nNum DO
+  // get CT interface from list
+  iCT := _pCTM^.getCT(nIdx:=nCtr);
+  IF iCT <> 0 THEN
+    // set position
+    aCTV[nCtr].setPos(x:=iCT.GetPos(nPosDomain:=e_posdomain.master_pos), y:=0);
+    // display
+    aCTV[nCtr].bHide := FALSE;
+    aCTV[nCtr](iCT:=iCT, iIdx:=UDINT_TO_UINT(iCT.pCT^.nMemIndex), fPxtoMRatio:=fPxToMRatio, fResSubPx := fResSubPx);
+  END_IF
+END_FOR
+
+FOR nCtr := (nNum+1) TO iCPr_MAX_CONTAINER DO
+  aCTV[nCtr].iCT := 0;
+  aCTV[nCtr].bHide := TRUE;
+END_FOR
+
+// -- show Workers -----------------------
+iWorker := _pWorkerDefGrid^.Root;
+nCtr := 0;
+WHILE iWorker <> 0 DO     // walk through worker chain
+  nCtr := nCtr + 1;
+  aWorkerFb[nCtr] := iWorker.Inst;  // get fb pointer
+  aWorkerV[nCtr].bHide := FALSE;
+  aWorkerV[nCtr].setPos(x:=aWorkerFb[nCtr]^.nTrackOffset, y:=0);
+  iWorker:=iWorker.Next;
+END_WHILE
+FOR nCtr := (nCtr+1) TO nC_MAX_WORKER_VIEWS DO
+  aWorkerV[nCtr].bHide := TRUE;
+END_FOR
+
+// -- show positioning -----------------------
+fSpeed := _pPositioning^.getSpeed();
+t := LREAL_TO_TIME(1000-fSpeed*900);
+fbBlink(bI_Enable:=SEL(fSpeed > 0, FALSE, TRUE), tI_Time:=t, bO_Out=>bMovingInd);
+
+// -- last container debug detail ------------
+IF _pCTM^.nCount > 0 THEN
+  iCT := _pCTM^.getCT(1);
+  IF iCT <> 0 THEN  pLastCT := _pCTM^.GetContainerInstance(iCT:=iCT); END_IF
+END_IF
+
+// -- current time ---------------------------
+sCurrentDateTime := F_TimeGetDateTime();]]></ST>
+    </Implementation>
+    <Method Name="checkConfig" Id="{edfe75ad-63c4-4ec1-9d31-8e206962e7b0}">
+      <Declaration><![CDATA[METHOD checkConfig : BOOL
+VAR_INPUT
+END_VAR
+VAR_INST
+  _fX_m, _fY_m   : LREAL;
+  _nX_px, _nY_px : DINT; 
+END_VAR
+VAR
+  bOK : BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bInit THEN RETURN; END_IF
+
+// changed settings
+IF _fX_m <> fX_m OR
+          _fY_m <> fY_m OR
+          _nX_px <> nX_px OR
+          _nY_px <> nY_px THEN
+  // save new config
+   _fX_m := fX_m;
+   _fY_m := fY_m;
+   _nX_px := nX_px;
+   _nY_px := nY_px;
+   config();
+END_IF
+
+checkConfig := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="config" Id="{9e7ce76d-1ed9-41db-9084-522b19fbba4a}">
+      <Declaration><![CDATA[METHOD PRIVATE config
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// NOTE: some config values are given only here (internally)
+FOR nCtr := 1 TO iCPr_MAX_CONTAINER DO
+  aCTV[nCtr].init(
+    nXPosMin:=0,
+    nXPosMax:= F_MeterToSubPixel(fPosMeter := fX_m, fResoSubPx := _fPrintResolution * _fSubPixelResolution),
+    nYPosMin:=0,
+    nYPosMax:=F_MeterToSubPixel(fPosMeter := fY_m, fResoSubPx := _fPrintResolution * _fSubPixelResolution),
+    bXFlip:=TRUE,
+    bYFlip:=FALSE,
+    nXMinPx:=0,
+    nXMaxPx:=nX_px,
+    nYMinPx:=0,
+    nYMaxPx:=nY_px,
+  );
+  aCTV[nCtr].setPos(x:=0, y:=0);
+END_FOR
+FOR nCtr := 1 TO nC_MAX_WORKER_VIEWS DO
+  aWorkerV[nCtr].init(
+    nXPosMin:=0,
+    nXPosMax:= F_MeterToSubPixel(fPosMeter := fX_m, fResoSubPx := _fPrintResolution * _fSubPixelResolution),
+    nYPosMin:=0,
+    nYPosMax:=F_MeterToSubPixel(fPosMeter := fY_m, fResoSubPx := _fPrintResolution * _fSubPixelResolution),
+    bXFlip:=TRUE,
+    bYFlip:=FALSE,
+    nXMinPx:=0,
+    nXMaxPx:=nX_px,
+    nYMinPx:=0,
+    nYMaxPx:=nY_px,
+  );
+  aWorkerV[nCtr].setPos(x:=0, y:=0);
+END_FOR
+
+bInit := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="init" Id="{bd002f50-5fd9-48d9-b817-a794ac96eb55}">
+      <Declaration><![CDATA[METHOD init : BOOL
+VAR_INPUT
+  pCTM  : POINTER TO FB_CTManager;
+  pWorkerDefGrid : POINTER TO FB_WorkerDefGrid;
+  pPositioning : POINTER TO FB_PrintPositionDmax;
+  fPrintResolution : LREAL;
+  fSubPixelResolution : LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF pCTM = 0 OR pWorkerDefGrid = 0 OR pPositioning = 0 THEN RETURN; END_IF
+
+_pCTM := pCTM;
+_pWorkerDefGrid := pWorkerDefGrid;
+_pPositioning := pPositioning;
+_fPrintResolution := fPrintResolution;
+_fSubPixelResolution := fSubPixelResolution;
+
+bInit := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_PrintOverview">
+      <LineId Id="295" Count="0" />
+      <LineId Id="297" Count="36" />
+      <LineId Id="250" Count="0" />
+      <LineId Id="371" Count="0" />
+      <LineId Id="370" Count="0" />
+      <LineId Id="377" Count="1" />
+      <LineId Id="373" Count="0" />
+      <LineId Id="372" Count="0" />
+      <LineId Id="419" Count="0" />
+      <LineId Id="418" Count="0" />
+      <LineId Id="424" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintOverview.checkConfig">
+      <LineId Id="26" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="38" Count="1" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="41" Count="2" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintOverview.config">
+      <LineId Id="55" Count="31" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintOverview.init">
+      <LineId Id="5" Count="0" />
+      <LineId Id="11" Count="2" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="14" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,197 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_PS_Grid" Id="{9c5e3abb-c4bc-4a7b-938e-25a9d7e81622}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_PS_Grid EXTENDS FB_PS
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+  sCG : ARRAY[1..iCPr_NB_PH_PS_MAX] OF I_Correction_Grid;
+  
+  nRowMap : ARRAY[1..iCPr_NB_PH_PS_MAX,1..2] OF DINT; (*PH[x, [min, max]] Min..Max ROI row per head*)
+  sDefGridSettings : ST_DefGridSettings; 
+  _bPrintEnable : BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Property Name="bPrintEnable" Id="{89c7bcb6-dc3e-4f6d-821f-72afc3e87977}">
+      <Declaration><![CDATA[PROPERTY bPrintEnable : BOOL]]></Declaration>
+      <Get Name="Get" Id="{87c8430a-913b-4a4a-a0e7-9ed266d92518}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bPrintEnable := _bPrintEnable;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{fac22d2e-cdeb-4187-ba4d-ca8db5a800ad}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bPrintEnable := bPrintEnable;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="newGridPoint" Id="{9f9665fc-9dda-4195-aa07-7605112b126e}">
+      <Declaration><![CDATA[METHOD newGridPoint : BOOL
+VAR_INPUT
+  sPoint : ST_DeformationPointAccurate;
+END_VAR
+VAR
+  bOK : BOOL;
+  bLimited : BOOL;
+  i : UDINT;
+  sPointPx : ST_DeformationPoint;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// write to head(s)
+FOR i:=1 TO nPh DO
+  
+  //Check if point in scope of printhead (rows) (NOTE: could be remo)
+  IF sPoint.row >= nRowMap[i,1] AND sPoint.row <= nRowMap[i,2] THEN
+
+    // write DefGrid point
+    sPointPx := F_EncodeDeformationPoint(sPoint:=sPoint, nResolution:=1);   // convert point to fixed point (floor)
+    bOK := sCG[i].writeCorrectionPoint(sPoint:=sPointPx);
+    IF NOT bOK THEN 
+      LogWarning(F_Concat6('Could not write GridPoint to PH[', TO_STRING(i), '] c:', TO_STRING(sPoint.col), '/r:', TO_STRING(sPoint.row)));
+    END_IF
+	END_IF
+END_FOR
+
+newGridPoint := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="printPrepare" Id="{fdf28f07-247a-4033-92d5-ffed501251f9}">
+      <Declaration><![CDATA[METHOD printPrepare
+VAR
+  i : UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// set print enable 
+FOR i:=1 TO nPh DO
+  sPh[i].setPrintEnable(bPrintEnable := sPh[i].bEnable AND _bPrintEnable);  // if ph is enabled and ps print enable is set
+END_FOR]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="registerCG" Id="{15a4429f-45fa-4f57-9655-f7ccd96f089d}">
+      <Declaration><![CDATA[METHOD registerCG : BOOL
+VAR_INPUT
+      iNewPh : I_PH;                // printhead interface
+      iNewCG : I_Correction_Grid;   // correction grid interface
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF iNewCG = 0 OR iNewCG = 0 THEN LogError('registerCG: Invalid parameter'); F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); RETURN; END_IF
+IF THIS^.registerPh(iNewPh:=iNewPh) THEN
+    sCG[nPh] := iNewCG; //add CG same as printhead, they are in sync
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="setGrid" Id="{5a0bdc95-65ff-4d0e-972d-23940539c977}">
+      <Declaration><![CDATA[METHOD setGrid
+VAR_INPUT
+  sGrid : ST_DefGridSettings;
+END_VAR
+VAR
+  i : UDINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// grid settings checks
+IF sGrid.nGridPitchX = 0 OR sGrid.nGridPitchY = 0 OR sGrid.nGridPoints = 0 THEN
+  LogError('Invalid grid settings');
+  RETURN;
+END_IF
+
+// save grid settings
+sDefGridSettings :=sGrid;
+
+// set grid on PH 
+FOR i:=1 TO nPh DO
+  sCG[i].setGrid(sGrid:=sGrid);
+  
+  (* setup grid filter in PS (for better performance, pre-filter points before sending to ph) 
+      this could removed so we have the RIO calculation only once.*)
+  IF sPh[i] <> 0 AND sCG[i] <> 0 THEN
+    // lower row bound
+    nRowMap[i,1]:=sPh[i].nPositionY / UDINT_TO_DINT(sDefGridSettings.nGridPitchY);   // floor
+    // upper row bound
+    nRowMap[i,2]:=(sPh[i].nPositionY + sPh[i].nHeadWidth) / UDINT_TO_DINT(sDefGridSettings.nGridPitchY) + 1;
+    {warning 'TODO: review with RIO calculation if FPGA is right'}
+    nRowMap[i,2]:=nRowMap[i,1] + GVL_Deformation.nC_GridRoiRows - 1;
+    
+    // limit to grid scope
+    nRowMap[i,1] := LIMIT(0,nRowMap[i,1],UDINT_TO_DINT(sDefGridSettings.nGridSizeY));
+    nRowMap[i,2] := LIMIT(0,nRowMap[i,2],UDINT_TO_DINT(sDefGridSettings.nGridSizeY));
+  ELSE
+    F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer);
+  END_IF  
+END_FOR
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_PS_Grid">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PS_Grid.bPrintEnable.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PS_Grid.bPrintEnable.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PS_Grid.newGridPoint">
+      <LineId Id="31" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="148" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="34" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PS_Grid.printPrepare">
+      <LineId Id="19" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="13" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_PS_Grid.registerCG">
+      <LineId Id="15" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="8" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_PS_Grid.setGrid">
+      <LineId Id="23" Count="3" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="34" Count="1" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="39" Count="8" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="49" Count="1" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="67" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

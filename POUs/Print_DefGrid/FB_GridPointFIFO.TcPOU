@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_GridPointFIFO" Id="{8c086e8c-cff0-4648-8bd3-98b05260a0a4}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_GridPointFIFO
+VAR_OUTPUT
+	nCount    : UINT;                 // Fill level
+END_VAR
+VAR
+	sBuffer 	: ARRAY[0..(MAX_BUFFER_SIZE-1)] OF ST_GridPoint;
+	nHeadPtr  : UINT := 0;            // Point to the first non-empty idx
+	nTailPtr  : UINT := 0;            // Pointer to the first free idx
+  _bError   : BOOL;
+END_VAR
+VAR CONSTANT
+	MAX_BUFFER_SIZE   : UINT := 500;  // max. buffer size
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Property Name="bError" Id="{a012fb6e-0800-42f3-8d79-34f01a1bdc2c}">
+      <Declaration><![CDATA[PROPERTY bError : BOOL]]></Declaration>
+      <Get Name="Get" Id="{c375fde1-e151-42cf-bd1e-70a77c9ac55a}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bError := _bError;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="Pop" Id="{a098839a-72ec-4ab0-b04f-472da796b700}">
+      <Declaration><![CDATA[(*
+  Get point from fifo queue. 
+  :return: TRUE on success
+*)
+METHOD Pop : BOOL
+VAR_OUTPUT
+	sGridPoint : ST_GridPoint;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nCount = 0 THEN
+  F_LogError('FB_DeformationPointFIFO is empty, cannot return an element');
+  _bError := TRUE; 
+  RETURN;
+END_IF
+
+sGridPoint := sBuffer[nTailPtr];
+nTailPtr := (nTailPtr + 1) MOD MAX_BUFFER_SIZE;
+nCount := nCount - 1;
+_bError := FALSE;
+Pop := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Push" Id="{91a35e6a-70a9-47bd-a034-e22fe4faa50f}">
+      <Declaration><![CDATA[(*
+  Add a new point to the fifo queue.
+  :return: TRUE on success.
+*)
+METHOD Push : BOOL
+VAR_INPUT
+	sNewPoint : ST_GridPoint;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nCount >= MAX_BUFFER_SIZE THEN
+  F_LogError('FB_DeformationPointFIFO overflow, element ignored');
+  _bError := TRUE;
+  RETURN;
+END_IF
+
+sBuffer[nHeadPtr] := sNewPoint;
+nHeadPtr := (nHeadPtr + 1) MOD MAX_BUFFER_SIZE;
+nCount := nCount + 1;
+_bError := FALSE;
+Push := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Reset" Id="{9fb5f1a7-e929-4852-9362-6fab0cbb7438}">
+      <Declaration><![CDATA[METHOD Reset : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nTailPtr := 0;
+nHeadPtr := 0;
+nCount := 0;
+_bError := 0;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_GridPointFIFO">
+      <LineId Id="34" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_GridPointFIFO.bError.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_GridPointFIFO.Pop">
+      <LineId Id="24" Count="0" />
+      <LineId Id="27" Count="1" />
+      <LineId Id="25" Count="1" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="17" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_GridPointFIFO.Push">
+      <LineId Id="19" Count="1" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_GridPointFIFO.Reset">
+      <LineId Id="5" Count="1" />
+      <LineId Id="10" Count="1" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

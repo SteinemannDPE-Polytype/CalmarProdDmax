@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="ST_CAMERA_CORRECTION_QV" Id="{c3066e1c-d6ca-44fb-97a4-227ec530eb4f}">
+    <Declaration><![CDATA[TYPE ST_CAMERA_CORRECTION_QV :
+(*************************************************************************************************)
+(*  FILENAME:    ST_CAMERA_CORRECTION_QV                                                         *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    Correction of smart camera QualiVision for PUC.                                            *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+  (*PUC correction points [mm]*)
+  valid               : BOOL := FALSE;  (*TRUE = PASS, FALSE = FAIL*)
+  PaddingByte01       : BYTE;           (*PUC needs it for stream reading. TC3 uses 8 byte alignment.*)
+  PaddingByte02       : BYTE;           (*PUC needs it for stream reading. TC3 uses 8 byte alignment.*)
+  PaddingByte03       : BYTE;           (*PUC needs it for stream reading. TC3 uses 8 byte alignment.*)
+  x_origin            : REAL := 0;      (*Referenz x origin [mm]*)
+  y_origin            : REAL := 0;      (*Referenz y origin [mm]*)
+  x_correction        : REAL := 0;      (*x correction [mm]*)
+  y_correction        : REAL := 0;      (*y correction [mm]*)
+  PaddingBytes04      : REAL;           (*PUC needs it for stream reading. TC3 uses 8 byte alignment.*)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

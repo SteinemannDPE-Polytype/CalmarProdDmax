@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="EN_MSG_LIST" Id="{b779ca97-c3e5-47a6-9087-28060a0419c7}">
+    <Declaration><![CDATA[TYPE EN_MSG_LIST :
+(*************************************************************************************************)
+(*  FILENAME:    EN_MSG_LIST.EXP                                                                 *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*     This block containts the global list for all messages used by `FB_MESSAGE`.               *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+(
+  // start at                       eCStag_MSG_BASE := 10000,
+  eC_DMAX_CAM_NOTAVAIL                              :=10000,  (*CameraNotAvailable*)
+  eC_DMAX_CAM_MODE_NOTSUPPORTED                     :=10001,  (*CameraModeNotSupported*)
+  eC_DMAX_CAM_NOTENGOUGH_TEACH_POINTS               :=10002  (*CameraNotEnoughTeachPoints*)
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

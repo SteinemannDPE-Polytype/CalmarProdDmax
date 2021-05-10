@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="F_MeterToSubPixelReal" Id="{ff12f9cd-2d36-4cd6-b1f4-11ff551a2c2d}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_MeterToSubPixelReal : LREAL
+VAR_INPUT
+  fPosMeter   : LREAL;             (*Position or distance in [m]*)
+  fResoSubPx  : LREAL;             (*SubPixel resolution [dpi*SubPx]*)
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[F_MeterToSubPixelReal := (((fPosMeter * fResoSubPx) / 0.0254));]]></ST>
+    </Implementation>
+    <LineIds Name="F_MeterToSubPixelReal">
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

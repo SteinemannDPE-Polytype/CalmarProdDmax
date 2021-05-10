@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <GVL Name="GVL_Camera" Id="{710576c3-1505-447e-9c31-0598ceccbb39}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL CONSTANT
+  cMaxNbMarks                   : UDINT := 200;     (*Max number of QualiVision marks*)
+  cMaxNbSectors                 : UDINT := 50;      (*Max number of QualiVision sectors*)
+  cC_QUALIVISION_MAX_NB_MARKS   : BYTE  := 10;      (*Max number of QualiVision marks*)
+  nC_NbCamErrors                : UDINT := 10;
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

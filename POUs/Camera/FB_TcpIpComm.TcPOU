@@ -1,0 +1,183 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_TcpIpComm" Id="{a078388e-b697-4203-9214-41bca8598ae3}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_TcpIpComm EXTENDS T_NamedBase IMPLEMENTS I_BootService
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+  // boot service
+  _bStarting       : BOOL := TRUE;
+  _tStartDelay     : ARRAY[1..nMaxTcpIpClients] OF TIME;
+  fbTonStartDelay  : ARRAY[1..nMaxTcpIpClients] OF TON;
+  
+  // TcpIp clients list
+  sSrvNetId        : T_AmsNetID := '';           (* AmsId of tcpip server.exe, default: empty string. *)
+  fbCloseAll       : FB_SocketCloseAll;          (* close all opened sockets *)
+  
+  fbTcpClients     : ARRAY[1..nMaxTcpIpClients] OF FB_TcpClient;
+  pActiveClients   : ARRAY[1..nMaxTcpIpClients] OF POINTER TO FB_TcpClient;
+  nActiveTcpClients: UINT;    // active/registered clients¨
+  
+  nCtr  : UINT;
+END_VAR
+VAR CONSTANT
+  nMaxTcpIpClients      : UINT := 4;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF _bStarting THEN RETURN; END_IF
+
+// call all active clients
+FOR nCtr:=1 TO nActiveTcpClients DO
+  fbTonStartDelay[nCtr](IN := TRUE, PT := _tStartDelay[nCtr]);
+  IF fbTonStartDelay[nCtr].Q THEN
+    fbTcpClients[nCtr](
+      //bEnable := .....
+      //bConnected => 
+    );
+  END_IF
+END_FOR
+]]></ST>
+    </Implementation>
+    <Folder Name="I_BootService" Id="{8dae093d-9041-4467-8abd-4c2547d9939f}" />
+    <Property Name="bStarting" Id="{75b53b4f-1b56-40c9-84b6-ac5f91952b36}" FolderPath="I_BootService\">
+      <Declaration><![CDATA[PROPERTY bStarting : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{aad467fa-61af-4801-bffc-b0fc09a43449}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[// return booint satus to boot service
+bStarting := _bStarting;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="closeAllSockets" Id="{44728c69-93f7-4a0a-b50f-7543336635d2}">
+      <Declaration><![CDATA[METHOD closeAllSockets : BOOL
+VAR_INST
+  bClosing  : BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* close all opened/created sockets *)
+IF NOT bClosing THEN fbCloseAll( sSrvNetId := sSrvNetId, bExecute:= FALSE ); bClosing := TRUE; END_IF  // be sure to call it once with FALSE
+
+fbCloseAll( sSrvNetId := sSrvNetId, bExecute:= bClosing );
+IF NOT fbCloseAll.bBusy THEN
+  // done
+  //IF fbCloseAll.bError THEN LogError(F_Concat2('CloseAllSockets error=', F_GetAdsErrDescription(lErrCode:=fbCloseAll.nErrId))); 
+  //ELSE                      LogInfo('CloseAllSockets done.'); END_IF
+  bClosing := FALSE;
+END_IF
+
+// return busy
+closeAllSockets := fbCloseAll.bBusy;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="registerTcpIpClient" Id="{615b5775-a0f2-4292-abc2-3bb5e0b363cd}">
+      <Declaration><![CDATA[METHOD registerTcpIpClient : POINTER TO FB_TcpClient
+VAR_INPUT
+  sRemoteHost   : ST_SockAddr;
+  iHandler      : I_TcpIp_RxMsgHandler;
+  tStartDelay   : TIME;
+END_VAR
+
+VAR
+  pTcpIpClient  : POINTER TO FB_TcpClient;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nActiveTcpClients >= nMaxTcpIpClients THEN
+  LogError('No free TcpIp client, ignore registerTcpIpClient');
+END_IF
+
+nActiveTcpClients := nActiveTcpClients + 1;
+
+// config
+fbTcpClients[nActiveTcpClients].sRemoteHost := sRemoteHost.sAddr;
+fbTcpClients[nActiveTcpClients].nRemotePort := sRemoteHost.nPort;
+_tStartDelay[nActiveTcpClients]             := tStartDelay;
+
+// init
+fbTcpClients[nActiveTcpClients].init(
+  tReconnect := T#100MS,
+  tRxPolling := T#1MS,
+  //cMsgTermination := cMSG_TERMINATION_ZERO
+);
+// start
+fbTcpClients[nActiveTcpClients].bEnable := TRUE;
+fbTcpClients[nActiveTcpClients].register_RxMsgHandler(bAdd:=TRUE, iHandler);
+
+// return client handle (pointer = full access)
+pActiveClients[nActiveTcpClients] := ADR(fbTcpClients[nActiveTcpClients]);
+registerTcpIpClient := ADR(fbTcpClients[nActiveTcpClients]);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="start" Id="{20fbdb4a-e6fc-4b98-8d94-a8b0f07207dc}" FolderPath="I_BootService\">
+      <Declaration><![CDATA[METHOD start : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// called by system boot services, 'regBootService' needed
+IF NOT closeAllSockets() THEN
+  // done 
+  _bStarting := FALSE;  // we are done
+END_IF
+
+start := _bStarting;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_TcpIpComm">
+      <LineId Id="44" Count="1" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="71" Count="6" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="102" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TcpIpComm.bStarting.Get">
+      <LineId Id="5" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TcpIpComm.closeAllSockets">
+      <LineId Id="6" Count="0" />
+      <LineId Id="31" Count="1" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="25" Count="1" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TcpIpComm.registerTcpIpClient">
+      <LineId Id="29" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="73" Count="1" />
+      <LineId Id="30" Count="4" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="36" Count="2" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="45" Count="3" />
+      <LineId Id="53" Count="1" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="24" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TcpIpComm.start">
+      <LineId Id="17" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="19" Count="1" />
+      <LineId Id="4" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="14" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,677 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_ImageDeformation" Id="{441e42f8-e2de-4298-af7d-148639a86403}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ImageDeformation EXTENDS FB_PythonDeformation
+VAR
+  _eDeformationStep : E_DeformationStep;    // current active deformation step (handler)
+  _eCameraMode      : E_CameraMode;         // active deformation mode
+  _nImgProcPoints   : DINT;
+  _nDxShift, _nDxSum : LREAL;                 // global x grid shift
+  _nDyShift, _nDySum : LREAL;                 // global y grid shift
+  
+  // Cam points (stored locally)
+  _nCamPoints        : UDINT;
+  _sCamPoints        : ARRAY[0..100] OF ST_CameraPointTbl;   // received cam points
+  
+  // local DefGrid table
+  _sDefGridSettings  : ST_DefGridSettings;   // local copy of settings
+  _sDefGridPoints    : ARRAY[0..100, 0..100] OF ST_DeformationPointTbl; // [col, row] local grid point table
+  _nGridPoints       : UDINT; // stored and available grid points
+  _nGridCols         : UDINT;
+  
+  // local XYR handler
+  _nLocalGridColsGenerated: UDINT;   // already generated "local" grid columns XYR [0..x]
+
+  _fStartDeformPos  : LREAL;   // position [px] where deformation started on ct
+  _fLastDeformPos   : LREAL;   // position where deformation was last updated
+  	// others 
+	_bAborted         : BOOL;
+  _nErrorId         : UDINT := 0;
+  _sTempPoint       : ST_DeformationPointAccurate;
+END_VAR
+VAR CONSTANT
+  tPYTHON_TIMEOUT   : TIME  := T#500MS;  // python deformation script update response timeout  
+  nMAX_COLS_DEFGRID : UDINT := 100;  // if you update this value you need to update the array variables as well (there we can't use this constant (beckhoff bug in table view))
+  nMAX_ROWS_DEFGRID : UDINT := 100;  // if you update this value you need to update the array variables as well (there we can't use this constant (beckhoff bug in table view))
+  nMAX_CAM_POINTS   : UDINT := 100;  // if you update this value you need to update the array variables as well (there we can't use this constant (beckhoff bug in table view))
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT bInitialized THEN
+  init();
+END_IF
+
+IF bUsePy THEN
+  ExecPy();       // call python deformation handler
+  
+  // pull all GridPoints from FIFO and store to local table
+  WHILE PopDeformationPoint(sNewPoint=>_sTempPoint) DO
+    storeDeformationPoint(sPoint:=_sTempPoint);    // save point to table
+  END_WHILE
+  
+ELSE
+  ;// ExecLocal();    // call local deformation handlers 
+END_IF
+]]></ST>
+    </Implementation>
+    <Method Name="abort" Id="{17ebfcd2-e342-43b8-8f26-960c2f17ffae}">
+      <Declaration><![CDATA[METHOD abort : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_bAborted := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="addCamPoint" Id="{09ff5949-d1e4-4f91-8ac4-9eb1cfa8f287}">
+      <Declaration><![CDATA[METHOD addCamPoint : BOOL
+VAR_INPUT
+  sNewPoint : ST_DeformationPointAccurate;
+END_VAR
+VAR
+  sPointPx  : ST_DeformationPoint;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF bUsePy THEN
+  // push point to fifo for script
+  
+  addCamPoint := PushDeformationPoint(
+                      sPoint:=F_EncodeDeformationPoint(sPoint:=sNewPoint, nResolution:=GVL_Deformation.nC_GridSubReso)
+                 );
+ELSE
+  addCamPoint := TRUE;
+END_IF
+
+// store it to local table
+IF addCamPoint THEN
+  storeCameraPoint(sPoint:=sNewPoint); // store locally
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="bBusy" Id="{5d3d2a13-e08c-4e72-b575-f525aa8bfd05}">
+      <Declaration><![CDATA[PROPERTY bBusy : BOOL]]></Declaration>
+      <Get Name="Get" Id="{b939b996-039a-463e-9850-4e6c68257d06}">
+        <Declaration><![CDATA[]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bBusy := bPythonBusy AND NOT _bAborted;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bDone" Id="{a14a12a3-fc4c-4d8b-814b-d9f6ebba735a}">
+      <Declaration><![CDATA[PROPERTY bDone : BOOL]]></Declaration>
+      <Get Name="Get" Id="{80141edf-ae3b-4694-901c-b3fc59dac3a8}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bDone := bPythonDeformationDone OR _bAborted OR (eStep = E_DeformationStep.nothing);
+]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bError" Id="{7f896cb7-602c-4167-a819-07e92cdd2594}">
+      <Declaration><![CDATA[PROPERTY bError : BOOL]]></Declaration>
+      <Get Name="Get" Id="{4e8b0c31-fba5-4090-9e6e-614b07d57e17}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bError := bPythonError OR _bAborted;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bUsePy" Id="{be274e9c-daae-4fc7-ace3-adfedebb5da4}">
+      <Declaration><![CDATA[PROPERTY PRIVATE bUsePy : BOOL]]></Declaration>
+      <Get Name="Get" Id="{6a85037d-afa2-4781-92a4-f898c5758e82}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[// Only use py script in case of live and trend
+//   XYR uses local handler, Auto should never be set here
+IF _eCameraMode=E_CameraMode.Live OR _eCameraMode = E_CameraMode.Trend THEN
+  bUsePy := TRUE;
+END_IF ]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="eMode" Id="{64ad927e-deb9-4865-b90c-f4a3c3286171}">
+      <Declaration><![CDATA[PROPERTY eMode : E_CameraMode]]></Declaration>
+      <Get Name="Get" Id="{c8584651-c6a0-4823-a817-290486a61a9e}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[eMode := _eCameraMode;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{b4c02abf-cf4c-4d12-9cc0-85ed454c5741}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_eCameraMode := eMode;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="eStep" Id="{379d0cc7-8644-4c27-9aa7-c2efed241371}">
+      <Declaration><![CDATA[PROPERTY eStep : E_DeformationStep]]></Declaration>
+      <Get Name="Get" Id="{ec8806cd-fcce-4453-8d6e-276afd6c5d41}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[eStep := _eDeformationStep;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{5bfa4a27-6e2e-424f-aaca-e5ba1c0724a5}">
+        <Declaration><![CDATA[
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_eDeformationStep := eStep;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="getDeformationPoint" Id="{1cd9dbbd-2016-42cd-ace0-52bf27c0c8ca}">
+      <Declaration><![CDATA[(*
+  get a deformation point.
+  :returns: TRUE if successful
+*)
+METHOD getDeformationPoint :  BOOL;
+VAR_INPUT
+  nCol : UDINT;   // col select
+  nRow : UDINT;   // row select
+END_VAR
+VAR_OUTPUT
+  sPoint : ST_DeformationPointAccurate;
+END_VAR
+VAR
+  bWasSet  : BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[getDeformationPoint := FALSE;
+
+IF TO_UDINT(nCol) > nMAX_COLS_DEFGRID THEN LogError(F_Concat5('getDeformationPoint: point col=', TO_STRING(nCol), ' out of table > ', TO_STRING(nMAX_COLS_DEFGRID), '')); RETURN; END_IF
+IF TO_UDINT(nRow) > nMAX_ROWS_DEFGRID THEN LogError(F_Concat5('getDeformationPoint: point row=', TO_STRING(nRow), ' out of table > ', TO_STRING(nMAX_ROWS_DEFGRID), '')); RETURN; END_IF
+
+sPoint := _sDefGridPoints[nCol, nRow].sPoint;
+bWasSet := _sDefGridPoints[nCol, nRow].bSet;
+IF NOT bWasSet THEN LogWarning(F_Concat5('Point[c(',TO_STRING(nCol),')/r(', TO_STRING(nRow),')] was not set')); END_IF
+getDeformationPoint := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="gridImgProc" Id="{cbd3657e-725f-4601-8910-5d2742ad404e}">
+      <Declaration><![CDATA[METHOD PROTECTED gridImgProc
+VAR_INPUT
+  pNewDeformationPoint	: POINTER TO ST_DeformationPointAccurate;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF pNewDeformationPoint = 0 THEN RETURN; END_IF
+
+_nDxSum := (_nDxSum + pNewDeformationPoint^.dx);
+_nDySum := (_nDySum + pNewDeformationPoint^.dy);
+IF _nImgProcPoints > 0 THEN
+  _nDxShift := _nDxSum / _nImgProcPoints;
+  _nDyShift := _nDySum / _nImgProcPoints;
+END_IF
+_nImgProcPoints := _nImgProcPoints + 1;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="init" Id="{352f33fa-22cf-4c1f-bd67-048959ae9069}">
+      <Declaration><![CDATA[METHOD init
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_fbTimeout.PT := tPYTHON_TIMEOUT;
+bInitialized := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="nAvailableGridPoints" Id="{149198c3-6ff5-44b4-a357-2dd695c9d30f}">
+      <Declaration><![CDATA[PROPERTY nAvailableGridPoints : UDINT]]></Declaration>
+      <Get Name="Get" Id="{800e78d9-d0c7-4ffa-b974-3b2e1e8ea3bd}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[nAvailableGridPoints := _nGridPoints;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="nErrorId" Id="{26c3d4ed-1e57-4137-87ba-ab48878f97b6}">
+      <Declaration><![CDATA[PROPERTY nErrorId : UDINT]]></Declaration>
+      <Get Name="Get" Id="{f43d944b-2bb5-4a38-bd57-f637a9cf52b0}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[nErrorId := _nErrorId;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="nProcessId" Id="{5476e672-b6d9-48ea-b432-36ee78e45a6a}">
+      <Declaration><![CDATA[PROPERTY nProcessId : DINT]]></Declaration>
+      <Get Name="Get" Id="{0d35471e-3b7c-4a5f-a565-519b714e7e38}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[nProcessId := nPythonId;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{6b84275b-4f0b-49f3-b571-2d43cde0cb8e}">
+        <Declaration><![CDATA[
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[nPythonId := nProcessId;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="reset" Id="{ee5bcf93-4377-4066-8c4f-86beee77ad6a}">
+      <Declaration><![CDATA[METHOD reset
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bPythonBusy := FALSE;
+bPythonError := FALSE;
+fPythonPosition := 0.0; 
+bPythonDeformationDone := FALSE;
+
+
+fbFifoCamPoints.Reset();
+fbFifoGridPoints.Reset();
+
+
+_nGridPoints := 0;
+_nGridCols := 0;
+_nCamPoints := 0;
+MEMSET(destAddr:=ADR(_sDefGridPoints), fillByte:=0, n:=SIZEOF(_sDefGridPoints));
+MEMSET(destAddr:=ADR(_sCamPoints), fillByte:=0, n:=SIZEOF(_sCamPoints));
+MEMSET(destAddr:=ADR(_sDefGridSettings), fillByte:=0, n:=SIZEOF(_sDefGridSettings));
+
+_eDeformationStep := E_DeformationStep.nothing;
+_eCameraMode := E_CameraMode.NoCorrection;
+_nImgProcPoints   := 0;
+_nDxShift         := 0;
+_nDyShift         := 0;
+_nDxSum           := 0;
+_nDySum           := 0; 
+
+_nLocalGridColsGenerated:=0;
+_fStartDeformPos:=0;
+_fLastDeformPos:=0;
+_bAborted := FALSE;
+_nErrorId := 0;
+_tExecutionTime := T#0s;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="sDefGridSettings" Id="{706a51d4-fd0f-43cf-9b8a-a103d83698f4}">
+      <Declaration><![CDATA[PROPERTY sDefGridSettings : ST_DefGridSettings]]></Declaration>
+      <Get Name="Get" Id="{06763bcd-beaf-4dbd-8d7e-a527da25805e}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sDefGridSettings := _sDefGridSettings;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{1d5f5e75-fa58-4db6-ba14-7d197267c950}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_sDefGridSettings := sDefGridSettings;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="startCamera" Id="{123edd95-85fc-4472-8049-f2e45168ccb9}">
+      <Declaration><![CDATA[METHOD startCamera
+VAR_INPUT
+  fStartDefPos : LREAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_fStartDeformPos := fStartDefPos;
+_fLastDeformPos := fStartDefPos;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="storeCameraPoint" Id="{a1710da7-41bc-4030-9cf2-0660503b0feb}">
+      <Declaration><![CDATA[METHOD PRIVATE storeCameraPoint
+VAR_INPUT
+  sPoint : ST_DeformationPointAccurate;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// save point with checks and log.
+
+//-- check table overflow
+IF _nCamPoints >= nMAX_CAM_POINTS THEN LogError(F_Concat3('storeCamPoint: array overflow ', TO_STRING(_nCamPoints), ' ignore point, ')); RETURN; END_IF
+
+//-- store point
+_sCamPoints[_nCamPoints].bSet := TRUE;
+_sCamPoints[_nCamPoints].sPoint := sPoint;
+_sCamPoints[_nCamPoints].tTime := F_GetCurDcTaskTime64();
+_nCamPoints:=_nCamPoints+1;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="storeDeformationPoint" Id="{0e647bd1-6083-417d-80d8-de2ddf7717c3}">
+      <Declaration><![CDATA[METHOD PRIVATE storeDeformationPoint
+VAR_INPUT
+  sPoint : ST_DeformationPointAccurate;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// do global point img processing
+gridImgProc(pNewDeformationPoint:=ADR(sPoint));
+
+// save point with checks and log.
+//-- check table overflow
+IF TO_UDINT(sPoint.col) > nMAX_COLS_DEFGRID THEN LogError(F_Concat5('point col=', TO_STRING(sPoint.col), ' exceeds max=', TO_STRING(nMAX_COLS_DEFGRID), ' ignore point')); RETURN; END_IF
+IF TO_UDINT(sPoint.row) > nMAX_ROWS_DEFGRID THEN LogError(F_Concat5('point row=', TO_STRING(sPoint.row), ' exceeds max=', TO_STRING(nMAX_ROWS_DEFGRID), ' ignore point')); RETURN; END_IF
+  
+//-- store point
+_sDefGridPoints[sPoint.col, sPoint.row].bSet := TRUE;
+_sDefGridPoints[sPoint.col, sPoint.row].sPoint := sPoint;
+_sDefGridPoints[sPoint.col, sPoint.row].tTime := F_GetCurDcTaskTime64();
+IF sPoint.x_ref = 0 THEN _sDefGridPoints[sPoint.col, sPoint.row].sPoint.x_ref := sPoint.col * TO_DINT(_sDefGridSettings.nGridPitchX); END_IF// calc x pos of grid point (if not done by script)
+IF sPoint.y_ref = 0 THEN _sDefGridPoints[sPoint.col, sPoint.row].sPoint.y_ref := sPoint.row * TO_DINT(_sDefGridSettings.nGridPitchY); END_IF// calc x pos of grid point (if not done by script)
+// count grid points 
+_nGridPoints := _nGridPoints + 1;
+// count current complete grid columns
+IF _sDefGridSettings.nGridSizeY > 0 THEN
+  _nGridCols := (_nGridPoints/_sDefGridSettings.nGridSizeY);
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="tExecutionTime" Id="{01c82210-a107-4ab4-992a-1483a9a2fe7a}">
+      <Declaration><![CDATA[PROPERTY tExecutionTime : TIME]]></Declaration>
+      <Get Name="Get" Id="{3e449f1e-51a4-4ad5-88d7-654da86443f7}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[tExecutionTime := _tExecutionTime;  // TODO: in case of local processor read other execution time]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="updateDeformation" Id="{901922ab-d785-4fe3-9cf2-c64bf886e7b2}">
+      <Declaration><![CDATA[METHOD updateDeformation : BOOL
+VAR_INPUT
+  fPos            : LREAL; // [px]
+  fUpdateInterval : LREAL; // [px]
+END_VAR
+VAR
+  fPosRelDeform   : LREAL;
+  sPoint : ST_DeformationPoint;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// parameter check
+IF fUpdateInterval=0 THEN fUpdateInterval := 1024; END_IF   // set some valid default
+
+fPosRelDeform := fPos - _fStartDeformPos;
+
+// update script only with given interval
+IF fPosRelDeform - _fLastDeformPos >= fUpdateInterval THEN
+  _fLastDeformPos := fPosRelDeform;   // update last processed position
+  
+  LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat5('updateDeformation at:', TO_STRING(fPosRelDeform), ' (', TO_STRING(_eDeformationStep), ')'));
+  
+  IF bUsePy THEN
+    UpdatePy(fPosition:=fPos - _fStartDeformPos);
+  ELSE
+    UpdateLocal(fPosition:=fPos - _fStartDeformPos);
+  END_IF
+
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="UpdateLocal" Id="{fad2ef48-fad2-4c52-b1ee-769494717330}">
+      <Declaration><![CDATA[METHOD PRIVATE UpdateLocal : BOOL
+VAR_INPUT
+  fPosition : LREAL;
+END_VAR
+VAR
+  row, col, pos_col, ct : UDINT;
+  sTmpPoint : ST_DeformationPointAccurate;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _sDefGridSettings.nGridSizeX = 0 THEN RETURN; END_IF
+
+// position column
+pos_col := TO_UDINT(fPosition / _sDefGridSettings.nGridPitchX);  // (floor) current column
+
+{warning 'TODO: implement XYR correction'}
+// based on the update position generate grid coulumns
+FOR col:=_nLocalGridColsGenerated TO pos_col DO
+  FOR row:=0 TO _sDefGridSettings.nGridSizeY (*-1*) DO
+    // - calculate x/y shift and rotation based on available CamPoints
+    sTmpPoint.index := TO_DINT(col * _sDefGridSettings.nGridSizeY + row);
+    //sTmpPoint.x_ref := ;
+    //sTmpPoint.y_ref := ;
+    //sTmpPoint.dx    := ;
+    //sTmpPoint.dy    := ;
+    sTmpPoint.col   := TO_DINT(col);
+    sTmpPoint.row   := TO_DINT(row);
+  
+    storeDeformationPoint(sPoint:=sTmpPoint);    // save point to table
+  END_FOR
+  ct := ct + 1;
+END_FOR
+_nLocalGridColsGenerated := _nLocalGridColsGenerated + ct;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_ImageDeformation">
+      <LineId Id="263" Count="2" />
+      <LineId Id="282" Count="0" />
+      <LineId Id="266" Count="1" />
+      <LineId Id="288" Count="0" />
+      <LineId Id="291" Count="0" />
+      <LineId Id="289" Count="1" />
+      <LineId Id="287" Count="0" />
+      <LineId Id="292" Count="0" />
+      <LineId Id="283" Count="0" />
+      <LineId Id="286" Count="0" />
+      <LineId Id="285" Count="0" />
+      <LineId Id="273" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.abort">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.addCamPoint">
+      <LineId Id="45" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="69" Count="1" />
+      <LineId Id="60" Count="1" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="42" Count="2" />
+      <LineId Id="13" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.bBusy.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.bDone.Get">
+      <LineId Id="12" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.bError.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.bUsePy.Get">
+      <LineId Id="7" Count="1" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.eMode.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.eMode.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.eStep.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.eStep.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.getDeformationPoint">
+      <LineId Id="37" Count="0" />
+      <LineId Id="41" Count="2" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="44" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.gridImgProc">
+      <LineId Id="41" Count="1" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="32" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.init">
+      <LineId Id="10" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.nAvailableGridPoints.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.nErrorId.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.nProcessId.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.nProcessId.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.reset">
+      <LineId Id="9" Count="1" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="40" Count="1" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="69" Count="1" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="31" Count="1" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="34" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.sDefGridSettings.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.sDefGridSettings.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.startCamera">
+      <LineId Id="9" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="15" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.storeCameraPoint">
+      <LineId Id="7" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="29" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.storeDeformationPoint">
+      <LineId Id="36" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="55" Count="1" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="47" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.tExecutionTime.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.updateDeformation">
+      <LineId Id="107" Count="0" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="83" Count="1" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="128" Count="1" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="52" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.UpdateLocal">
+      <LineId Id="36" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="27" Count="6" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="13" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

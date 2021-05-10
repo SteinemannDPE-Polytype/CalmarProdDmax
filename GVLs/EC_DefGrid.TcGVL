@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <GVL Name="EC_DefGrid" Id="{cc535fea-dfe6-46a4-97a1-f61b752546c2}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+(*
+  Calmar Error Codes - CalmarCompPrint library
+*)
+VAR_GLOBAL
+  // base
+  _ecBase        : UDINT := CalmarCommons.ErrorCodes.lCalmar_base;
+  _ecProjBase    : UDINT := _ecBase OR 16#00150000;
+
+  // DefGrid error
+  ecDefGrid_DefGridError : T_ErrDef(Id:=_ecProjBase OR 16#001, Code:='GridError', Desc:='Error in script generated DefGrid');
+  ecDefGrid_DefGridAbort : T_ErrDef(Id:=_ecProjBase OR 16#002, Code:='GridAbort', Desc:='Deformation aborted');
+  
+  // Camera errors
+  ecDefGrid_CamNotAvailable : T_ErrDef(Id:=_ecProjBase OR 16#010, Code:='CamNotAvailable', Desc:='Desired camera not available');
+  
+  // end (verify to not overflow the group range!)
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

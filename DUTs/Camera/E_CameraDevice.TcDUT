@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="E_CameraDevice" Id="{0bb36591-9105-44b8-8600-909590b846e0}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE E_CameraDevice :
+(
+  SheetDetect              := 0,   // SheetDetect
+  PrintMark                := 1,   // PrintMark
+  Scanner                  := 2,   // Scanner
+  ScannerWithoutBackground := 3    // ScannerWithoutBackground
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

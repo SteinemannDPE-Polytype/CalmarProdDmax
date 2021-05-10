@@ -1,0 +1,348 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_WorkerDefGrid_Deformation" Id="{8683d501-d2f8-4b2f-9f84-75930406cf79}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Deformation EXTENDS FB_WorkerDefGrid
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+  //Worker specific configuration
+  _nPrintUnitWidth            : UDINT;  // default print unit width [px]  
+
+  // -
+  _fRefreshPeriod             : LREAL;
+  _bNewJob                    : BOOL;   // new job started 
+
+  //Deformation status
+  _nDeformationProcPoints     : UDINT;  // available grid points on ct
+  _nDeformationProcCols       : UDINT;  // number of already generated grid columns
+  _nImageWidthPx              : UDINT;  // size of the image (width)
+  _nImageDepthPx              : UDINT;  // size of the image (depth)
+  
+  _eDeformStep                : E_DeformationStep;   // status deformation of ct
+  _bDeformationError          : BOOL;   // status deformation of ct
+  _bDeformationBusy           : BOOL;   // status deformation of ct
+  _bDeformationDone           : BOOL;   // status deformation of ct
+  _nDeformationErrorId        : UDINT;  // status deformation of ct
+  _tDeformationExecutionTime  : TIME;   // status deformation of ct
+END_VAR
+
+VAR PERSISTENT
+  _sDeformationGridSettings : ST_DefGridSettings := (
+                                  nGridPitchX:=GVL_Deformation.nC_GridPitch_X, 
+                                  nGridPitchY:=GVL_Deformation.nC_GridPitch_Y
+                              );
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="Attach" Id="{a936541d-6851-4f2e-b80f-a82721b46cf9}">
+      <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
+VAR_INPUT
+  iCT              : I_CT;                         (*container at triggered event position*)
+END_VAR
+VAR
+  tempCt :  POINTER TO FB_ContainerDefGrid;
+  bDeformErr : BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[Attach := FALSE;
+IF SUPER^.Attach(iCT:=iCT) THEN
+  // OK, attached (enabled, was ok to be attached)
+  
+  bDeformErr := _pAttachedCt^.getDeformationStatus(eDStep=>_eDeformStep);   // get latest status 
+  
+  // Additional worker checks
+    
+  // - deformation started? and no deformation error so far
+  IF bDeformErr OR _eDeformStep = E_DeformationStep.nothing THEN
+    Release(iCT:=iCT);  // nothing to do anymore
+
+    // - job is valid?
+  ELSIF _pAttachedCt^.pJob = 0 OR NOT _bJobActive THEN
+    _pAttachedCt^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^);
+    Release(iCT:=iCT);
+    
+  // - did camera start?  
+  ELSIF _eDeformStep < E_DeformationStep.cameraStarted THEN
+    _pAttachedCt^.AbortDeformation(sReason:='Prio steps did not start', Src:=_pEcSrc^);
+    Release(iCT:=iCT);
+    
+  // - OK attach
+  ELSE
+    _pAttachedCt^.sDefGridSettings := _sDeformationGridSettings;   // apply settings on container
+    _pAttachedCt^.StartDeformation(eDeformationStep:=E_DeformationStep.gridStarted);
+    Attach := TRUE;
+	END_IF
+  
+ELSE
+  // parent attach failed case
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="InitWorkerDeformation" Id="{ca5ccc6c-1e73-4750-be64-2b40d202a999}">
+      <Declaration><![CDATA[METHOD InitWorkerDeformation : BOOL
+VAR_INPUT
+  nPrintUnitWidth : UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bInitialized THEN LogError('Base Worker not initialized! call init() before'); RETURN; END_IF
+
+// worker specific init
+
+_nPrintUnitWidth := nPrintUnitWidth;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mJobStart" Id="{e676fb94-806c-46a7-b5f1-6dd04c7a3400}">
+      <Declaration><![CDATA[METHOD mJobStart
+VAR_INPUT
+	sJobDef	: CalmarCompPrint.I_JobDefinition;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// check and init invalid settings
+IF _pParamMediator = 0 THEN LogError('no parameter mediator'); RETURN; END_IF
+IF _sDeformationGridSettings.nGridPitchX = 0 THEN _sDeformationGridSettings.nGridPitchX:=GVL_Deformation.nC_GridPitch_X; LogError(F_Concat2('nGridPitchX not configured, set default=', TO_STRING(GVL_Deformation.nC_GridPitch_X))); END_IF
+IF _sDeformationGridSettings.nGridPitchY = 0 THEN _sDeformationGridSettings.nGridPitchY:=GVL_Deformation.nC_GridPitch_Y; LogError(F_Concat2('nGridPitchY not configured, set default=', TO_STRING(GVL_Deformation.nC_GridPitch_X))); END_IF
+IF _nPrintUnitWidth = 0 THEN LogError('_nPrintUnitWidth not configured'); END_IF
+
+// configuration
+// calculate deformation  settings
+// - save image y-offset (centered)
+// - save image size
+_nImageWidthPx := DINT_TO_UDINT(F_MeterToSubPixel(fPosMeter:=sJobDef.fImageWidth/1000, fResoSubPx:=_fPrintResolution));
+_nImageDepthPx := DINT_TO_UDINT(F_MeterToSubPixel(fPosMeter:=sJobDef.fImageDepth/1000, fResoSubPx:=_fPrintResolution));
+_sDeformationGridSettings.nGridImageOffsetY := LIMIT(0, ((_nPrintUnitWidth - _nImageWidthPx)) / 2, (_nPrintUnitWidth));  // TODO: if you can get this value from PUC use the other one to have a consistent image shift value 
+
+// - calc grid size and number of points
+(*
+  Use image width / depth in px divide by GridPitch in X/Y to do a ceil(always next bigger integer).
+  +1 -> Because Grid starts at 0 until the calculated numbers we have one point more [0, 1, 2, 3] = 4 points (not 3) 
+*)
+IF _sDeformationGridSettings.nGridPitchX > 0 AND _sDeformationGridSettings.nGridPitchY > 0 THEN
+  _sDeformationGridSettings.nGridSizeX := F_Ceil(val:=UDINT_TO_LREAL(_nImageDepthPx)/_sDeformationGridSettings.nGridPitchX) + 1;
+  _sDeformationGridSettings.nGridSizeY := F_Ceil(val:=UDINT_TO_LREAL(_nImageWidthPx + _sDeformationGridSettings.nGridImageOffsetY)/_sDeformationGridSettings.nGridPitchY) + 1;
+END_IF
+_sDeformationGridSettings.nGridPoints :=  _sDeformationGridSettings.nGridSizeX * _sDeformationGridSettings.nGridSizeY;
+
+_bNewJob := TRUE;
+_bJobActive := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mJobStop" Id="{b219a4fc-0309-4cdc-a5da-ab1269df4177}">
+      <Declaration><![CDATA[METHOD  mJobStop
+VAR_INPUT
+	sStatus	: CalmarCompPrint.I_JobStatus;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_bJobActive := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Release" Id="{d95ae4fb-f525-4db5-9ae6-37cc0187a3eb}">
+      <Declaration><![CDATA[(*
+  Release CT from Worker.
+  :return: TRUE if CT was released, FALSE if no CT was registered 
+*)
+METHOD Release : BOOL
+VAR_INPUT
+  iCT              : I_CT;                         (*container at triggered event position*)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _pParamMediator <> 0 THEN
+  IF _eDeformStep >= E_DeformationStep.createdScriptContainer THEN
+    _pParamMediator^.ReleaseDeformationCT(iCT:=iCT);
+  END_IF
+END_IF
+
+SUPER^.Release(iCT:=iCT);]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="sDeformationGridSettings" Id="{a6a325bf-1bf6-4de3-a446-119ecaf0ad62}">
+      <Declaration><![CDATA[PROPERTY sDeformationGridSettings : ST_DefGridSettings]]></Declaration>
+      <Get Name="Get" Id="{10a87355-402f-4b61-a1a4-0e7241dc1608}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sDeformationGridSettings := _sDeformationGridSettings;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="work" Id="{9d84abdd-b080-4ea5-b34b-481b6fa9d0e0}">
+      <Declaration><![CDATA[METHOD  work
+VAR
+  sTmpCamGidSettings : ST_CameraGridSettings;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SUPER^.work();
+
+// new job activated
+IF _pParamMediator <> 0 AND _bNewJob THEN 
+  _bNewJob := FALSE;
+  
+  // - update time from camera settings
+  sTmpCamGidSettings := _pParamMediator^.sCameraGridSettings;
+  _fRefreshPeriod := sTmpCamGidSettings.fGridFeaturePitch;
+  
+  // - enable / disable worker based on mode
+  IF sTmpCamGidSettings.eCameraMode > E_CameraMode.NoCorrection THEN  
+    bEnable := TRUE;
+  ELSE 
+    bEnable := FALSE;
+  END_IF
+END_IF
+
+
+// Work only with attached container
+IF _pAttachedCt <> 0 THEN
+  //Get information from container
+  _bDeformationError := _pAttachedCt^.getDeformationStatus(eDStep => _eDeformStep, 
+                            bBusy => _bDeformationBusy,
+                            bDone => _bDeformationDone,
+                            nErrorId => _nDeformationErrorId, 
+                            tExecutionTime => _tDeformationExecutionTime);
+  _nDeformationProcPoints := _pAttachedCt^.nAvailableGridPoints;
+  _nDeformationProcCols   := _pAttachedCt^.nAvailableGridCols;
+
+  IF _eDeformStep >= E_DeformationStep.cameraDone THEN
+    // take over deformation control from camera
+    // update deformation module
+    _pAttachedCt^.UpdateDeformation(fUpdateInterval:=_fRefreshPeriod);
+	END_IF
+ 
+     
+  //Release container when all points have been processed or error
+  IF _bDeformationDone OR _bDeformationError THEN
+    // tag CT with error if deformation had an error
+    IF _bDeformationError THEN _pAttachedCt^.setError(ErrDef:=EC_DefGrid.ecDefGrid_DefGridError, Src:=_pEcSrc^); END_IF
+    
+    Release(_pAttachedCt^);
+	END_IF
+  
+  //TODO Error handling, timeout, etc
+  (*
+    - Release CT after sheet + after process is further 
+    - Abort deformation (=DeformationError, so PythonWorker can do a release)
+  *)
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_WorkerDefGrid_Deformation">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Deformation.Attach">
+      <LineId Id="63" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="94" Count="2" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="109" Count="3" />
+      <LineId Id="135" Count="4" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="125" Count="0" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="129" Count="1" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Deformation.InitWorkerDeformation">
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Deformation.mJobStart">
+      <LineId Id="45" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="84" Count="1" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="51" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Deformation.mJobStop">
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Deformation.Release">
+      <LineId Id="13" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="10" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Deformation.sDeformationGridSettings.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Deformation.work">
+      <LineId Id="37" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="124" Count="5" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="131" Count="1" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="140" Count="0" />
+      <LineId Id="38" Count="1" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="107" Count="2" />
+      <LineId Id="117" Count="1" />
+      <LineId Id="145" Count="0" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="92" Count="1" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="103" Count="1" />
+      <LineId Id="52" Count="3" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="115" Count="1" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

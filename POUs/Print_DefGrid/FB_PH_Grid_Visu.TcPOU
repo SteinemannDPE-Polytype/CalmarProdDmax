@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_PH_Grid_Visu" Id="{dc6b5099-4caa-44b5-94b6-de2f1612d448}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_PH_Grid_Visu EXTENDS FB_VisuSelector
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR_IN_OUT
+  sI_Ary_Fb :   ARRAY[*] OF FB_PH_Grid;
+END_VAR
+VAR
+  pL_Elem_Fb    : POINTER TO FB_PH_Grid;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*checks*)
+IF (ADR(sI_Ary_Fb) = 0) THEN
+  F_Report_Error(Report_Error_0Pointer);
+  RETURN;
+END_IF
+
+(*init fb*)
+IF NOT bL_Init THEN
+  SUPER^.setAryBounds(iLowerBoundary:=LOWER_BOUND(sI_Ary_Fb, 1), iUpperBoundary:=UPPER_BOUND(sI_Ary_Fb, 1));  
+END_IF
+
+(*call*)
+SUPER^();
+pL_Elem_Fb  := ADR(sI_Ary_Fb[pSelect^]);]]></ST>
+    </Implementation>
+    <LineIds Name="FB_PH_Grid_Visu">
+      <LineId Id="72" Count="11" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="88" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

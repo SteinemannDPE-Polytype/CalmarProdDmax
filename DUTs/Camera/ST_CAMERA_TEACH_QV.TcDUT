@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="ST_CAMERA_TEACH_QV" Id="{d698b364-80d1-4310-b5e5-ea23bbe2c8c2}">
+    <Declaration><![CDATA[TYPE ST_CAMERA_TEACH_QV :
+(*************************************************************************************************)
+(*  FILENAME:    ST_CAMERA_TEACH_QV                                                              *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    Teach points for smart camera QualiVision from PUC.                                        *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+  x_ref_Print         : REAL := 0;      (*Referenz x deviation [mm]*)
+  y_ref_Print         : REAL := 0;      (*Referenz y deviation [mm]*)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

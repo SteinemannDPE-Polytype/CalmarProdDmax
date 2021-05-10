@@ -1,0 +1,308 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_WorkerDefGrid_Python" Id="{da715aa5-d637-40ab-8d33-e404e3b6a6f1}" SpecialFunc="None">
+    <Declaration><![CDATA[{attribute 'reflection'} 
+FUNCTION_BLOCK FB_WorkerDefGrid_Python EXTENDS FB_WorkerDefGrid
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+  // interface to py script
+  fbPythonInterface : FB_PythonInterface;
+  
+  // local copy of setttings
+  _bNewJob : BOOL;  // new job was activated
+  _CamGridSettings : ST_CameraGridSettings;
+  _DefGridSettings : ST_DefGridSettings;
+END_VAR
+
+VAR CONSTANT
+  fC_DEFAULT_WOKER_POSITION : LREAL := 0.01;      // default worker position in [m]
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="Attach" Id="{42eaf325-ff4e-48df-be91-9b20bce3da44}">
+      <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
+VAR_INPUT
+  iCT              : I_CT;                         (*container at triggered event position*)
+END_VAR
+VAR
+  sCamSettings : ST_CameraGridSettings;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[Attach := FALSE;
+IF SUPER^.Attach(iCT:=iCT) THEN
+  // OK, attached (enabled, was ok to be attached)
+  
+  // setup check
+  IF _pParamMediator = 0 THEN Release(iCT:=iCT); LogError('Invalid param mediator'); RETURN; END_IF
+  
+  // Additional worker checks
+  // - do we have a valid job? used mode?
+  IF _CamGridSettings.eCameraMode > E_CameraMode.NoCorrection AND (_pAttachedCt^.pJob = 0 OR NOT _bJobActive) THEN
+    _pAttachedCt^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^);
+     Release(iCT:=iCT);
+     
+  ELSIF _CamGridSettings.eCameraMode > E_CameraMode.NoCorrection THEN
+    // OK attach
+    // -- only create ct if a deformation is active
+    IF CreateDefCt(iCT:=iCT) THEN
+        // set state
+        _pAttachedCt^.StartDeformation(eDeformationStep:=E_DeformationStep.createdScriptContainer);
+        // attached
+        Attach := TRUE;
+    END_IF
+  ELSE
+    ; // ignore attach
+  END_IF
+ELSE
+  // parent attach failed
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CreateDefCt" Id="{bdf419b5-1889-4837-99cf-ef4a36422f29}">
+      <Declaration><![CDATA[(*
+  Create/Release virtual ct in deformation handlers.
+  :return: TRUE if success
+*)
+METHOD PRIVATE CreateDefCt : BOOL;
+VAR_INPUT
+  iCT : I_CT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF iCT = 0 THEN RETURN; END_IF
+
+IF _CamGridSettings.eCameraMode >= E_CameraMode.Live THEN
+  IF fbPythonInterface.RegisterCT(iCT.pCT^.nMemIndex) THEN
+    CreateDefCt := TRUE;
+  ELSE
+    _pAttachedCt^.AbortDeformation(sReason:='Could not register to script', Src:=_pEcSrc^);
+  END_IF
+ELSE
+  CreateDefCt := TRUE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="DeleteDefCt" Id="{1250acd3-857f-4045-a296-4dd4aaa257e9}">
+      <Declaration><![CDATA[(*
+  Delete/Release virtual ct in deformation handlers.
+  :return: TRUE if sucess
+*)
+METHOD DeleteDefCt : BOOL
+VAR_INPUT
+  iCT : I_CT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF iCT = 0 THEN RETURN; END_IF
+
+IF _CamGridSettings.eCameraMode >= E_CameraMode.Live THEN
+  IF fbPythonInterface.RemoveCT(iCT.pCT^.nMemIndex) THEN
+    DeleteDefCt := TRUE;
+  ELSE
+    LogError('Could not delete ct in script');
+  END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="InitWorkerPython" Id="{343b3a60-1392-4b26-a0f9-056258434c15}">
+      <Declaration><![CDATA[METHOD InitWorkerPython
+VAR_INPUT
+  aScriptPath : T_MaxString;                     // path to cmd scripts
+  //aAmsLocalHost : T_AmsNetID;                    // Ams netId localhost of the pc to run the script 
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bInitialized OR _pCtManager = 0 THEN LogError('Base Worker not initialized! call init() before'); RETURN; END_IF
+
+// worker specific init
+
+fbPythonInterface.Init(
+  sCTManagerPath := _pCtManager^.sCTDefGridInstancesPath, 
+  sScriptPath:=aScriptPath
+);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mJobStart" Id="{0fd0f7ed-3d4d-47aa-ba8e-6404bd51c209}">
+      <Declaration><![CDATA[METHOD mJobStart
+VAR_INPUT
+	sJobDef	: CalmarCompPrint.I_JobDefinition;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// checks and fix defaults
+IF _pParamMediator = 0 THEN LogError('JobStart: invalid parameter configuration'); RETURN; END_IF
+IF _fWorkerPosition = 0 THEN _fWorkerPosition := fC_DEFAULT_WOKER_POSITION; LogError(F_Concat3(_name, ': worker position not set, set default=', TO_STRING(fC_DEFAULT_WOKER_POSITION))); END_IF
+
+// configure
+_fImageDepthM := sJobDef.fImageDepth/1000;
+_fImageWidthM := sJobDef.fImageWidth/1000;
+_fCtSecurityReleasePos := F_MeterToSubPixel(fPosMeter:=_fImageDepthM + fC_MIN_SHEET_GAP, fResoSubPx:=_fPrintResolution*_fSubPxResolution);
+
+_bNewJob := TRUE;
+_bJobActive := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mJobStop" Id="{db89a0b9-8d28-4bf7-9778-94d597d27cae}">
+      <Declaration><![CDATA[METHOD  mJobStop
+VAR_INPUT
+	sStatus	: CalmarCompPrint.I_JobStatus;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbPythonInterface.JobStop();
+_bJobActive := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="work" Id="{3c4c9ab8-eeba-4bde-9db0-7737c05146ce}">
+      <Declaration><![CDATA[METHOD  work
+VAR_INPUT
+END_VAR
+VAR
+  i : UDINT;
+  tempCt  : POINTER TO FB_ContainerDefGrid;
+  bDeformationDone : BOOL;
+  bDeformationError : BOOL;
+  nConvErr : UDINT;
+  rT_EnablePyIf  : R_TRIG;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SUPER^.work();
+
+IF _pParamMediator <> 0 THEN
+   // -- get latest camera & deformation settings
+  _CamGridSettings := _pParamMediator^.sCameraGridSettings;
+  _DefGridSettings := _pParamMediator^.sDeformationGridSetttings;
+END_IF
+
+IF _bNewJob OR rT_EnablePyIf.Q THEN   // new job activated or ente
+  _bNewJob := FALSE;
+  
+  // setup script
+  fbPythonInterface.JobStart(
+    nJobImageWidth:=DINT_TO_UDINT(F_MeterToSubPixel(fPosMeter:=_fImageDepthM, fResoSubPx:=_fPrintResolution)),
+    nJobImageHeigth:=DINT_TO_UDINT(F_MeterToSubPixel(fPosMeter:=_fImageWidthM, fResoSubPx:=_fPrintResolution)),
+    nCamFrameWidth:=DINT_TO_UDINT(FC_LREAL_TO_DINT(_CamGridSettings.fGridFeaturePitch, ADR(nConvErr))),
+    pGridSettings:=ADR(_DefGridSettings)
+  );
+END_IF
+
+// start/stop script
+IF _CamGridSettings.eCameraMode >= E_CameraMode.Live AND THIS^.bEnable THEN 
+  fbPythonInterface.bEnable := TRUE;
+ELSE
+  fbPythonInterface.bEnable := FALSE;
+END_IF
+rT_EnablePyIf(CLK:=fbPythonInterface.bEnable);
+
+fbPythonInterface();
+
+IF _pAttachedCt <> 0 THEN
+  // nothing to do anymore just release CT
+  // NOTE: the delete of the CT is done by DeleteDefCt() method directly into fbPythonInterface
+  Release(_pAttachedCt^);
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_WorkerDefGrid_Python">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Python.Attach">
+      <LineId Id="207" Count="2" />
+      <LineId Id="256" Count="0" />
+      <LineId Id="258" Count="0" />
+      <LineId Id="210" Count="0" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="257" Count="0" />
+      <LineId Id="226" Count="2" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="248" Count="0" />
+      <LineId Id="221" Count="0" />
+      <LineId Id="235" Count="4" />
+      <LineId Id="244" Count="0" />
+      <LineId Id="247" Count="0" />
+      <LineId Id="234" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="265" Count="0" />
+      <LineId Id="217" Count="0" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="214" Count="0" />
+      <LineId Id="211" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Python.CreateDefCt">
+      <LineId Id="34" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="30" Count="2" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="47" Count="1" />
+      <LineId Id="38" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Python.DeleteDefCt">
+      <LineId Id="5" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="36" Count="1" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="34" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Python.InitWorkerPython">
+      <LineId Id="54" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="71" Count="1" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="43" Count="2" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Python.mJobStart">
+      <LineId Id="85" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="114" Count="2" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="81" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Python.mJobStop">
+      <LineId Id="6" Count="0" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Python.work">
+      <LineId Id="7" Count="0" />
+      <LineId Id="266" Count="0" />
+      <LineId Id="265" Count="0" />
+      <LineId Id="269" Count="1" />
+      <LineId Id="267" Count="1" />
+      <LineId Id="254" Count="0" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="241" Count="0" />
+      <LineId Id="228" Count="0" />
+      <LineId Id="230" Count="3" />
+      <LineId Id="302" Count="0" />
+      <LineId Id="236" Count="0" />
+      <LineId Id="271" Count="0" />
+      <LineId Id="275" Count="0" />
+      <LineId Id="272" Count="0" />
+      <LineId Id="252" Count="1" />
+      <LineId Id="273" Count="1" />
+      <LineId Id="221" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="289" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="189" Count="1" />
+      <LineId Id="202" Count="1" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="192" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

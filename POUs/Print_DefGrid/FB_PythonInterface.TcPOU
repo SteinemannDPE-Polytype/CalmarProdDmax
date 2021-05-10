@@ -1,0 +1,603 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_PythonInterface" Id="{32bc7ee3-797a-48a1-b6c9-938bdbb76439}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_PythonInterface EXTENDS T_NamedBase
+VAR
+  // interface paths (config)
+  sPythonInterfacePath : STRING(255); //e.g. 'PRG_x.fb_PythonInterface'
+  sPythonContainerPath : STRING(255); //e.g. 'PRG_x.fb_ContainerManager.sL_Containers[%id%].fb_ImageDeformation'
+  sPythonScriptPath    : STRING(255);
+
+	bPythonHeartbeat : BOOL;      // <- script is toggling this value as long as it's alive (for plc watchdog of script)
+	nPythonPID : UDINT := 0;      // <- python process id (evaluated and given by external script)
+  nPythonNewJob : DINT;         // -> new job indication to script
+  bPythonNewJobDone : BOOL;     // <- new job registered/done by script
+
+	nContainerToRegister : DINT := -1; // <- triggers a new container creation, except if < 0
+  nContainerToRegister_mem : DINT := -1;
+	nContainerToDelete : DINT := -1;   // <- triggers a new container deletion, except if < 0
+  nContainerToDelete_mem : DINT := -1;
+  
+  //Job settings all in [px]
+  nPythonImageOffsetY : UDINT := 0;     // [px]  y offset from 0 to source image
+  nPythonImageWidth : UDINT := 1000;    // [px]  source image width (depth)
+  nPythonImageHeight  : UDINT := 1000;  // [px]  source image height (width)
+  //Grid settings
+  nPythonGridPitchX  : UDINT := 100;    // [px]
+  nPythonGridPitchY  : UDINT := 100;    // [px]
+  nPythonGridSizeX   : UDINT := 0;      // (not yet used) number of grid columns
+  nPythonGridSizeY   : UDINT := 0;      // (not yet used) number of grid rows
+  //Cam specific settings
+  nPythonCamFrameWidth  : UDINT := 200; // [px]
+  
+  nState : UDINT;
+  fbStateTimer : TON;
+  fBScriptLauncher : FB_ScriptLauncher;
+  _bEnable : BOOL;
+  _bKeepAlive : BOOL := TRUE; // keep script alive (restart after crash/close)
+  _nStarts : UDINT;   // number of script start attempts
+  _nErrCtr : UDINT;   // script error state counter
+  _bBusy : BOOL;
+  _nErrId : UDINT;
+  _bJobStartRequest: BOOL;
+  _bJobStopRequest: BOOL;
+  _bResetError : BOOL;    // reset state machine error 
+  _nJobIdCtr : DINT;
+ 
+	// Python script heartbeat
+	fbWatchdog : TOF;
+	tWatchdogPeriod : TIME := T#1S;
+	fbHeartbeat1 : R_TRIG;
+	fbHeartbeat2 : F_TRIG;
+	bScriptAlive : BOOL;
+
+END_VAR
+
+VAR CONSTANT
+  cStateIdle      : UDINT := 0;
+  cStateStartup   : UDINT := 10;
+  cStartScript    : UDINT := 20;
+  cStateRunning   : UDINT := 30;
+  cStateJobActive : UDINT := 40;
+  cStateError     : UDINT := 50;
+  cStateStop      : UDINT := 60;
+  cStateStopping  : UDINT := 70;
+  
+  cMaxStartAttempts : UDINT := 5;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[InterfaceStateMachine();
+
+// reset Container commands, so we suer have a change event on index
+IF nContainerToRegister >= 0 AND nContainerToRegister_mem >= 0 THEN nContainerToRegister := -1; END_IF
+IF nContainerToDelete >= 0 AND nContainerToDelete_mem >= 0 THEN nContainerToDelete := -1; END_IF
+nContainerToRegister_mem := nContainerToRegister;
+nContainerToDelete_mem := nContainerToDelete;
+
+fbHeartbeat1(CLK := bPythonHeartbeat);
+fbHeartbeat2(CLK := bPythonHeartbeat);
+fbWatchdog(IN := fbHeartbeat1.Q OR fbHeartbeat2.Q, PT:=tWatchdogPeriod);
+bScriptAlive := fbWatchdog.Q AND nPythonPID <> 0;
+]]></ST>
+    </Implementation>
+    <Property Name="bBusy" Id="{15ecb802-f104-48b3-a8e9-296585ddbd3b}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY bBusy : BOOL]]></Declaration>
+      <Get Name="Get" Id="{139a7e3b-71b0-4b41-a84c-6f1ce8c1465e}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bBusy := _bBusy;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bEnable" Id="{a328260d-f3bb-44ce-926f-19d84ae50bc4}">
+      <Declaration><![CDATA[PROPERTY bEnable : BOOL]]></Declaration>
+      <Get Name="Get" Id="{c3e54d05-49b9-49b2-afe1-2edeba063599}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bEnable := _bEnable;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{a5cb12de-b348-4aa0-ac98-f1624d50cea7}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bEnable := bEnable;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="bError" Id="{6f1a5717-89e4-48eb-b728-b4de0dccc9aa}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY bError : BOOL]]></Declaration>
+      <Get Name="Get" Id="{22606d90-35e2-46d9-b94a-3ab7829f7825}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IF nState = cStateError THEN bError := TRUE; END_IF;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bJobActive" Id="{19e50aac-19c8-4473-8fa4-8f452084848d}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY bJobActive : BOOL]]></Declaration>
+      <Get Name="Get" Id="{ca400b3a-23f2-429e-82ed-973227f5ccba}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IF nState = cStateJobActive THEN bJobActive := TRUE; END_IF;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bRunning" Id="{e1d4af5a-cce0-4b67-86b9-9f5d618aeda0}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY bRunning : BOOL]]></Declaration>
+      <Get Name="Get" Id="{3f2c9f1a-dad5-4a1b-b301-6b9ceb3c89c2}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IF nState = cStateRunning THEN bRunning := TRUE; END_IF;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="Init" Id="{5691349d-c567-4cf4-a8d6-db318033dadf}">
+      <Declaration><![CDATA[METHOD Init : BOOL
+VAR_INPUT
+  sCTManagerPath : T_MaxString;  // ct manager path (plc variable instance path)
+  sScriptPath    : T_MaxString;  // path to python script base folder, e.g. C:\Work\script
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[sPythonInterfacePath := THIS^.InstanceName;
+sPythonContainerPath := sCTManagerPath;
+sPythonScriptPath    := sScriptPath;
+
+// init launcher
+fBScriptLauncher.Init(sPythonScriptPath);
+
+
+//Launch init procedure
+fbStateTimer(PT:=T#5S);
+nState := cStateIdle;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Action Name="InterfaceStateMachine" Id="{235b0a93-bff5-4257-b33a-44f1b952b745}">
+      <Implementation>
+        <ST><![CDATA[
+CASE(nState) OF
+  // Idle
+  cStateIdle  :
+    _bJobStartRequest:=FALSE;
+    _bJobStopRequest:=FALSE;
+    IF bEnable THEN
+      nState := cStateStartup;
+    END_IF  
+
+  //Startup
+  cStateStartup   :
+    fbStateTimer(IN:=TRUE);         // start timeout
+    _bBusy := TRUE;
+
+    IF fbStateTimer.Q THEN
+      fbStateTimer(IN:=FALSE);
+      _nStarts := _nStarts + 1;
+      IF bScriptAlive THEN
+        nState := cStateRunning;    // is already running
+      ELSE  
+        RunPythonScript();          // start script
+        nState := cStartScript;
+			END_IF
+		END_IF
+  
+  //Start Python script and wait until it starts
+  cStartScript    :
+    fbStateTimer(IN:=TRUE);
+    _bBusy := TRUE;
+
+    IF NOT fBScriptLauncher.bBusy AND bScriptAlive THEN 
+      IF fBScriptLauncher.bError THEN //Launch error
+        LogError(F_Concat2('Script start error=', TO_STRING(fBScriptLauncher.nErrId)));
+        nState := cStateError;
+      ELSE //Launch done and heartbeat ok
+        nState := cStateRunning;
+        fbStateTimer(IN:=FALSE);
+			END_IF
+    ELSIF fbStateTimer.Q THEN //Timeout error
+      LogError('Script start error');
+      nState := cStateError;
+		END_IF
+ 
+  //Script running with correct watchdog feedback
+  cStateRunning   : 
+    fbStateTimer(IN:=_bJobStartRequest);
+    _bBusy := _bJobStartRequest;
+    _bJobStopRequest := FALSE;
+    _nStarts := 0;
+    
+    IF _bJobStartRequest AND bPythonNewJobDone THEN
+      _bJobStartRequest:=FALSE;
+      bPythonNewJobDone := FALSE; 
+      fbStateTimer(IN:=FALSE);  
+      nState := cStateJobActive;
+    ELSIF NOT bScriptAlive THEN //Watchdog error
+      LogError('Script watchdog error');
+      nState := cStateError;
+    ELSIF fbStateTimer.Q THEN //Job timeout error
+      LogError('Script new job done error');
+      nState := cStateError;
+    ELSIF NOT bEnable THEN
+      nState := cStateStop;
+		END_IF
+  
+  //JobStarted
+  cStateJobActive :
+    fbStateTimer(IN:=_bJobStopRequest);
+    _bBusy := _bJobStopRequest;
+    
+    IF _bJobStopRequest THEN
+      nPythonNewJob := 0;
+    END_IF;  
+    
+    IF _bJobStopRequest THEN
+      _bJobStopRequest:=FALSE;
+      fbStateTimer(IN:=FALSE);  
+      nState := cStateRunning;
+    ELSIF NOT bScriptAlive THEN //Watchdog error
+      LogError('Script watchdog error');
+      nState := cStateError;
+    ELSIF fbStateTimer.Q THEN //Job timeout error
+      LogError('Script new job done error');
+      nState := cStateError;
+    ELSIF NOT bEnable THEN
+      nState := cStateStop;
+		END_IF
+  
+  //Error  
+  cStateError     :
+    fbStateTimer(IN:=FALSE);  
+    _bJobStartRequest:=FALSE;
+    _bJobStopRequest:=FALSE;
+    IF _bResetError OR NOT bEnable OR (_bKeepAlive AND _nStarts <= cMaxStartAttempts)  THEN
+      _bResetError := FALSE;
+      _nErrCtr := _nErrCtr + 1;
+      nState := cStateStop ;
+		END_IF
+    
+  //Stop 
+  cStateStop  :
+    StopPythonScript();
+    nState := cStateStopping;
+
+  // Stopping
+  cStateStopping  :
+    IF NOT fBScriptLauncher.bBusy THEN 
+      IF fBScriptLauncher.bError THEN //Launch error
+        LogError(F_Concat2('Script stop errror:', TO_STRING(fBScriptLauncher.nErrId)));
+			END_IF
+      nState := cStateIdle;
+    END_IF
+
+END_CASE]]></ST>
+      </Implementation>
+    </Action>
+    <Method Name="JobStart" Id="{8405a1de-7ba0-408e-bd94-f023aa4d1d8c}">
+      <Declaration><![CDATA[METHOD JobStart
+VAR_INPUT
+  nJobImageWidth : UDINT;
+  nJobImageHeigth  : UDINT;
+  nCamFrameWidth : UDINT;
+  pGridSettings  : POINTER TO ST_DefGridSettings;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_bJobStartRequest := TRUE;
+_nJobIdCtr := _nJobIdCtr + 1;
+nPythonNewJob := _nJobIdCtr;
+
+
+nPythonImageWidth := nJobImageWidth * GVL_Deformation.nC_GridSubReso;
+nPythonImageHeight :=nJobImageHeigth * GVL_Deformation.nC_GridSubReso;
+nPythonCamFrameWidth := nCamFrameWidth * GVL_Deformation.nC_GridSubReso;
+IF pGridSettings <> 0 THEN
+  nPythonImageOffsetY := pGridSettings^.nGridImageOffsetY * GVL_Deformation.nC_GridSubReso;
+  nPythonGridPitchX := pGridSettings^.nGridPitchX * GVL_Deformation.nC_GridSubReso;
+  nPythonGridPitchY := pGridSettings^.nGridPitchY * GVL_Deformation.nC_GridSubReso;
+  nPythonGridSizeX := pGridSettings^.nGridSizeX * GVL_Deformation.nC_GridSubReso;
+  nPythonGridSizeY := pGridSettings^.nGridSizeY * GVL_Deformation.nC_GridSubReso; 
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="JobStop" Id="{a622984e-d634-417d-9233-aba88648edec}">
+      <Declaration><![CDATA[METHOD JobStop : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_bJobStopRequest:=TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="nErrorId" Id="{45601785-2b9c-481d-be8c-9623ba129752}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY nErrorId : UDINT]]></Declaration>
+      <Get Name="Get" Id="{4e03f40b-d6e1-4626-8168-625f45ef2c79}">
+        <Declaration><![CDATA[
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[nErrorId := _nErrId;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="RegisterCT" Id="{d26fde14-0d98-487d-b756-8dec552ded5f}">
+      <Declaration><![CDATA[(*
+  Register CT to script.
+  :return: TRUE if success.
+*)
+METHOD RegisterCT : BOOL
+VAR_INPUT
+  nCTIdx  : UDINT;  // ct memory index
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bScriptAlive THEN RETURN; END_IF  // script not ready, ignore request
+
+nContainerToRegister := UDINT_TO_DINT(nCTIdx);
+RegisterCT := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RemoveCT" Id="{28d59eb6-90bf-4722-adc3-86b27e084ab5}">
+      <Declaration><![CDATA[METHOD RemoveCT : BOOL
+VAR_INPUT
+    nCTID : UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bScriptAlive THEN RETURN; END_IF  // script not ready, ignore request
+
+nContainerToDelete := UDINT_TO_DINT(nCTID);
+
+RemoveCT := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RunPythonScript" Id="{eef5e660-c4a2-454d-95d6-7e90dbff3075}">
+      <Declaration><![CDATA[METHOD PRIVATE RunPythonScript : BOOL
+VAR_INPUT
+END_VAR
+VAR
+  ams_host : STRING;
+  ams_port : UINT;
+  cmd : STRING;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// config launcher cmd line for script
+//   e.g. fBScriptLauncher.Start('172.17.7.143.1.1 851 PRG_PRINT.fbWorkerDefGrid_Python.fbPythonInterface --sim_mode');
+
+// get parameter dynamically
+ams_host := PRG_SYSTEMBASE.sO_AmsNetIdLocalHost;  // localhost
+ams_port := TwinCAT_SystemInfoVarList._AppInfo.AdsPort;
+cmd := F_Concat5(ams_host,' ',TO_STRING(ams_port),' ',sPythonInterfacePath);
+fBScriptLauncher.sStartScriptName := 'start.bat';
+fBScriptLauncher.sStopScriptName  := 'stop.bat';
+fBScriptLauncher.Start(cmd);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="StopPythonScript" Id="{c21082da-2f62-4d93-8645-06b9e715913a}">
+      <Declaration><![CDATA[METHOD PRIVATE StopPythonScript
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fBScriptLauncher.Stop(nPID := THIS^.nPythonPID);]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="tWatchdogTime" Id="{27534f97-fbe5-46f4-9a92-902b4b859dbf}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY tWatchdogTime : TIME]]></Declaration>
+      <Get Name="Get" Id="{e7f80b61-e2e0-44d3-8b4e-f911a33f84d0}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[tWatchdogTime := fbWatchdog.ET;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <LineIds Name="FB_PythonInterface">
+      <LineId Id="9" Count="0" />
+      <LineId Id="233" Count="0" />
+      <LineId Id="229" Count="0" />
+      <LineId Id="228" Count="0" />
+      <LineId Id="234" Count="2" />
+      <LineId Id="67" Count="3" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="174" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonInterface.bBusy.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonInterface.bEnable.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonInterface.bEnable.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonInterface.bError.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonInterface.bJobActive.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonInterface.bRunning.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonInterface.Init">
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="11" Count="1" />
+      <LineId Id="10" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonInterface.InterfaceStateMachine">
+      <LineId Id="63" Count="0" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="114" Count="1" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="116" Count="0" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="145" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="141" Count="2" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="69" Count="10" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="139" Count="1" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="4" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="60" Count="1" />
+      <LineId Id="108" Count="1" />
+      <LineId Id="146" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="123" Count="2" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="130" Count="4" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="135" Count="0" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="3" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonInterface.JobStart">
+      <LineId Id="5" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="53" Count="2" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="58" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonInterface.JobStop">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonInterface.nErrorId.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonInterface.RegisterCT">
+      <LineId Id="27" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="18" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonInterface.RemoveCT">
+      <LineId Id="12" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="15" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonInterface.RunPythonScript">
+      <LineId Id="14" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="50" Count="1" />
+      <LineId Id="19" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonInterface.StopPythonScript">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonInterface.tWatchdogTime.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

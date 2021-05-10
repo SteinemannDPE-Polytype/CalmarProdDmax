@@ -1,0 +1,158 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_PythonDeformation" Id="{8548472e-1429-4d1f-a86c-b17fd222dd73}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_PythonDeformation EXTENDS FB_BasePrint
+VAR
+  // The variables below are accessed by the Python script. Do not change their names!
+  // ------------------------------------------
+  //FIFO Buffers
+  fbFifoCamPoints : FB_DeformationPointFIFO; // Input FIFO, do not use Pop()
+	fbFifoGridPoints : FB_DeformationPointFIFO; // Output FIFO, do not use Push()
+
+	//Handshake variables
+	fPythonPosition : LREAL := 0.0; (* Current position to process - should be kept constant while Python script is executing *)
+	nPythonId : DINT := 0;   (* ct id for unique trace of ct in script *)
+  
+	bPythonStartUpdate : BOOL := FALSE; (* Tell the script to start its execution *)
+	bPythonAbort : BOOL := FALSE; (* Abort any pending operation - NOT IMPLEMENTED *)
+  
+	bPythonBusy : BOOL := FALSE;
+	bPythonUpdateDone : BOOL := FALSE; (* Set by the script when it's done or if error occurs *)
+	bPythonError : BOOL := FALSE; (* Set by the script if any error occures during execution, cleared with abort - NOT IMPLEMENTED*)
+  nPythonStatus : UDINT := 0; (*Set by the script status of deformation - NOT IMPLEMENTED*)
+	bPythonDeformationDone : BOOL := FALSE; (* Set by the script when deformation if finished *)
+  // ------------------------------------------
+  
+  // internal control
+  _fbTimeout : TON; (* Counter with timeout *)
+	_tExecutionTime : TIME := T#0S;   (*exection time local for scoping*)
+  
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+]]></ST>
+    </Implementation>
+    <Method Name="ExecPy" Id="{73db2e6c-b928-4c50-b6a8-9b1567da131d}">
+      <Declaration><![CDATA[METHOD ExecPy : BOOL
+VAR_OUTPUT
+  bBusy : BOOL;
+  nErrId : UDINT;
+END_VAR
+VAR
+  _sTempPoint : ST_DeformationPoint;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// update FIFOs (external ADS access)
+fbFifoCamPoints();
+fbFifoGridPoints();
+
+// work with script
+IF bPythonBusy THEN // Pending job
+	IF _fbTimeout.Q THEN // Timeout occurs
+		_tExecutionTime := _fbTimeout.ET;
+		bPythonAbort := TRUE;
+		bPythonError := TRUE;   // set internal error
+		nErrId := 1;
+		bPythonBusy := FALSE;
+    LogError(F_Concat4('Timeout during bPythonBusy, ExecTime:', TO_STRING(_tExecutionTime), ' Err:', TO_STRING(nErrId)));
+	ELSIF bPythonUpdateDone THEN //Script done
+		_tExecutionTime := _fbTimeout.ET;
+		bPythonBusy := FALSE;
+		IF bPythonError THEN
+			nErrId := 2;
+      LogError(F_Concat4('Error during bPythonBusy, ExecTime:', TO_STRING(_tExecutionTime), ' Err:', TO_STRING(nErrId)));
+		END_IF
+	END_IF
+
+ELSE // Update/Job done	
+  bPythonAbort := FALSE;
+	bPythonStartUpdate := FALSE;
+	bPythonUpdateDone := FALSE;
+END_IF
+
+_fbTimeout(IN := bPythonBusy);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="PopDeformationPoint" Id="{3728370a-73f7-497e-b163-03d8dae40b81}">
+      <Declaration><![CDATA[METHOD PROTECTED PopDeformationPoint :  BOOL;
+VAR_OUTPUT
+  sNewPoint : ST_DeformationPointAccurate;
+END_VAR
+VAR
+  sPoint : ST_DeformationPoint;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF fbFifoGridPoints.nCount > 0 THEN
+  PopDeformationPoint := fbFifoGridPoints.Pop(sGridPoint=>sPoint);
+  sNewPoint := F_DecodeDeformationPoint(sPoint:=sPoint, nResolution:=GVL_Deformation.nC_GridSubReso);
+ELSE
+  PopDeformationPoint := FALSE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="PushDeformationPoint" Id="{aeab6633-fcf5-4a84-a874-902968f1e851}">
+      <Declaration><![CDATA[METHOD PROTECTED PushDeformationPoint : BOOL
+VAR_INPUT
+  sPoint : ST_DeformationPoint;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[PushDeformationPoint:= fbFifoCamPoints.Push(sPoint);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="UpdatePy" Id="{ab911814-1669-4a11-8a8e-0853452f33a9}">
+      <Declaration><![CDATA[METHOD UpdatePy : BOOL
+VAR_INPUT
+  fPosition : LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF bPythonBusy THEN // Pending job
+  UpdatePy:=FALSE;
+  LogLvl(Lvl:=E_LogSeverity.Debug, Msg:='Python was still busy during updateDeformation');
+  
+ELSE // Job done
+    
+  IF NOT bPythonDeformationDone THEN // Sample input
+    // start a update
+    fPythonPosition := fPosition * GVL_Deformation.nC_GridSubReso;
+    bPythonBusy := TRUE;
+    bPythonError := FALSE;
+    
+    // Start script
+    bPythonStartUpdate := TRUE;      
+  END_IF
+  
+  UpdatePy:=TRUE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_PythonDeformation">
+      <LineId Id="62" Count="0" />
+      <LineId Id="53" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonDeformation.ExecPy">
+      <LineId Id="7" Count="2" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="10" Count="18" />
+      <LineId Id="32" Count="4" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonDeformation.PopDeformationPoint">
+      <LineId Id="6" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="10" Count="1" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonDeformation.PushDeformationPoint">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonDeformation.UpdatePy">
+      <LineId Id="7" Count="10" />
+      <LineId Id="19" Count="5" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
