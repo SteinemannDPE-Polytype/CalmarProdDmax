@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
   <POU Name="FB_CameraBase" Id="{c8d0ba07-7a01-4a8a-a6e6-67ad2b34ba59}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   Base camera system
@@ -398,17 +398,6 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Method Name="GetCamState" Id="{b831b968-37d2-485d-a924-64f42a25c439}">
-      <Declaration><![CDATA[METHOD ABSTRACT GetCamState : BOOL
-VAR_OUTPUT
-  bCamModeNotSupported  : BOOL;   // desired camera mode not supported
-  bCam
-END_VAR
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[]]></ST>
-      </Implementation>
-    </Method>
     <Method Name="GetCamStatus" Id="{c732e507-4da9-4243-818b-ad4dce66447e}">
       <Declaration><![CDATA[METHOD ABSTRACT GetCamStatus : BOOL
 VAR_OUTPUT
@@ -630,9 +619,6 @@ END_VAR
     </LineIds>
     <LineIds Name="FB_CameraBase.fTriggerPulseLength.Get">
       <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_CameraBase.GetCamState">
-      <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_CameraBase.GetCamStatus">
       <LineId Id="13" Count="0" />

@@ -397,10 +397,6 @@ Fribourg/Switzerland (2021)</Description>
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <SubObject Include="FB_CameraBase.GetCamState" />
-    <SubObject Include="FB_PrintPositionDmax.test_OldPhMaster" />
-  </ItemGroup>
-  <ItemGroup>
     <PlaceholderReference Include="CalmarCommons">
       <DefaultResolution>CalmarCommons, * (WIFAG-Polytype)</DefaultResolution>
       <Namespace>CalmarCommons</Namespace>
