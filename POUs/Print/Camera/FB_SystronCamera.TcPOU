@@ -269,7 +269,7 @@ END_IF
   Simulate camera data
 *)
 METHOD SimulatePoints : BOOL
-VAR
+VAR_INST
   fbTonTimer    : TON;    (*Send timer*)
   nCounter      : UDINT;  (*Loop counter*)
 END_VAR]]></Declaration>

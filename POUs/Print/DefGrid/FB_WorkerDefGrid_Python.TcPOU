@@ -168,6 +168,8 @@ VAR
   bDeformationDone : BOOL;
   bDeformationError : BOOL;
   nConvErr : UDINT;
+END_VAR
+VAR_INST
   rT_EnablePyIf  : R_TRIG;
 END_VAR
 ]]></Declaration>
