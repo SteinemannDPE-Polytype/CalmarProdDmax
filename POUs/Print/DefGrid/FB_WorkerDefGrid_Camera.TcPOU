@@ -309,7 +309,7 @@ END_VAR]]></Declaration>
     _iActiveCam.fImageLength     := sJobDef.fImageDepth  / 1000;  // [mm] -> [m]
     _iActiveCam.fImageWidth      := sJobDef.fImageWidth  / 1000;  // [mm] -> [m]
     _iActiveCam.fFrameLength     := _fFeatureGrid;                // [px]
-    bCamModeNotSupported := _iActiveCam.setCameraMode(eCameraMode := _pAdsCam^.eI_CameraMode);     // set camera mode
+    bCamModeNotSupported := NOT _iActiveCam.setCameraMode(eCameraMode := _pAdsCam^.eI_CameraMode);     // set camera mode
     _iActiveCam.bEnableTrigger   := TRUE;    
     _iActiveCam.bManualTeach     := FALSE;
     _iActiveCam.mJobStart();

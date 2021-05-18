@@ -1197,7 +1197,8 @@ FOR nCounter := 0 TO nNbMarksTeach/nMarksPerFrame - 1 DO    // col
   END_FOR
 END_FOR
 
-nNbMarksScanned := nNbMarksTeach;]]></ST>
+nNbMarksScanned := nNbMarksTeach;
+_ePossibleMode := E_CameraMode.Live;]]></ST>
       </Implementation>
     </Method>
     <Method Name="SimUpdate" Id="{9dd7039c-acb3-4c79-a1d4-b41a588914a2}" FolderPath="I_Simulation\">
@@ -1571,6 +1572,7 @@ _bTeachOk       := TRUE;]]></ST>
       <LineId Id="408" Count="1" />
       <LineId Id="399" Count="7" />
       <LineId Id="2" Count="0" />
+      <LineId Id="424" Count="0" />
     </LineIds>
     <LineIds Name="FB_LineCamera.SimUpdate">
       <LineId Id="12" Count="0" />
