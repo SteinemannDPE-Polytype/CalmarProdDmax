@@ -15,6 +15,9 @@ VAR
   _bNewJob : BOOL;  // new job was activated
   _CamGridSettings : ST_CameraGridSettings;
   _DefGridSettings : ST_DefGridSettings;
+  
+  // messages
+  fbMsg_PythonNotRunning : FB_MESSAGE;
 END_VAR
 
 VAR CONSTANT
@@ -107,6 +110,25 @@ IF _CamGridSettings.eCameraMode >= E_CameraMode.Live THEN
     LogError('Could not delete ct in script');
   END_IF
 END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Init" Id="{f68f2ec1-c6b3-4670-a09a-c2c908e7b5dc}">
+      <Declaration><![CDATA[METHOD Init
+VAR_INPUT
+  pCtManager : POINTER TO FB_CTManagerDefGrid;   // CTManager
+  pParamMediator : POINTER TO FB_DefGridParamMediator;
+  pMsgConfig : POINTER TO ST_MSG_CONFIG;         // message config
+  fPrintResolution : LREAL := 1;                 // print(head) resolution in [dpi]
+  fSubPxResolution : LREAL := 1;                 // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SUPER^.Init(pCtManager:=pCtManager, pParamMediator:=pParamMediator, pMsgConfig:=pMsgConfig, fPrintResolution:=fPrintResolution, fSubPxResolution:=fSubPxResolution);
+
+// Init messages
+fbMsg_PythonNotRunning.pI_MsgConfig := _pMsgConfigExt;
+fbMsg_PythonNotRunning.iI_MsgLocation := ePr_BLK_PU;
+fbMsg_PythonNotRunning.iI_MsgNumber := eC_DMAX_DEF_SCRIPT_NOT_RUNNING;]]></ST>
       </Implementation>
     </Method>
     <Method Name="InitWorkerPython" Id="{343b3a60-1392-4b26-a0f9-056258434c15}">
@@ -208,7 +230,11 @@ IF _pAttachedCt <> 0 THEN
   // nothing to do anymore just release CT
   // NOTE: the delete of the CT is done by DeleteDefCt() method directly into fbPythonInterface
   Release(_pAttachedCt^);
-END_IF]]></ST>
+END_IF
+
+// messages
+fbMsg_PythonNotRunning(bI_Status:=fbPythonInterface.bError);
+IF fbMsg_PythonNotRunning.bMsgAck THEN fbPythonInterface.ackError(); END_IF]]></ST>
       </Implementation>
     </Method>
     <LineIds Name="FB_WorkerDefGrid_Python">
@@ -255,6 +281,12 @@ END_IF]]></ST>
       <LineId Id="52" Count="0" />
       <LineId Id="35" Count="0" />
       <LineId Id="34" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Python.Init">
+      <LineId Id="11" Count="1" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="14" Count="1" />
+      <LineId Id="13" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Python.InitWorkerPython">
       <LineId Id="54" Count="0" />
@@ -305,6 +337,9 @@ END_IF]]></ST>
       <LineId Id="202" Count="1" />
       <LineId Id="201" Count="0" />
       <LineId Id="192" Count="0" />
+      <LineId Id="319" Count="0" />
+      <LineId Id="318" Count="0" />
+      <LineId Id="320" Count="1" />
     </LineIds>
   </POU>
 </TcPlcObject>

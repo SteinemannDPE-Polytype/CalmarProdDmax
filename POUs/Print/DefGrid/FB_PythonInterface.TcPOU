@@ -80,6 +80,15 @@ fbWatchdog(IN := fbHeartbeat1.Q OR fbHeartbeat2.Q, PT:=tWatchdogPeriod);
 bScriptAlive := fbWatchdog.Q AND nPythonPID <> 0;
 ]]></ST>
     </Implementation>
+    <Method Name="ackError" Id="{fbbad6f9-f4a3-49be-9808-57d4c9122448}">
+      <Declaration><![CDATA[METHOD ackError
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_bResetError := TRUE;]]></ST>
+      </Implementation>
+    </Method>
     <Property Name="bBusy" Id="{15ecb802-f104-48b3-a8e9-296585ddbd3b}">
       <Declaration><![CDATA[{attribute 'monitoring':='call'}
 PROPERTY bBusy : BOOL]]></Declaration>
@@ -178,6 +187,7 @@ CASE(nState) OF
   cStateIdle  :
     _bJobStartRequest:=FALSE;
     _bJobStopRequest:=FALSE;
+    _bResetError := FALSE;
     IF bEnable THEN
       nState := cStateStartup;
     END_IF  
@@ -211,8 +221,13 @@ CASE(nState) OF
         nState := cStateRunning;
         fbStateTimer(IN:=FALSE);
 			END_IF
-    ELSIF fbStateTimer.Q THEN //Timeout error
-      LogError('Script start error');
+    ELSIF fbStateTimer.Q THEN //Timeout error (could not start)
+      IF fBScriptLauncher.bError THEN //Launch error
+        ///LogError(F_Concat2('Script start error=', TO_STRING(fBScriptLauncher.nErrId)));
+        LogError(F_Concat2('Script start error=', F_GetAdsErrStr(fBScriptLauncher.nErrId)));
+      ELSE
+        LogError('Script start error');
+      END_IF
       nState := cStateError;
 		END_IF
  
@@ -266,8 +281,9 @@ CASE(nState) OF
     fbStateTimer(IN:=FALSE);  
     _bJobStartRequest:=FALSE;
     _bJobStopRequest:=FALSE;
+    // reset error 
     IF _bResetError OR NOT bEnable OR (_bKeepAlive AND _nStarts <= cMaxStartAttempts)  THEN
-      _bResetError := FALSE;
+      _nStarts := 0;
       _nErrCtr := _nErrCtr + 1;
       nState := cStateStop ;
 		END_IF
@@ -423,6 +439,9 @@ END_VAR
       <LineId Id="66" Count="0" />
       <LineId Id="174" Count="0" />
     </LineIds>
+    <LineIds Name="FB_PythonInterface.ackError">
+      <LineId Id="5" Count="0" />
+    </LineIds>
     <LineIds Name="FB_PythonInterface.bBusy.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
@@ -460,6 +479,7 @@ END_VAR
       <LineId Id="114" Count="1" />
       <LineId Id="122" Count="0" />
       <LineId Id="121" Count="0" />
+      <LineId Id="156" Count="0" />
       <LineId Id="116" Count="0" />
       <LineId Id="119" Count="0" />
       <LineId Id="118" Count="0" />
@@ -494,7 +514,10 @@ END_VAR
       <LineId Id="57" Count="0" />
       <LineId Id="39" Count="0" />
       <LineId Id="45" Count="0" />
-      <LineId Id="103" Count="0" />
+      <LineId Id="150" Count="1" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="153" Count="1" />
+      <LineId Id="152" Count="0" />
       <LineId Id="46" Count="0" />
       <LineId Id="37" Count="0" />
       <LineId Id="10" Count="0" />
@@ -534,7 +557,9 @@ END_VAR
       <LineId Id="4" Count="0" />
       <LineId Id="58" Count="0" />
       <LineId Id="60" Count="1" />
-      <LineId Id="108" Count="1" />
+      <LineId Id="148" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="147" Count="0" />
       <LineId Id="146" Count="0" />
       <LineId Id="112" Count="0" />
       <LineId Id="110" Count="0" />

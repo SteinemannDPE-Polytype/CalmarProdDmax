@@ -17,7 +17,8 @@
   // start at                       eCStag_MSG_BASE := 10000,
   eC_DMAX_CAM_NOTAVAIL                              :=10000,  (*CameraNotAvailable*)
   eC_DMAX_CAM_MODE_NOTSUPPORTED                     :=10001,  (*CameraModeNotSupported*)
-  eC_DMAX_CAM_NOTENGOUGH_TEACH_POINTS               :=10002  (*CameraNotEnoughTeachPoints*)
+  eC_DMAX_CAM_NOTENGOUGH_TEACH_POINTS               :=10002,  (*CameraNotEnoughTeachPoints*)
+  eC_DMAX_DEF_SCRIPT_NOT_RUNNING                    :=10003   (*DeformationScriptNotRunning*)
 );
 END_TYPE
 ]]></Declaration>
