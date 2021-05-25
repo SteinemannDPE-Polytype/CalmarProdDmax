@@ -157,6 +157,35 @@ fbMsg_NotEnoughTeachPoints( bI_Status:=SEL(_bActivated, FALSE, bNotEnoughTeachPo
 ]]></ST>
     </Implementation>
     <Folder Name="I_Simulation" Id="{c9ac893d-3196-4f97-b905-933fa9169f85}" />
+    <Method Name="binarySearch" Id="{ec9741bc-2bbe-4c20-8c7d-1086ec7b5bc3}">
+      <Declaration><![CDATA[METHOD PRIVATE binarySearch : DINT
+VAR_INPUT
+  nLow : DINT;     // range lower
+  nHigh : DINT;    // range upper
+  nKey  : DINT;    // key to search
+END_VAR
+VAR
+  mid : DINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nHigh < nLow THEN
+  binarySearch := -1;
+  RETURN;
+END_IF
+
+mid := (nLow + nHigh) / 2; (*low + (high - low)/2;*)
+IF nKey = TO_DINT(sCameraPoints[mid].id) THEN
+  binarySearch := mid;
+  RETURN;
+END_IF
+IF nKey > TO_DINT(sCameraPoints[mid].id) THEN
+  binarySearch := THIS^.binarySearch((mid + 1), nHigh, nKey);
+  RETURN;
+END_IF
+
+binarySearch:= THIS^.binarySearch(nLow, (mid - 1), nKey);]]></ST>
+      </Implementation>
+    </Method>
     <Property Name="bSimEnable" Id="{b6a9c427-c4f2-4033-a2ee-2748b17341ab}" FolderPath="I_Simulation\">
       <Declaration><![CDATA[PROPERTY bSimEnable : BOOL
 ]]></Declaration>
@@ -193,6 +222,8 @@ VAR
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF _bVerbose THEN LogLvl(Lvl:=E_LogSeverity.Debug, Msg:='calculateTeachPoints()'); END_IF
+
+sortPoints();     // sort teach/camera points list for faster id searching in Auswertung
 
 (*convert & save teach point in table with index of its mark ID*)
 FOR nCounter := 1 TO nNbMarksTeach DO
@@ -347,6 +378,35 @@ END_IF
 GetCamStatus := bConnectionOK AND bTeachOk;   // camera ready]]></ST>
       </Implementation>
     </Method>
+    <Method Name="getPointIndex" Id="{e6ce2af3-6e9d-45e3-9234-f92214a4ec5c}">
+      <Declaration><![CDATA[(*
+  get array index to point ID in stored point table
+  :returns: TRUE if found, FALSE else
+*)
+METHOD getPointIndex : BOOL
+VAR_INPUT
+  nId : UDINT;
+END_VAR
+VAR_OUTPUT
+  nIndex : UDINT;
+END_VAR
+VAR
+  nResultIdx : DINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// search corresponding point in table (search for same mark ID)
+
+nResultIdx := binarySearch(1, nNbMarksTeach, nId);
+IF nResultIdx = -1 THEN
+  LogWarning(F_Concat3('Point with Id: ', TO_STRING(nId) , ' not found in saved teach points'));
+  nIndex := 1;
+  RETURN;
+END_IF
+
+nIndex := TO_UDINT(nResultIdx);
+getPointIndex := TRUE;]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="getSimCamPoint" Id="{eeb86648-0655-4273-a437-ce3be5ec2c20}" FolderPath="I_Simulation\">
       <Declaration><![CDATA[METHOD INTERNAL getSimCamPoint : ST_DeformationPointAccurate
 VAR_INPUT
@@ -438,7 +498,7 @@ VAR
   sTmpCamPoint           : ST_CameraPoint;
   
   nCounter               : UDINT;
-  bEnd                   : BOOL;
+  bOk, bEnd              : BOOL;
 
 END_VAR
 ]]></Declaration>
@@ -485,7 +545,7 @@ REPEAT
   (*--- Handle position telegram ---*)
   IF (sModus  = 'T') THEN 
     (*-- 'T' Teach message *)
-    nNbMarksTeach   := nNbMarks;  (*Total number or marks are send with teach message.*)
+    nNbMarksTeach   := 0;        (*Total number or marks are send with teach message.*)
     nNbMarksScanned := 0;
     nNbSectorTeach  := nSector;  (*Total number or sectors are send with teach message.*)
     sTeach          := sAnalyzeLastMessage; // display on visu
@@ -531,11 +591,9 @@ REPEAT
     ELSE
       (*-- 'A' Auswertung message *)
       // save & convert cam point
-      stCamPoint := saveAuswertungPoint(sCamPoint:=sTmpCamPoint);
-      nNbMarksScanned := sTmpCamPoint.id;
-      
+      stCamPoint := saveAuswertungPoint(sCamPoint:=sTmpCamPoint, bOK=>bOk);     
       // stream point (if valid)
-      IF sTmpCamPoint.valid THEN
+      IF sTmpCamPoint.valid AND bOk THEN
         IF _iCameraSink <> 0 THEN
           _iCameraSink.AddCamPoint(stCamPoint);
           IF _bVerbose THEN 
@@ -713,15 +771,6 @@ nFindIndex := FIND2(pAnalyzeLastMessage, ADR(','));
 IF nFindIndex > 0 THEN
   sCamResult.id := STRING_TO_UDINT(LEFT(pAnalyzeLastMessage^, (UDINT_TO_INT(nFindIndex) - 1)));
   
-  IF sCamResult.id < 1 THEN 
-    LogLvl(Lvl:=E_LogSeverity.Warning, Msg:=F_Concat4('Limit MarkId (', TO_STRING(sCamResult.id),') to max=', TO_STRING(GVL_Camera.cMaxNbMarks))); 
-    sCamResult.id := 1; 
-  END_IF 
-  IF sCamResult.id > GVL_Camera.cMaxNbMarks THEN 
-    LogLvl(Lvl:=E_LogSeverity.Warning, Msg:=F_Concat4('Limit MarkId (', TO_STRING(sCamResult.id),') to max=', TO_STRING(GVL_Camera.cMaxNbMarks)));
-    sCamResult.id := GVL_Camera.cMaxNbMarks; 
-  END_IF   
-
   rx_DeleteMsgPart(pAnalyzeLastMessage := pAnalyzeLastMessage, nLen := nFindIndex , nPos := 1);
 END_IF;
 
@@ -922,17 +971,19 @@ END_IF]]></ST>
 VAR_INPUT
   sCamPoint : ST_CameraPoint;
 END_VAR
+VAR_OUTPUT
+  bOK : BOOL;
+END_VAR
 VAR
   nMarkIndex        : UDINT;
   fDistortionFactor : LREAL;                 (*distortion factor*)
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[(*convert and save Auswertungs point*)
-// limit array bounds
-IF sCamPoint.id < 1           THEN sCamPoint.id := 1; END_IF
-IF sCamPoint.id > GVL_Camera.cMaxNbMarks THEN sCamPoint.id := GVL_Camera.cMaxNbMarks; END_IF
-
-nMarkIndex := sCamPoint.id;
+IF NOT getPointIndex(nId:=sCamPoint.id, nIndex=>nMarkIndex) THEN
+  LogError(F_Concat3('Auswertung point with Id: ', TO_STRING(sCamPoint.id), ' not found, ignore'));
+  RETURN;
+END_IF
 
 (*----- calculate print point position -----*)
 (*Actual position of distinctive mark*)
@@ -993,7 +1044,10 @@ saveAuswertungPoint.row := 0;
 IF NOT sCamPoint.valid THEN
   saveAuswertungPoint.dx := 0;
   saveAuswertungPoint.dy := 0;
+ELSE
+  bOK := TRUE;
 END_IF
+nNbMarksScanned := nNbMarksScanned + 1;
 ]]></ST>
       </Implementation>
     </Method>
@@ -1004,13 +1058,16 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[(*save teach point in table with index of its mark ID for calculation at job start*)
+        <ST><![CDATA[(*save teach point in table*)
+// NOTE: mark ID unique and does not match the array index! 
+IF nNbMarksTeach = GVL_Camera.cMaxNbMarks THEN 
+  LogLvl(Lvl:=E_LogSeverity.Error, Msg:=F_Concat4('Too many marks max. allowed: ', TO_STRING(GVL_Camera.cMaxNbMarks), ' ignore mark with id:', TO_STRING(sCamPoint.id)));
+  RETURN;
+END_IF
 
-// limit array bounds
-IF sCamPoint.id < 1           THEN sCamPoint.id := 1; END_IF
-IF sCamPoint.id > GVL_Camera.cMaxNbMarks THEN sCamPoint.id := GVL_Camera.cMaxNbMarks; END_IF
-
-sCameraPoints[sCamPoint.id] := sCamPoint;
+// save next teach mark
+nNbMarksTeach := nNbMarksTeach + 1;
+sCameraPoints[nNbMarksTeach] := sCamPoint;
 ]]></ST>
       </Implementation>
     </Method>
@@ -1257,6 +1314,28 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
+    <Method Name="sortPoints" Id="{f4e1964a-0fff-406d-bc2b-3f33f82b3c30}">
+      <Declaration><![CDATA[METHOD sortPoints : BOOL
+VAR
+  i, k : UDINT;
+  tmpPoint : ST_CameraPoint;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// sort array (increasing id)
+FOR i := 1 TO nNbMarksTeach DO
+  FOR k := 1 TO nNbMarksTeach-1 DO
+    IF sCameraPoints[k].id > sCameraPoints[k+1].id THEN
+      tmpPoint := sCameraPoints[k+1];
+      sCameraPoints[k+1] := sCameraPoints[k];
+      sCameraPoints[k] := tmpPoint;
+    END_IF
+	END_FOR
+END_FOR
+
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="tx_test" Id="{810b87b8-cc78-4799-aab9-b76d18a6e434}" FolderPath="I_Simulation\">
       <Declaration><![CDATA[METHOD PRIVATE tx_test : BOOL
 VAR_INPUT
@@ -1316,6 +1395,20 @@ _bTeachOk       := TRUE;]]></ST>
       <LineId Id="2684" Count="2" />
       <LineId Id="2376" Count="0" />
     </LineIds>
+    <LineIds Name="FB_LineCamera.binarySearch">
+      <LineId Id="9" Count="0" />
+      <LineId Id="19" Count="1" />
+      <LineId Id="17" Count="1" />
+      <LineId Id="11" Count="1" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="14" Count="1" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
     <LineIds Name="FB_LineCamera.bSimEnable.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
@@ -1323,8 +1416,7 @@ _bTeachOk       := TRUE;]]></ST>
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_LineCamera.calcTeachPoints">
-      <LineId Id="180" Count="46" />
-      <LineId Id="228" Count="16" />
+      <LineId Id="325" Count="65" />
       <LineId Id="118" Count="0" />
     </LineIds>
     <LineIds Name="FB_LineCamera.CamTrigger">
@@ -1366,6 +1458,18 @@ _bTeachOk       := TRUE;]]></ST>
       <LineId Id="38" Count="0" />
       <LineId Id="22" Count="0" />
     </LineIds>
+    <LineIds Name="FB_LineCamera.getPointIndex">
+      <LineId Id="5" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
     <LineIds Name="FB_LineCamera.getSimCamPoint">
       <LineId Id="15" Count="8" />
       <LineId Id="45" Count="0" />
@@ -1393,7 +1497,9 @@ _bTeachOk       := TRUE;]]></ST>
       <LineId Id="2519" Count="43" />
       <LineId Id="2564" Count="6" />
       <LineId Id="2644" Count="0" />
-      <LineId Id="2571" Count="56" />
+      <LineId Id="2571" Count="35" />
+      <LineId Id="2662" Count="0" />
+      <LineId Id="2610" Count="17" />
       <LineId Id="1013" Count="0" />
     </LineIds>
     <LineIds Name="FB_LineCamera.rx_DeleteMsgPart">
@@ -1438,13 +1544,7 @@ _bTeachOk       := TRUE;]]></ST>
     </LineIds>
     <LineIds Name="FB_LineCamera.rx_ParsePoint">
       <LineId Id="849" Count="3" />
-      <LineId Id="982" Count="0" />
-      <LineId Id="988" Count="3" />
-      <LineId Id="985" Count="0" />
-      <LineId Id="992" Count="0" />
-      <LineId Id="994" Count="0" />
-      <LineId Id="993" Count="0" />
-      <LineId Id="986" Count="0" />
+      <LineId Id="1010" Count="0" />
       <LineId Id="854" Count="1" />
       <LineId Id="862" Count="119" />
       <LineId Id="5" Count="0" />
@@ -1461,9 +1561,8 @@ _bTeachOk       := TRUE;]]></ST>
     </LineIds>
     <LineIds Name="FB_LineCamera.saveAuswertungPoint">
       <LineId Id="5" Count="0" />
-      <LineId Id="46" Count="0" />
-      <LineId Id="94" Count="1" />
       <LineId Id="52" Count="0" />
+      <LineId Id="147" Count="1" />
       <LineId Id="51" Count="0" />
       <LineId Id="56" Count="0" />
       <LineId Id="55" Count="0" />
@@ -1490,15 +1589,20 @@ _bTeachOk       := TRUE;]]></ST>
       <LineId Id="82" Count="0" />
       <LineId Id="132" Count="0" />
       <LineId Id="135" Count="1" />
+      <LineId Id="150" Count="1" />
       <LineId Id="134" Count="0" />
+      <LineId Id="155" Count="0" />
       <LineId Id="9" Count="0" />
     </LineIds>
     <LineIds Name="FB_LineCamera.saveTeachPoint">
       <LineId Id="41" Count="0" />
-      <LineId Id="87" Count="0" />
-      <LineId Id="84" Count="0" />
-      <LineId Id="98" Count="1" />
-      <LineId Id="94" Count="0" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="116" Count="1" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="107" Count="0" />
       <LineId Id="96" Count="0" />
       <LineId Id="5" Count="0" />
     </LineIds>
@@ -1601,6 +1705,15 @@ _bTeachOk       := TRUE;]]></ST>
     </LineIds>
     <LineIds Name="FB_LineCamera.sName.Get">
       <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LineCamera.sortPoints">
+      <LineId Id="24" Count="2" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="29" Count="3" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="8" Count="0" />
     </LineIds>
     <LineIds Name="FB_LineCamera.tx_test">
       <LineId Id="5" Count="0" />
