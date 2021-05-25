@@ -10,32 +10,12 @@ VAR
   sCG : ARRAY[1..iCPr_NB_PH_PS_MAX] OF I_Correction_Grid;
   
   nRowMap : ARRAY[1..iCPr_NB_PH_PS_MAX,1..2] OF DINT; (*PH[x, [min, max]] Min..Max ROI row per head*)
-  sDefGridSettings : ST_DefGridSettings; 
-  _bPrintEnable : BOOL;
+  sDefGridSettings : ST_DefGridSettings;
 END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[]]></ST>
     </Implementation>
-    <Property Name="bPrintEnable" Id="{89c7bcb6-dc3e-4f6d-821f-72afc3e87977}">
-      <Declaration><![CDATA[PROPERTY bPrintEnable : BOOL]]></Declaration>
-      <Get Name="Get" Id="{87c8430a-913b-4a4a-a0e7-9ed266d92518}">
-        <Declaration><![CDATA[VAR
-END_VAR
-]]></Declaration>
-        <Implementation>
-          <ST><![CDATA[bPrintEnable := _bPrintEnable;]]></ST>
-        </Implementation>
-      </Get>
-      <Set Name="Set" Id="{fac22d2e-cdeb-4187-ba4d-ca8db5a800ad}">
-        <Declaration><![CDATA[VAR
-END_VAR
-]]></Declaration>
-        <Implementation>
-          <ST><![CDATA[_bPrintEnable := bPrintEnable;]]></ST>
-        </Implementation>
-      </Set>
-    </Property>
     <Method Name="newGridPoint" Id="{9f9665fc-9dda-4195-aa07-7605112b126e}">
       <Declaration><![CDATA[METHOD newGridPoint : BOOL
 VAR_INPUT
@@ -138,12 +118,6 @@ END_FOR
     </Method>
     <LineIds Name="FB_PS_Grid">
       <LineId Id="9" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_PS_Grid.bPrintEnable.Get">
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_PS_Grid.bPrintEnable.Set">
-      <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_PS_Grid.newGridPoint">
       <LineId Id="31" Count="0" />
