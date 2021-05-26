@@ -58,6 +58,7 @@ VAR
   fbMsg_NotEnoughTeachPoints  : FB_MESSAGE;
   bNotEnoughTeachPoints : BOOL;
   bNotAllFramesContainTeachPoints : BOOL;
+  bInvalidTeachPointsReceived : BOOL;
   
   // debug ------------------------
   _bVerbose                 : BOOL;   // Enable verbose mode (log more debug information
@@ -173,16 +174,22 @@ END_VAR]]></Declaration>
   RETURN;
 END_IF
 
+// split array in half
 mid := (nLow + nHigh) / 2; (*low + (high - low)/2;*)
+
+// did we find it?
 IF nKey = TO_DINT(sCameraPoints[mid].id) THEN
   binarySearch := mid;
   RETURN;
 END_IF
+
+// no, search upper half (recursive)
 IF nKey > TO_DINT(sCameraPoints[mid].id) THEN
   binarySearch := THIS^.binarySearch((mid + 1), nHigh, nKey);
   RETURN;
 END_IF
 
+// no, search lower half (recursive)
 binarySearch:= THIS^.binarySearch(nLow, (mid - 1), nKey);]]></ST>
       </Implementation>
     </Method>
@@ -208,7 +215,7 @@ END_VAR
     </Property>
     <Method Name="calcTeachPoints" Id="{472c605e-afa9-492a-94ec-73584efe23a0}">
       <Declaration><![CDATA[(*
-  Calculate teached reference points in print system coordinates.
+  Calculate teached/saved reference points in print system coordinates.
 *)
 METHOD PRIVATE calcTeachPoints
 VAR
@@ -223,10 +230,18 @@ END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF _bVerbose THEN LogLvl(Lvl:=E_LogSeverity.Debug, Msg:='calculateTeachPoints()'); END_IF
 
-sortPoints();     // sort teach/camera points list for faster id searching in Auswertung
+bInvalidTeachPointsReceived := FALSE;
 
-(*convert & save teach point in table with index of its mark ID*)
+(*-- sort list with camera/teach points for faster binary searching later*)
+sortPoints();
+
+(*-- convert & save teach point in table separate table for later use*)
 FOR nCounter := 1 TO nNbMarksTeach DO
+  //--- save id
+  sTP.id := sCameraPoints[nCounter].id;
+  sTP.valid := sCameraPoints[nCounter].valid;
+  
+  //--- translate to print system coordinate system 
   IF (sCameraPoints[nCounter].x_ref = 0) THEN
     (*Fully automatic mode: ref value from camera is zero, ref value for printer is set with x.*)
     sTP.y_ref_Print   :=   ((_fPrintUnitWidthTC/2 + _fCameraWidthNormal/2) * 1000)  (*[m] => [mm]*)
@@ -259,30 +274,41 @@ FOR nCounter := 1 TO nNbMarksTeach DO
                                               , LREAL_TO_UDINT(cCameraResolutionSubpixel)) * 1000);  (*[m] => [mm]*)
   END_IF;
   
-  // save teach point locally
+  //--- save teach point locally to seperate teach point array (the other one will be used for cam points while receiving) 
   sTeachPoints[nCounter] := sTP;
   
-  // count points per sector
-  IF (sCameraPoints[nCounter].y_ref = 0) THEN    (*Fully Automatic*)
+  //--- count points per sector (for error handling)
+  IF (sTP.x_teach_Print = 0) THEN    (*Fully Automatic*)
     x_ref_abs := sTP.x_ref_Print;
-    y_ref_abs := sTP.y_ref_Print;
   ELSE                                           (*Semi-automatic*)        
     x_ref_abs := sTP.x_ref_Print + sTP.x_teach_Print; 
+  END_IF
+  IF (sTP.y_teach_Print = 0) THEN    (*Fully Automatic*)
+    y_ref_abs := sTP.y_ref_Print;
+  ELSE                                           (*Semi-automatic*)        
     y_ref_abs := sTP.y_ref_Print + sTP.y_teach_Print;
   END_IF
+  
   IF _fFrameLength <> 0 THEN
     nCurrSect := FC_LREAL_TO_DINT(x_ref_abs / _fFrameLength, pI_ConversionErr:=ADR(nErrCtr)) + 1;
     nNumPointsPerSectorT[nCurrSect] := nNumPointsPerSectorT[nCurrSect] + 1;
   END_IF
   
-    // send teach point to sink
+  //--- send teach point to sink (python script)
   IF _iCameraSink <> 0 THEN
     sTPSend.x_ref := x_ref_abs;
     sTPSend.y_ref := y_ref_abs;
+    sTPSend.dx    := 0;
+    sTPSend.dy    := 0;
     sTPSend.col := nNumPointsPerSectorT[nCurrSect];  // point number in frame
     sTPSend.row := nCurrSect;                        // frame number
     _iCameraSink.AddTeachPoint(sTeachPoint:=sTPSend);
   END_IF
+  
+  //--- check if every teach point is valid
+  IF NOT sTP.valid THEN
+    bInvalidTeachPointsReceived := TRUE;
+	END_IF
   
 END_FOR
 
@@ -545,7 +571,7 @@ REPEAT
   (*--- Handle position telegram ---*)
   IF (sModus  = 'T') THEN 
     (*-- 'T' Teach message *)
-    nNbMarksTeach   := 0;        (*Total number or marks are send with teach message.*)
+    nNbMarksTeach   := 0;
     nNbMarksScanned := 0;
     nNbSectorTeach  := nSector;  (*Total number or sectors are send with teach message.*)
     sTeach          := sAnalyzeLastMessage; // display on visu
@@ -580,11 +606,11 @@ REPEAT
     // get next point
     IF NOT rx_ParsePoint(pAnalyzeLastMessage:=ADR(sAnalyzeLastMessage), sCamResult=>sTmpCamPoint, bLast=>bEnd) THEN 
       // invalid point received
-      LogWarning(F_Concat4('invalid camera point received (x/y): ', TO_STRING(sTmpCamPoint.x_ref), '/', TO_STRING(sTmpCamPoint.y_ref)));
+      LogWarning(F_Concat6('invalid ', SEL(sModus='T', 'camera', 'teach'), ' point received (x/y): ', TO_STRING(sTmpCamPoint.x_ref), '/', TO_STRING(sTmpCamPoint.y_ref)));
     END_IF
     IF bEnd AND nCounter < nNbMarks THEN LogWarning(F_Concat4('Less marks received than indicated in header: ', TO_STRING(nCounter), '<', TO_STRING(nNbMarks))); END_IF
     
-    IF (sModus  = 'T') THEN  
+    IF (sModus  = 'T') THEN
       (*-- 'T' Teach message *)
       // save (convert with job start)
       saveTeachPoint(sCamPoint := sTmpCamPoint);
@@ -982,6 +1008,7 @@ END_VAR]]></Declaration>
         <ST><![CDATA[(*convert and save Auswertungs point*)
 IF NOT getPointIndex(nId:=sCamPoint.id, nIndex=>nMarkIndex) THEN
   LogError(F_Concat3('Auswertung point with Id: ', TO_STRING(sCamPoint.id), ' not found, ignore'));
+  bOK := FALSE;
   RETURN;
 END_IF
 
@@ -1015,7 +1042,7 @@ ELSE
 END_IF;
 
 // save cam point for visu
-sCameraPoints[sCamPoint.id] := sCamPoint;
+sCameraPoints[nMarkIndex] := sCamPoint;
 
 (*----- create cam correction point -----*)
 (*NOTE: correction will be rounded to [px]*)
@@ -1061,7 +1088,7 @@ END_VAR
         <ST><![CDATA[(*save teach point in table*)
 // NOTE: mark ID unique and does not match the array index! 
 IF nNbMarksTeach = GVL_Camera.cMaxNbMarks THEN 
-  LogLvl(Lvl:=E_LogSeverity.Error, Msg:=F_Concat4('Too many marks max. allowed: ', TO_STRING(GVL_Camera.cMaxNbMarks), ' ignore mark with id:', TO_STRING(sCamPoint.id)));
+  LogLvl(Lvl:=E_LogSeverity.Error, Msg:=F_Concat4('Too many marks received max. allowed: ', TO_STRING(GVL_Camera.cMaxNbMarks), ' ignore mark with id:', TO_STRING(sCamPoint.id)));
   RETURN;
 END_IF
 
@@ -1118,7 +1145,7 @@ ELSIF _nSimMode = 2 THEN
   //v100 teach
   //rx_callback(sMessage:='<position(100,T,39,3,125,0,0,0,0,1,7184,7184,126,0,0,0,0,1,7184,26080,127,0,0,0,0,1,7184,35520,128,0,0,0,0,1,7184,54416,129,0,0,0,0,1,7168,73312,130,0,0,0,0,1,7184,82768,131,0,0,0,0,1,7184,101664,132,0,0,0,0,1,7184,120560,133,0,0,0,0,1,7184,139456,134,0,0,0,0,1,7184,148912,135,0,0,0,0,1,7184,167808,136,0,0,0,0,1,7168,186704,137,0,0,0,0,1,63872,7184,138,0,0,0,0,1,63872,26080,139,0,0,0,0,1,63872,35520,140,0,0,0,0,1,63872,54416,141,0,0,0,0,1,63872,73312,142,0,0,0,0,1,63872,82768,143,0,0,0,0,1,63872,101664,144,0,0,0,0,1,63872,120560,145,0,0,0,0,1,63872,139456,146,0,0,0,0,1,63872,148912,147,0,0,0,0,1,63872,167808,148,0,0,0,0,1,63872,186704,149,0,0,0,0,1,130016,7168,150,0,0,0,0,1,130016,26080,151,0,0,0,0,1,130016,35520,152,0,0,0,0,1,130016,54416,153,0,0,0,0,1,130016,73312,154,0,0,0,0,1,130016,82768,155,0,0,0,0,1,130016,101664,156,0,0,0,0,1,130016,120560,157,0,0,0,0,1,130016,139456,158,0,0,0,0,1,130016,148912,159,0,0,0,0,1,130016,167808,160,0,0,0,0,1,130016,186704,161,0,0,0,0,1,35520,7168,162,0,0,0,0,1,35520,5441);');
   //v110 teach
-  sSimMsg.sMessage:= '<position(110,T,39,12,125,0,0,0,0,1,7184,7184,126,0,0,0,0,1,7184,26080,127,0,0,0,0,1,7184,35520,128,0,0,0,0,1,7184,54416,129,0,0,0,0,1,7168,73312,130,0,0,0,0,1,7184,82768,131,0,0,0,0,1,7184,101664,132,0,0,0,0,1,7184,120560,133,0,0,0,0,1,7184,139456,134,0,0,0,0,1,7184,148912,135,0,0,0,0,1,7184,167808,136,0,0,0,0,1,7168,186704,137,0,0,0,0,1,63872,7184,138,0,0,0,0,1,63872,26080,139,0,0,0,0,1,63872,35520,140,0,0,0,0,1,63872,54416,141,0,0,0,0,1,63872,73312,142,0,0,0,0,1,63872,82768,143,0,0,0,0,1,63872,101664,144,0,0,0,0,1,63872,120560,145,0,0,0,0,1,63872,139456,146,0,0,0,0,1,63872,148912,147,0,0,0,0,1,63872,167808,148,0,0,0,0,1,63872,186704,149,0,0,0,0,1,130016,7168,150,0,0,0,0,1,130016,26080,151,0,0,0,0,1,130016,35520,152,0,0,0,0,1,130016,54416,153,0,0,0,0,1,130016,73312,154,0,0,0,0,1,130016,82768,155,0,0,0,0,1,130016,101664,156,0,0,0,0,1,130016,120560,157,0,0,0,0,1,130016,139456,158,0,0,0,0,1,130016,148912,159,0,0,0,0,1,130016,167808,160,0,0,0,0,1,130016,186704,161,0,0,0,0,1,35520,7168,162,0,0,0,0,1,35520,5441);';
+  sSimMsg.sMessage:= '<position(110,T,38,12,1,0,0,0,0,1,7184,7184,2,0,0,0,0,1,7184,26080,4,0,0,0,0,1,7184,35520,128,0,0,0,0,1,7184,54416,5,0,0,0,0,1,7168,73312,130,0,0,0,0,1,7184,82768,131,0,0,0,0,1,7184,101664,132,0,0,0,0,1,7184,120560,133,0,0,0,0,1,7184,139456,134,0,0,0,0,1,7184,148912,135,0,0,0,0,1,7184,167808,136,0,0,0,0,1,7168,186704,137,0,0,0,0,1,63872,7184,138,0,0,0,0,1,63872,26080,139,0,0,0,0,1,63872,35520,140,0,0,0,0,1,63872,54416,141,0,0,0,0,1,63872,73312,142,0,0,0,0,1,63872,82768,143,0,0,0,0,1,63872,101664,144,0,0,0,0,1,63872,120560,145,0,0,0,0,1,63872,139456,146,0,0,0,0,1,63872,148912,147,0,0,0,0,1,63872,167808,148,0,0,0,0,1,63872,186704,149,0,0,0,0,1,130016,7168,150,0,0,0,0,1,130016,26080,151,0,0,0,0,1,130016,35520,152,0,0,0,0,1,130016,54416,153,0,0,0,0,1,130016,73312,154,0,0,0,0,1,130016,82768,155,0,0,0,0,1,130016,101664,156,0,0,0,0,1,130016,120560,157,0,0,0,0,1,130016,139456,158,0,0,0,0,1,130016,148912,159,0,0,0,0,1,130016,167808,160,0,0,0,0,1,130016,186704,161,0,0,0,0,1,35520,7168,162,0,0,0,0,1,35520,5441);';
   //points 1 to 38
   //sSimMsg.sMessage:= '<position(110,T,38,12,1,0,0,0,0,1,7184,7184,2,0,0,0,0,1,7184,26080,3,0,0,0,0,1,7184,35520,4,0,0,0,0,1,7184,54416,5,0,0,0,0,1,7168,73312,6,0,0,0,0,1,7184,82768,7,0,0,0,0,1,7184,101664,8,0,0,0,0,1,7184,120560,9,0,0,0,0,1,7184,139456,10,0,0,0,0,1,7184,148912,11,0,0,0,0,1,7184,167808,12,0,0,0,0,1,7168,186704,13,0,0,0,0,1,63872,7184,14,0,0,0,0,1,63872,26080,15,0,0,0,0,1,63872,35520,16,0,0,0,0,1,63872,54416,17,0,0,0,0,1,63872,73312,18,0,0,0,0,1,63872,82768,19,0,0,0,0,1,63872,101664,20,0,0,0,0,1,63872,120560,21,0,0,0,0,1,63872,139456,22,0,0,0,0,1,63872,148912,23,0,0,0,0,1,63872,167808,24,0,0,0,0,1,63872,186704,25,0,0,0,0,1,130016,7168,26,0,0,0,0,1,130016,26080,27,0,0,0,0,1,130016,35520,28,0,0,0,0,1,130016,54416,29,0,0,0,0,1,130016,73312,30,0,0,0,0,1,130016,82768,31,0,0,0,0,1,130016,101664,32,0,0,0,0,1,130016,120560,33,0,0,0,0,1,130016,139456,34,0,0,0,0,1,130016,148912,35,0,0,0,0,1,130016,167808,36,0,0,0,0,1,130016,186704,37,0,0,0,0,1,35520,7168,38,0,0,0,0,1,35520,5441);';
   rx_callback(sMessage:=sSimMsg);
@@ -1315,7 +1342,10 @@ END_VAR
       </Get>
     </Property>
     <Method Name="sortPoints" Id="{f4e1964a-0fff-406d-bc2b-3f33f82b3c30}">
-      <Declaration><![CDATA[METHOD sortPoints : BOOL
+      <Declaration><![CDATA[(*
+  Sort sCameraPoints list with ascending [.id] 
+*)
+METHOD sortPoints
 VAR
   i, k : UDINT;
   tmpPoint : ST_CameraPoint;
@@ -1366,7 +1396,8 @@ VAR
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF _fFrameLength <> 0 THEN
+        <ST><![CDATA[
+IF _fFrameLength <> 0 THEN
   nNumFrames := LIMIT(1, TO_UDINT(FC_LREAL_TO_DINT((fImageLength / _fFrameLength) + 1, ADR(lErrCtr))), GVL_Camera.cMaxNbSectors); 
 END_IF
 bNotAllFramesContainTeachPoints := FALSE;
@@ -1398,14 +1429,22 @@ _bTeachOk       := TRUE;]]></ST>
     <LineIds Name="FB_LineCamera.binarySearch">
       <LineId Id="9" Count="0" />
       <LineId Id="19" Count="1" />
-      <LineId Id="17" Count="1" />
-      <LineId Id="11" Count="1" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="12" Count="0" />
       <LineId Id="24" Count="0" />
       <LineId Id="13" Count="0" />
       <LineId Id="23" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="36" Count="0" />
       <LineId Id="14" Count="1" />
       <LineId Id="26" Count="0" />
       <LineId Id="25" Count="0" />
+      <LineId Id="37" Count="0" />
       <LineId Id="27" Count="0" />
       <LineId Id="16" Count="0" />
     </LineIds>
@@ -1416,7 +1455,25 @@ _bTeachOk       := TRUE;]]></ST>
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_LineCamera.calcTeachPoints">
-      <LineId Id="325" Count="65" />
+      <LineId Id="325" Count="0" />
+      <LineId Id="419" Count="0" />
+      <LineId Id="416" Count="1" />
+      <LineId Id="326" Count="4" />
+      <LineId Id="420" Count="0" />
+      <LineId Id="403" Count="0" />
+      <LineId Id="425" Count="0" />
+      <LineId Id="404" Count="0" />
+      <LineId Id="421" Count="0" />
+      <LineId Id="331" Count="33" />
+      <LineId Id="429" Count="16" />
+      <LineId Id="365" Count="0" />
+      <LineId Id="379" Count="3" />
+      <LineId Id="423" Count="1" />
+      <LineId Id="383" Count="3" />
+      <LineId Id="412" Count="0" />
+      <LineId Id="426" Count="2" />
+      <LineId Id="415" Count="0" />
+      <LineId Id="387" Count="3" />
       <LineId Id="118" Count="0" />
     </LineIds>
     <LineIds Name="FB_LineCamera.CamTrigger">
@@ -1563,6 +1620,7 @@ _bTeachOk       := TRUE;]]></ST>
       <LineId Id="5" Count="0" />
       <LineId Id="52" Count="0" />
       <LineId Id="147" Count="1" />
+      <LineId Id="166" Count="0" />
       <LineId Id="51" Count="0" />
       <LineId Id="56" Count="0" />
       <LineId Id="55" Count="0" />
@@ -1727,6 +1785,7 @@ _bTeachOk       := TRUE;]]></ST>
       <LineId Id="8" Count="1" />
     </LineIds>
     <LineIds Name="FB_LineCamera.verifyTeachPoints">
+      <LineId Id="90" Count="0" />
       <LineId Id="36" Count="0" />
       <LineId Id="40" Count="1" />
       <LineId Id="49" Count="0" />

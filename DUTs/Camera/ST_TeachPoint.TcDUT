@@ -4,12 +4,14 @@
     <Declaration><![CDATA[TYPE ST_TeachPoint :
 STRUCT
   (*Valus for printer [mm]*)
+  id                  : UDINT;           (*point id*)
   x_ref_Print         : LREAL := 0;      (*Referenz x deviation [mm]*)
   y_ref_Print         : LREAL := 0;      (*Referenz y deviation [mm]*)
   x_teach_Print       : LREAL := 0;      (*Teach x deviation [mm]*)
   y_teach_Print       : LREAL := 0;      (*Teach y deviation [mm]*)
   x_Print             : LREAL := 0;      (*x deviation [mm]*)
   y_Print             : LREAL := 0;      (*y deviation [mm]*)
+  valid               : BOOL  := FALSE;  (**)
 END_STRUCT
 END_TYPE
 ]]></Declaration>
