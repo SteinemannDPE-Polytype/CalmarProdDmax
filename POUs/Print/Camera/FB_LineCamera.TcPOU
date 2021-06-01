@@ -151,10 +151,11 @@ fPrintUnitCenterOffsetTAct := (((_fPrintUnitWidthTC / 2 * 1000) + _fPrintUnitMec
 SimUpdate();
 
 // Messages
-fbMsg_NotEnoughTeachPoints( bI_Status:=SEL(_bActivated, FALSE, bNotEnoughTeachPoints), 
+(*fbMsg_NotEnoughTeachPoints( bI_Status:=SEL(_bActivated, FALSE, bNotEnoughTeachPoints), 
                              iI_MsgNumber:=eC_DMAX_CAM_NOTENGOUGH_TEACH_POINTS, 
                              iI_MsgLocation:=ePr_BLK_CAMERA,
                              pI_MsgConfig:=_pMsgConfig);
+*)
 ]]></ST>
     </Implementation>
     <Folder Name="I_Simulation" Id="{c9ac893d-3196-4f97-b905-933fa9169f85}" />
@@ -178,13 +179,13 @@ END_IF
 mid := (nLow + nHigh) / 2; (*low + (high - low)/2;*)
 
 // did we find it?
-IF nKey = TO_DINT(sCameraPoints[mid].id) THEN
+IF nKey = TO_DINT(sTeachPoints[mid].id) THEN
   binarySearch := mid;
   RETURN;
 END_IF
 
 // no, search upper half (recursive)
-IF nKey > TO_DINT(sCameraPoints[mid].id) THEN
+IF nKey > TO_DINT(sTeachPoints[mid].id) THEN
   binarySearch := THIS^.binarySearch((mid + 1), nHigh, nKey);
   RETURN;
 END_IF
@@ -422,7 +423,7 @@ END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[// search corresponding point in table (search for same mark ID)
 
-nResultIdx := binarySearch(1, nNbMarksTeach, nId);
+nResultIdx := binarySearch(1, TO_DINT(nNbMarksTeach), TO_DINT(nId));
 IF nResultIdx = -1 THEN
   LogWarning(F_Concat3('Point with Id: ', TO_STRING(nId) , ' not found in saved teach points'));
   nIndex := 1;
@@ -1425,6 +1426,7 @@ _bTeachOk       := TRUE;]]></ST>
       <LineId Id="2807" Count="0" />
       <LineId Id="2684" Count="2" />
       <LineId Id="2376" Count="0" />
+      <LineId Id="2924" Count="0" />
     </LineIds>
     <LineIds Name="FB_LineCamera.binarySearch">
       <LineId Id="9" Count="0" />
