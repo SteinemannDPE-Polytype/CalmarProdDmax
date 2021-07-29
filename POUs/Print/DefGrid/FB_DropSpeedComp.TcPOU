@@ -1,22 +1,18 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
-  <POU Name="FB_DropSpeedComp" Id="{31156881-dc16-4df5-a26b-2bb900ace12f}" SpecialFunc="None">
+  <POU Name="FB_DropSpeedComp" Id="{62d8f9f6-c472-4b35-8edc-37e97243e619}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_DropSpeedComp
 VAR_INPUT
   fMasterSpeed         : LREAL; //[m/s]
   fDropTravelDistance  : LREAL; //[m]
 END_VAR
 VAR_OUTPUT
-  fDropPlacementError           : LREAL;
+  fDropPlacementError  : LREAL;
 END_VAR
-VAR
-  _bEnable              : BOOL := TRUE;
-  _fDropSpeed           : LREAL := fL_DropSpeed;                 // [m/s]
-  _fDropSpeedDeadTime   : LREAL := fL_DropSpeedAddTime;          // [ms]
-END_VAR
-VAR CONSTANT
-  fL_DropSpeed                              : LREAL := 6;        // DropSpeed for start compensation
-  fL_DropSpeedAddTime                       : LREAL := 0.388889; // DropSpeed compensation, additional dead time [ms]
+VAR PERSISTENT
+  _bEnable             : BOOL := TRUE;
+  _fDropSpeed          : LREAL := 6;         //[m/s] DropSpeed compensation, drop speed
+  _fDropSpeedDeadTime  : LREAL := 0.388889;  //[ms]  DropSpeed compensation, additional dead time
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[(*Speed compensation*)
@@ -29,8 +25,9 @@ ELSE
 END_IF;]]></ST>
     </Implementation>
     <Property Name="bEnable" Id="{47387335-4acf-45af-94b0-c212f662bfbd}">
-      <Declaration><![CDATA[PROPERTY bEnable : BOOL]]></Declaration>
-      <Get Name="Get" Id="{d3d8720f-d96a-487a-bfb8-ca90ae5694d5}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY bEnable : BOOL]]></Declaration>
+      <Get Name="Get" Id="{735af8f5-d6cd-49db-93fa-3fb45d41881f}">
         <Declaration><![CDATA[
 VAR
 END_VAR
@@ -39,7 +36,7 @@ END_VAR
           <ST><![CDATA[bEnable := _bEnable;]]></ST>
         </Implementation>
       </Get>
-      <Set Name="Set" Id="{af6f84f6-b1ba-4dc8-8cfa-ec1ee10dcd28}">
+      <Set Name="Set" Id="{80e63fd0-b9f6-4fed-a864-3a3f414a5920}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -49,8 +46,9 @@ END_VAR
       </Set>
     </Property>
     <Property Name="fDropSpeed" Id="{2f104349-ca5b-4875-b549-8cf775b3f6e6}">
-      <Declaration><![CDATA[PROPERTY fDropSpeed : LREAL]]></Declaration>
-      <Get Name="Get" Id="{6d12ca1b-ae7a-4b3b-b098-ab0757cae63e}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY fDropSpeed : LREAL]]></Declaration>
+      <Get Name="Get" Id="{945046a6-9c08-4ad9-ad12-b9b92c5dd569}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -58,7 +56,7 @@ END_VAR
           <ST><![CDATA[fDropSpeed := _fDropSpeed;]]></ST>
         </Implementation>
       </Get>
-      <Set Name="Set" Id="{d8edc7f0-427f-43eb-adcc-183ede0e1a46}">
+      <Set Name="Set" Id="{fbc5f2d9-4993-4193-ab35-0c8d27b47c1c}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -68,8 +66,9 @@ END_VAR
       </Set>
     </Property>
     <Property Name="fDropSpeedDeadTime" Id="{8380f83b-2ae2-4634-9b6e-e67dda41a57f}">
-      <Declaration><![CDATA[PROPERTY fDropSpeedDeadTime : LREAL]]></Declaration>
-      <Get Name="Get" Id="{00f9ba1a-0ac5-4c6d-ad08-e3025cbdcb3c}">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY fDropSpeedDeadTime : LREAL]]></Declaration>
+      <Get Name="Get" Id="{691041c2-fd2c-4587-986f-583053b327bf}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -77,7 +76,7 @@ END_VAR
           <ST><![CDATA[fDropSpeedDeadTime := _fDropSpeedDeadTime;]]></ST>
         </Implementation>
       </Get>
-      <Set Name="Set" Id="{cf8943c4-b9bb-491c-8050-2543558bba18}">
+      <Set Name="Set" Id="{7cb31781-b925-4ddf-a4de-8c825c2c8c16}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -87,8 +86,8 @@ END_VAR
       </Set>
     </Property>
     <LineIds Name="FB_DropSpeedComp">
-      <LineId Id="14" Count="6" />
-      <LineId Id="9" Count="0" />
+      <LineId Id="3" Count="6" />
+      <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_DropSpeedComp.bEnable.Get">
       <LineId Id="2" Count="0" />

@@ -11,6 +11,10 @@ Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 
 ---
 
+
+### changes `2.0.0.3` BRM
+* CHG: change FB_DropSpeedComp, configurable over persisted Properties.
+
 ### changes `2.0.0.2` BRM
 * CHG: increase VISU_DMAX_Settings position settings to [um] resolution 6 floating points
 

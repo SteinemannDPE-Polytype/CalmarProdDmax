@@ -526,20 +526,6 @@ END_IF
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="setupDropSpeedComp" Id="{c8bb17c4-a6a0-4cf9-b942-368223c4cfa3}">
-      <Declaration><![CDATA[METHOD setupDropSpeedComp
-VAR_INPUT
-  bEnable           : BOOL;   // Enable DropSpeedCompensation
-  fDropSpeed        : LREAL;  // [?]
-  fDropSpeedDeadTime: LREAL;  // [ms]
-END_VAR
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[fbDropSpeedComp.bEnable := bEnable;
-fbDropSpeedComp.fDropSpeed := fDropSpeed;
-fbDropSpeedComp.fDropSpeedDeadTime := fDropSpeedDeadTime;]]></ST>
-      </Implementation>
-    </Method>
     <Property Name="sPcFlags" Id="{fa3ef9be-bfc1-497c-bb3e-5711955c8dd7}">
       <Declaration><![CDATA[PROPERTY sPcFlags : CalmarCompPrint.ST_PC_FLAGS]]></Declaration>
       <Get Name="Get" Id="{31b278ad-9123-44bc-826c-af82c44e3e58}">
@@ -883,10 +869,6 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="8" Count="0" />
       <LineId Id="10" Count="2" />
       <LineId Id="5" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_WorkerDefGrid_Print.setupDropSpeedComp">
-      <LineId Id="5" Count="0" />
-      <LineId Id="9" Count="1" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.sPcFlags.Get">
       <LineId Id="5" Count="0" />
