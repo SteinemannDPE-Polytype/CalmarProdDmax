@@ -17,7 +17,7 @@
     <Implicit_Jitter_Distribution>{16d81fa0-13c7-4d29-a136-833127f063f5}</Implicit_Jitter_Distribution>
     <LibraryReferences>{ba6a19c6-5744-48f5-a170-b3a0509f6030}</LibraryReferences>
     <Released>false</Released>
-    <ProjectVersion>2.0.0.3</ProjectVersion>
+    <ProjectVersion>2.0.0.4</ProjectVersion>
     <Company>WIFAG-Polytype</Company>
     <Title>CalmarProdDmax</Title>
     <Author>Wifag//Polytype</Author>
@@ -502,13 +502,16 @@ Fribourg/Switzerland (2021)</Description>
   </ItemGroup>
   <ItemGroup>
     <PlaceholderResolution Include="CalmarCommons">
-      <Resolution>CalmarCommons, * (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCommons, 1.5.10 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompPrint">
-      <Resolution>CalmarCompPrint, * (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCompPrint, 2.0.1.12 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompSystem">
-      <Resolution>CalmarCompSystem, * (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCompSystem, 1.5.0 (WIFAG-Polytype)</Resolution>
+    </PlaceholderResolution>
+    <PlaceholderResolution Include="CalmarCompTcpIp">
+      <Resolution>CalmarCompTcpIp, 1.0.3 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarLibConfig">
       <Resolution>CalmarLibConfig, 1.2.0 (WIFAG-Polytype)</Resolution>
@@ -518,17 +521,6 @@ Fribourg/Switzerland (2021)</Description>
     <None Include="CalmarProdDmax.tmc">
       <SubType>Content</SubType>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <SubObject Include="FB_DropSpeedComp.bEnable" />
-    <SubObject Include="FB_DropSpeedComp.bEnable.Get" />
-    <SubObject Include="FB_DropSpeedComp.bEnable.Set" />
-    <SubObject Include="FB_DropSpeedComp.fDropSpeed" />
-    <SubObject Include="FB_DropSpeedComp.fDropSpeed.Get" />
-    <SubObject Include="FB_DropSpeedComp.fDropSpeed.Set" />
-    <SubObject Include="FB_DropSpeedComp.fDropSpeedDeadTime" />
-    <SubObject Include="FB_DropSpeedComp.fDropSpeedDeadTime.Get" />
-    <SubObject Include="FB_DropSpeedComp.fDropSpeedDeadTime.Set" />
   </ItemGroup>
   <ProjectExtensions>
     <PlcProjectOptions>

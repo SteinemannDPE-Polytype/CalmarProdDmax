@@ -164,9 +164,11 @@ IF SUPER^.Attach(iCT:=iCT) THEN
   //Start print, PA should be in READY or DONE
   
   // Set X print position
-  _nPosX0 := _pAttachedCt^.getPosX0(nPosDomain:=E_PosDomain.master_pos);
-  _nPosXDelta := F_MeterToSubPixel(_fPrintStartOffset,_fPrintResolution*_fSubPxResolution) // + PG/PA Shift (additional PG offset 0 for firstLine)
-               - F_MeterToSubPixel(fbDropSpeedComp.fDropPlacementError,_fPrintResolution*_fSubPxResolution); // - drop compensation*)
+  _nPosX0 :=    _pAttachedCt^.getPosX0(nPosDomain:=E_PosDomain.master_pos)
+              //- General Shift
+              - F_MeterToSubPixel(fbDropSpeedComp.fDropPlacementError,_fPrintResolution*_fSubPxResolution); // - drop compensation*)
+  _nPosXDelta := F_MeterToSubPixel(_fPrintStartOffset,_fPrintResolution*_fSubPxResolution); // + PG/PA Shift (additional PG offset 0 for firstLine)
+
   IF GVL_Deformation.bC_UseGlobalGridShift THEN
     _nPosXDelta := _nPosXDelta + FC_LREAL_TO_DINT(_fDxGlobalShift, ADR(nConvErr));                  // + global shift from grid points
   END_IF
@@ -715,6 +717,8 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="105" Count="0" />
       <LineId Id="63" Count="0" />
       <LineId Id="221" Count="0" />
+      <LineId Id="286" Count="0" />
+      <LineId Id="284" Count="0" />
       <LineId Id="116" Count="1" />
       <LineId Id="224" Count="1" />
       <LineId Id="222" Count="0" />

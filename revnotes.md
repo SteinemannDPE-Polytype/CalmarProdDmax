@@ -11,6 +11,9 @@ Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 
 ---
 
+### changes `2.0.0.4` BRM
+* CHG: fix related sub-libraries according main project
+* CHG: Apply SpeedComp on X0 instead XS in Attach() of FB_WokerDefGrid_Print
 
 ### changes `2.0.0.3` BRM
 * CHG: change FB_DropSpeedComp, configurable over persisted Properties.
@@ -25,7 +28,7 @@ Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 * FIX: crash in FB_MESSAGE (commented, but not resolved)
 * FIX: UDINT to DINT conversion error
 
-## `2.0.0` 11.05.2021 
+## `2.0.0` 11.05.2021
 Initial version created. 
 Contains Camera and DeformationGrid specific code. Currently only from Print-Module. 
 
