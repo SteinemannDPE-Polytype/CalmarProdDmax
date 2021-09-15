@@ -13,6 +13,13 @@ VAR PERSISTENT
   _bEnable             : BOOL := TRUE;
   _fDropSpeed          : LREAL := 6;         //[m/s] DropSpeed compensation, drop speed
   _fDropSpeedDeadTime  : LREAL := 0.388889;  //[ms]  DropSpeed compensation, additional dead time
+END_VAR
+VAR
+  bCalcDeadTime        : BOOL;
+  fTestSpeed           : ARRAY[1..2] OF LREAL;  // [m/min] speed at which test was done [SpeedTest1, SpeedTest2]
+  fTestDisplacement    : ARRAY[1..2] OF LREAL;  // [um] measured displacement after test [MesureTest1, MeasureTest2]
+  fDiffSpeed : LREAL;
+  fDiffPlace : LREAL;
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[(*Speed compensation*)
@@ -22,7 +29,12 @@ IF _bEnable AND (_fDropSpeed > 0) THEN
                         * fMasterSpeed;
 ELSE
   fDropPlacementError := 0;
-END_IF;]]></ST>
+END_IF;
+
+// calculate add/dead time
+IF bCalcDeadTime THEN bCalcDeadTime := FALSE;
+  calcDeadTime();
+END_IF]]></ST>
     </Implementation>
     <Property Name="bEnable" Id="{47387335-4acf-45af-94b0-c212f662bfbd}">
       <Declaration><![CDATA[{attribute 'monitoring':='call'}
@@ -45,6 +57,27 @@ END_VAR
         </Implementation>
       </Set>
     </Property>
+    <Method Name="calcDeadTime" Id="{35e1190c-94ea-44bb-b0b6-1cfaf2443d1a}">
+      <Declaration><![CDATA[METHOD PRIVATE calcDeadTime : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fDiffSpeed :=  ( fTestSpeed[2] - fTestSpeed[1] ) * 1/60;
+fDiffPlace :=  ( fTestDisplacement[2] - fTestDisplacement[1] ) * 1/1_000_000;
+
+// calc time
+_fDropSpeedDeadTime := 
+(
+    fDiffPlace      // displacment diff
+  * 1/fDiffSpeed    // speed diff
+) * 1000;           // [s] -> [ms]
+
+// reset entries
+fTestSpeed[2] := fTestSpeed[1] := 0;
+fTestDisplacement[2] := fTestDisplacement[1] := 0;]]></ST>
+      </Implementation>
+    </Method>
     <Property Name="fDropSpeed" Id="{2f104349-ca5b-4875-b549-8cf775b3f6e6}">
       <Declaration><![CDATA[{attribute 'monitoring':='call'}
 PROPERTY fDropSpeed : LREAL]]></Declaration>
@@ -88,12 +121,23 @@ END_VAR
     <LineIds Name="FB_DropSpeedComp">
       <LineId Id="3" Count="6" />
       <LineId Id="2" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="29" Count="2" />
     </LineIds>
     <LineIds Name="FB_DropSpeedComp.bEnable.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_DropSpeedComp.bEnable.Set">
       <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DropSpeedComp.calcDeadTime">
+      <LineId Id="15" Count="4" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="22" Count="2" />
+      <LineId Id="10" Count="0" />
     </LineIds>
     <LineIds Name="FB_DropSpeedComp.fDropSpeed.Get">
       <LineId Id="2" Count="0" />

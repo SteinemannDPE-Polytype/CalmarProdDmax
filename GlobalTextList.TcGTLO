@@ -76,6 +76,16 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"430"</v>
+              <v n="TextDefault">"%0.1f [m/min]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"941"</v>
+              <v n="TextDefault">"%0.1f [um]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"10"</v>
               <v n="TextDefault">"%0.2f"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -83,6 +93,21 @@
             <o>
               <v n="TextID">"993"</v>
               <v n="TextDefault">"%0.3f"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1945"</v>
+              <v n="TextDefault">"%0.3f [m/min]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"6769"</v>
+              <v n="TextDefault">"%0.3f [m/s]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"4949"</v>
+              <v n="TextDefault">"%0.3f [ms]"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -111,8 +136,23 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"1887"</v>
+              <v n="TextDefault">"%0.6f [m/s]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1147"</v>
+              <v n="TextDefault">"%0.6f [ms]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"820"</v>
               <v n="TextDefault">"%0.6f [m]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2289"</v>
+              <v n="TextDefault">"%0.6f [um]"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -171,6 +211,348 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"2552"</v>
+              <v n="TextDefault">"1. Activate (Drop)SpeedComp with Time set to 0
+
+2. Test print with production speed1
+   -&gt; Measure displacement with Speed1
+
+3. Test print with production speed2
+   -&gt; Measure displacement with Speed2
+
+4. Enter Speed and Displacement values in
+    table for Test1 and Test2
+
+5. Start new Time calculation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"245"</v>
+              <v n="TextDefault">"1. Activate (Drop)SpeedComp with Time set to 0
+
+2. Test print with Speed1
+   -&gt; Measure displacement with Speed1
+
+3. Test print with Speed2
+   -&gt; Measure displacement with Speed2
+
+4. Enter Speed and Displacement values in
+    table for Test1 and Test2
+
+5. Start new Time calculation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"864"</v>
+              <v n="TextDefault">"1. Activate (Drop)SpeedComp with Time set to 0
+
+2. Test1 print with production speed1
+   -&gt; Measure displacement with Speed1
+
+3. Test2 print with production speed2
+   -&gt; Measure displacement with Speed2
+
+4. Enter Speed and Displacement values in
+    table for Test1 and Test2
+
+5. Start new Time calculation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"835"</v>
+              <v n="TextDefault">"1. Activate (Drop)SpeedComp with Time set to 0
+
+2. Test1: print with production speed1
+   -&gt; Measure displacement with Speed1
+
+3. Test2: print with production speed2
+   -&gt; Measure displacement with Speed2
+
+4. Enter Speed and Displacement values in
+    table for Test1 and Test2
+
+5. Start new Time calculation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"41"</v>
+              <v n="TextDefault">"1. Activate DropSpeeCmp"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1428"</v>
+              <v n="TextDefault">"1. Activate DropSpeeComp
+   + Set Time to 0"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1322"</v>
+              <v n="TextDefault">"1. Activate DropSpeeComp
+   + Set Time to 0
+
+
+
+"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1646"</v>
+              <v n="TextDefault">"1. Activate DropSpeeComp
+   + Set Time to 0
+
+2. Test print with Speed1
+   + Measure displacement with Speed1
+
+"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"478"</v>
+              <v n="TextDefault">"1. Activate DropSpeeComp
+   + Set Time to 0
+
+2. Test print with Speed1
+   + Measure displacement with Speed1
+
+3. Test print with Speed2
+   + Measure displacement with Speed2
+"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2206"</v>
+              <v n="TextDefault">"1. Activate DropSpeeComp
+   + Set Time to 0
+
+2. Test print with Speed1
+   + Measure displacement with Speed1
+
+3. Test print with Speed2
+   + Measure displacement with Speed2
+
+
+4. Enter values in table for Test1 and Test2
+
+5. Start new Time calculation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"543"</v>
+              <v n="TextDefault">"1. Activate DropSpeeComp
+   + Set Time to 0
+
+2. Test print with Speed1
+   + Measure displacement with Speed1
+
+3. Test print with Speed2
+   + Measure displacement with Speed2
+
+
+
+4. Enter values in table for Test1 and Test2"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1417"</v>
+              <v n="TextDefault">"1. Activate DropSpeeComp
+   + Set Time to 0
+
+2. Test print with Speed1
+   + Measure displacement with Speed1
+
+3. Test print with Speed2
+   + Measure displacement with Speed2
+
+5. Start new Time calculation
+
+4. Enter values in table for Test1 and Test2"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2118"</v>
+              <v n="TextDefault">"1. Activate DropSpeeComp
+   Set Time to 0"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1160"</v>
+              <v n="TextDefault">"1. Activate DropSpeeComp with Time set to 0
+
+2. Test print with Speed1
+   + Measure displacement with Speed1
+
+3. Test print with Speed2
+   + Measure displacement with Speed2
+
+
+4. Enter values in table for Test1 and Test2
+
+5. Start new Time calculation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1763"</v>
+              <v n="TextDefault">"1. Activate DropSpeeComp with Time set to 0
+
+2. Test print with Speed1
+   + Measure displacement with Speed1
+
+3. Test print with Speed2
+   + Measure displacement with Speed2
+
+4. Enter values in table for Test1 and Test2
+
+5. Start new Time calculation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1928"</v>
+              <v n="TextDefault">"1. Activate DropSpeeComp with Time set to 0
+
+2. Test print with Speed1
+   -&gt; Measure displacement with Speed1
+
+3. Test print with Speed2
+   -&gt; Measure displacement with Speed2
+
+4. Enter Speed and Displacement values
+     in table for Test1 and Test2
+
+5. Start new Time calculation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2230"</v>
+              <v n="TextDefault">"1. Activate DropSpeeComp with Time set to 0
+
+2. Test print with Speed1
+   -&gt; Measure displacement with Speed1
+
+3. Test print with Speed2
+   -&gt; Measure displacement with Speed2
+
+4. Enter Speed and Displacement values in
+    table for Test1 and Test2
+
+5. Start new Time calculation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2617"</v>
+              <v n="TextDefault">"1. Activate DropSpeeComp with Time set to 0
+
+2. Test print with Speed1
+   -&gt; Measure displacement with Speed1
+
+3. Test print with Speed2
+   -&gt; Measure displacement with Speed2
+
+4. Enter Speed and Displacement values in     table for Test1 and Test2
+
+5. Start new Time calculation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"167"</v>
+              <v n="TextDefault">"1. Activate DropSpeeComp with Time set to 0
+
+2. Test print with Speed1
+   -&gt; Measure displacement with Speed1
+
+3. Test print with Speed2
+   -&gt; Measure displacement with Speed2
+
+4. Enter Speed and Displacement values in table for Test1 and Test2
+
+5. Start new Time calculation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1944"</v>
+              <v n="TextDefault">"1. Activate DropSpeeComp with Time set to 0
+
+2. Test print with Speed1
+   -&gt; Measure displacement with Speed1
+
+3. Test print with Speed2
+   -&gt; Measure displacement with Speed2
+
+4. Enter values in table for Test1 and Test2
+
+5. Start new Time calculation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"363"</v>
+              <v n="TextDefault">"1. Activate DropSpeedComp with Time set to 0
+
+2. Test print with Speed1
+   -&gt; Measure displacement with Speed1
+
+3. Test print with Speed2
+   -&gt; Measure displacement with Speed2
+
+4. Enter Speed and Displacement values in
+    table for Test1 and Test2
+
+5. Start new Time calculation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2048"</v>
+              <v n="TextDefault">"1. Active DropSpeedComp"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2104"</v>
+              <v n="TextDefault">"1. Set Time to 0"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1505"</v>
+              <v n="TextDefault">"2. Test print with Speed1
+   + Measure displacement with Speed1"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2308"</v>
+              <v n="TextDefault">"2. Test print with Speed1
+   Measure displacement with Speed1"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1658"</v>
+              <v n="TextDefault">"3. Test print with Speed2
+   + Measure displacement with Speed2"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"77"</v>
+              <v n="TextDefault">"3. Test print with Speed2
+   Measure displacement with Speed2"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"550"</v>
+              <v n="TextDefault">"4. Calculate new Time"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"581"</v>
+              <v n="TextDefault">"4. Enter values in table for Test1 and Test2"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1286"</v>
+              <v n="TextDefault">"4. Start new Time calculation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"739"</v>
+              <v n="TextDefault">"5. Start new Time calculation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"8190"</v>
               <v n="TextDefault">"&lt;"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -211,6 +593,16 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"2111"</v>
+              <v n="TextDefault">"Back"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"608"</v>
+              <v n="TextDefault">"Bacl"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"210"</v>
               <v n="TextDefault">"Busy"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -223,6 +615,16 @@
             <o>
               <v n="TextID">"3129"</v>
               <v n="TextDefault">"c:%d"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"136"</v>
+              <v n="TextDefault">"Calculate new time"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1431"</v>
+              <v n="TextDefault">"Calculate new Time"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -386,6 +788,16 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"2060"</v>
+              <v n="TextDefault">"Dead Time"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1132"</v>
+              <v n="TextDefault">"Dead/Add Time"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"12899"</v>
               <v n="TextDefault">"Deformation"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -406,8 +818,28 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"2162"</v>
+              <v n="TextDefault">"Displacement"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1297"</v>
+              <v n="TextDefault">"Displacment"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"152"</v>
               <v n="TextDefault">"Done"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"4615"</v>
+              <v n="TextDefault">"DropSpeed"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"11858"</v>
+              <v n="TextDefault">"DropSpeed compensation"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -443,6 +875,11 @@
             <o>
               <v n="TextID">"8"</v>
               <v n="TextDefault">"Enable"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2501"</v>
+              <v n="TextDefault">"Enable Correction"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -503,6 +940,18 @@
             <o>
               <v n="TextID">"1067"</v>
               <v n="TextDefault">"From row: %d"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"913"</v>
+              <v n="TextDefault">"fsf"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1148"</v>
+              <v n="TextDefault">"fsf
+sdfsd
+sdfsd"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -696,6 +1145,11 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"529"</v>
+              <v n="TextDefault">"PrintSpeed"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"4012"</v>
               <v n="TextDefault">"PrintUnit temp at calibration [°C]: %1.1f"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -841,6 +1295,16 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"1795"</v>
+              <v n="TextDefault">"Setup new Time"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"308"</v>
+              <v n="TextDefault">"Setup SpeedCompensation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"2258"</v>
               <v n="TextDefault">"SheetCycle"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -863,6 +1327,11 @@
             <o>
               <v n="TextID">"12400"</v>
               <v n="TextDefault">"simulate"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2330"</v>
+              <v n="TextDefault">"Speed"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -933,6 +1402,21 @@
             <o>
               <v n="TextID">"10982"</v>
               <v n="TextDefault">"Temp at calibration [°C]: %1.1f"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1251"</v>
+              <v n="TextDefault">"Test1"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2109"</v>
+              <v n="TextDefault">"Test2"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"122"</v>
+              <v n="TextDefault">"Time"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
