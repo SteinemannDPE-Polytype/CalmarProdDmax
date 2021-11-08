@@ -29,6 +29,7 @@ VAR
   fbPa               : FB_PA;
   fB_PcAdapter       : FB_PC_Adapter;
 
+  _pAdsPu            : POINTER TO ST_ADS_PU;      // PU interface
   _pAdsCam           : POINTER TO ST_ADS_CAMERA;  // camera interface PUC
   _fPrintStartOffset : LREAL;   // internal print start offset (distance Cam -> PG1 + PG Offset + PU offset)
   _fWorkerOffset     : LREAL;   // worker offset from X0 static
@@ -434,11 +435,13 @@ END_IF]]></ST>
     <Method Name="InitAds" Id="{700fac9c-ee52-417d-9b1e-ccb8aad2f589}">
       <Declaration><![CDATA[METHOD InitAds
 VAR_INPUT
-  pAdsIf  : POINTER TO ST_ADS_CAMERA;
+  pAdsIfCam  : POINTER TO ST_ADS_CAMERA;
+  pAdsIfPu   : POINTER TO ST_ADS_PU;
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[_pAdsCam := pAdsIf;]]></ST>
+        <ST><![CDATA[_pAdsCam := pAdsIfCam;
+_pAdsPu  := pAdsIfPu;]]></ST>
       </Implementation>
     </Method>
     <Method Name="InitMsg" Id="{dfa2c5d7-d315-4391-826a-3f0a13e8b388}">
@@ -479,8 +482,8 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF NOT bInitialized THEN LogError('Base Worker not initialized! call init() before'); RETURN; END_IF
-IF _pAdsCam = 0     THEN LogError('Call InitAds() before, ads interface unknown');    RETURN; END_IF
+        <ST><![CDATA[IF NOT bInitialized                THEN LogError('Base Worker not initialized! call init() before'); RETURN; END_IF
+IF (_pAdsCam = 0) OR (_pAdsPu = 0) THEN LogError('Call InitAds() before, ads interface unknown');    RETURN; END_IF
 
 // worker specific init
 
@@ -506,7 +509,18 @@ END_VAR
 fbPa.jobStart();
 
 _bNewJob := TRUE;
-_bJobActive := TRUE;]]></ST>
+_bJobActive := TRUE;
+
+// set correction ref points
+_pAdsCam^.sI_CorrectionPointIndication[1].posx := 0;
+_pAdsCam^.sI_CorrectionPointIndication[1].posy := 0;
+_pAdsCam^.sI_CorrectionPointIndication[2].posx := DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageDepth) / 1000;
+_pAdsCam^.sI_CorrectionPointIndication[2].posy := 0;
+_pAdsCam^.sI_CorrectionPointIndication[3].posx := 0;
+_pAdsCam^.sI_CorrectionPointIndication[3].posy := DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageWidth) / 1000;
+_pAdsCam^.sI_CorrectionPointIndication[4].posx := DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageDepth) / 1000;
+_pAdsCam^.sI_CorrectionPointIndication[4].posy := DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageWidth) / 1000;
+]]></ST>
       </Implementation>
     </Method>
     <Method Name="mJobStop" Id="{8177ad7c-6de2-4f33-9116-3de9fb737ab6}" FolderPath="I_PrintStatusClient\">
@@ -847,6 +861,7 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.InitAds">
+      <LineId Id="11" Count="0" />
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.InitMsg">
@@ -882,6 +897,10 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="48" Count="0" />
       <LineId Id="35" Count="0" />
       <LineId Id="22" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="60" Count="7" />
+      <LineId Id="58" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.mJobStop">
       <LineId Id="6" Count="0" />

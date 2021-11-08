@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_PointCorr" Id="{26dce410-3ea3-4f52-a45b-7e55ad528458}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_PointCorr
 VAR PERSISTENT
@@ -67,6 +67,15 @@ END_VAR
 ]]></ST>
         </Implementation>
       </Get>
+      <Set Name="Set" Id="{aee07b15-615b-4fab-94ed-ff5df289d162}">
+        <Declaration><![CDATA[
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fX_Pos := SEL(_bValInvertX, fX, -1*fX);]]></ST>
+        </Implementation>
+      </Set>
     </Property>
     <Property Name="fX_Ref" Id="{88a42ec6-eee5-4150-8b90-87a805146048}">
       <Declaration><![CDATA[PROPERTY fX_Ref : LREAL]]></Declaration>
@@ -99,6 +108,15 @@ END_VAR
 ]]></ST>
         </Implementation>
       </Get>
+      <Set Name="Set" Id="{d9a646ba-1a0f-4bcf-898d-8c5d8789e8bc}">
+        <Declaration><![CDATA[
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fY_Pos := SEL(_bValInvertY, fY, -1*fY);]]></ST>
+        </Implementation>
+      </Set>
     </Property>
     <Property Name="fY_Ref" Id="{7718ef6e-d7c5-4e02-9bb5-b5f9f83625f0}">
       <Declaration><![CDATA[PROPERTY fY_Ref : LREAL]]></Declaration>
@@ -152,6 +170,9 @@ _bValInvertY := bValInvertY;]]></ST>
     <LineIds Name="FB_PointCorr.fX.Get">
       <LineId Id="5" Count="1" />
     </LineIds>
+    <LineIds Name="FB_PointCorr.fX.Set">
+      <LineId Id="6" Count="0" />
+    </LineIds>
     <LineIds Name="FB_PointCorr.fX_Ref.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
@@ -160,6 +181,9 @@ _bValInvertY := bValInvertY;]]></ST>
     </LineIds>
     <LineIds Name="FB_PointCorr.fY.Get">
       <LineId Id="6" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PointCorr.fY.Set">
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_PointCorr.fY_Ref.Get">
