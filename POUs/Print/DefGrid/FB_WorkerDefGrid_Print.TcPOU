@@ -1,38 +1,41 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_WorkerDefGrid_Print" Id="{a3c0fca9-0a63-49f3-a9fd-25e7fe09223b}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Print EXTENDS FB_WorkerDefGrid
 VAR_INPUT
-  nEncoderPos   : DINT;       // Absolute virtual encoder
-  bHardwareSync : BOOL;
-  bHardwareHold : BOOL;
-  fPrintStartOffset : LREAL;  //PU->PG/PA offset
-  fPrintYOffset : LREAL;      //Y-Shift in ram memory
-  fMasterSpeed  : LREAL;      //Speed [m/s]
-  fPUElevation  : LREAL;      //PU distance from substrate [m]
-  fPUPlate1_Temperature : LREAL; // PU Plate1 temperature
-  fPUPlate2_Temperature : LREAL; // PU Plate2 temperature
+  nEncoderPos           : DINT;   // Absolute virtual encoder
+  bHardwareSync         : BOOL;
+  bHardwareHold         : BOOL;
+  fPrintStartOffset     : LREAL;  //PU->PG/PA offset
+  fPrintYOffset         : LREAL;  //Y-Shift in ram memory
+  fMasterSpeed          : LREAL;  //Speed [m/s]
+  fPUElevation          : LREAL;  //PU distance from substrate [m]
+  fPUPlate1_Temperature : LREAL;  // PU Plate1 temperature
+  fPUPlate2_Temperature : LREAL;  // PU Plate2 temperature
 END_VAR
+
 VAR_OUTPUT
 END_VAR
-VAR
-  _bNewJob : BOOL;
-  sDefGridSettings  : ST_DefGridSettings;  
-  fCurrentColumnPos : LREAL; // Currently column position
-  fCurrentPreCharge : LREAL; // Currently to be precharged
-  nChargedColumns   : UDINT; // Already charged columns
 
-  fbDropSpeedComp   : FB_DropSpeedComp;  
-  fbPs              : FB_PS_Grid;
-  fbPa              : FB_PA;
-  fB_PcAdapter      : FB_PC_Adapter;
-  
+VAR
+  _bNewJob           : BOOL;
+  sDefGridSettings   : ST_DefGridSettings;  
+  fCurrentColumnPos  : LREAL; // Currently column position
+  fCurrentPreCharge  : LREAL; // Currently to be precharged
+  nChargedColumns    : UDINT; // Already charged columns
+
+  fbDropSpeedComp    : FB_DropSpeedComp;  
+  fbPs               : FB_PS_Grid;
+  fbPa               : FB_PA;
+  fB_PcAdapter       : FB_PC_Adapter;
+
+  _pAdsCam           : POINTER TO ST_ADS_CAMERA;  // camera interface PUC
   _fPrintStartOffset : LREAL;   // internal print start offset (distance Cam -> PG1 + PG Offset + PU offset)
   _fWorkerOffset     : LREAL;   // worker offset from X0 static
   _nPosX0            : DINT;    // X0 for last attached CT (detected postion)
   _nPosXS            : DINT;    // XS for last attached CT (shifted print start position)
   _nPosXDelta        : DINT;    // Shift value X0 -> XS
-  _fPosY             : LREAL;    // Y shift for last attached CT
+  _fPosY             : LREAL;   // Y shift for last attached CT
   _nPosDeltaToPrint  : DINT;    // delta pos in [SbuPx] from attach to print
   _bPaStarted        : BOOL;
   _bPaStartRequested : BOOL;
@@ -55,21 +58,24 @@ VAR
   sL_MsgConfig       : ST_MSG_CONFIG;                       (*Message config*)
   fb_Msg             : ARRAY [1..iC_NUM_MSG] OF FB_MESSAGE; (*Messages*)
 END_VAR
+
 VAR_STAT
   // PU Deformation/correction for all instance
   fbFineAlignement   : FB_FineAlignement;
 END_VAR
+
 VAR PERSISTENT
   _fColumnsToPrecharge : LREAL := nC_COLUMNS_TO_PRECHARGE;
-  _fStartShiftOffset : LREAL := fC_START_SHIFT_OFFSET;
-  _fStartShiftFactor : LREAL := fC_START_SHIFT_FACTOR;
+  _fStartShiftOffset   : LREAL := fC_START_SHIFT_OFFSET;
+  _fStartShiftFactor   : LREAL := fC_START_SHIFT_FACTOR;
 END_VAR
+
 VAR CONSTANT
-  iC_NUM_MSG : UDINT := 5;
-  nC_COLUMNS_TO_PRECHARGE : LREAL := 2.1;
+  iC_NUM_MSG               : UDINT := 5;
+  nC_COLUMNS_TO_PRECHARGE  : LREAL := 2.1;
   fC_GRIDPOINT_STREAM_TIME : LREAL := 0.0025;     // time to stream one point [s]
-  fC_START_SHIFT_FACTOR : LREAL := -2.4E-2;
-  fC_START_SHIFT_OFFSET : LREAL := -1.0E-2;
+  fC_START_SHIFT_FACTOR    : LREAL := -2.4E-2;
+  fC_START_SHIFT_OFFSET    : LREAL := -1.0E-2;
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[IF _pParamMediator = 0 THEN RETURN; F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); END_IF
@@ -425,6 +431,16 @@ IF fCurrentColumnPos + _fColumnsToPrecharge > nChargedColumns AND nChargedColumn
 END_IF]]></ST>
       </Implementation>
     </Method>
+    <Method Name="InitAds" Id="{700fac9c-ee52-417d-9b1e-ccb8aad2f589}">
+      <Declaration><![CDATA[METHOD InitAds
+VAR_INPUT
+  pAdsIf  : POINTER TO ST_ADS_CAMERA;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_pAdsCam := pAdsIf;]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="InitMsg" Id="{dfa2c5d7-d315-4391-826a-3f0a13e8b388}">
       <Declaration><![CDATA[METHOD InitMsg : BOOL
 VAR_INPUT
@@ -457,24 +473,25 @@ _bMsgInitialized := TRUE;]]></ST>
     <Method Name="InitWorkerPrint" Id="{9e11bfb6-2c3b-4cf3-ab44-81a61cbfe170}">
       <Declaration><![CDATA[METHOD InitWorkerPrint : BOOL
 VAR_INPUT
-  fPrintUnitWidth   : LREAL;    // print unit width [m]
+  fPrintUnitWidth   : LREAL;     // print unit width [m]
   fLimitCorrectionX : LREAL;     // correction limit in y (abs) [px]
   fLimitCorrectionY : LREAL;     // correction limit in y (abs) [px]
 END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF NOT bInitialized THEN LogError('Base Worker not initialized! call init() before'); RETURN; END_IF
+IF _pAdsCam = 0     THEN LogError('Call InitAds() before, ads interface unknown');    RETURN; END_IF
 
 // worker specific init
 
 //Print Aggregate
-_fLimitCorrectionX :=ABS(fLimitCorrectionX);
-_fLimitCorrectionY :=ABS(fLimitCorrectionY);
+_fLimitCorrectionX := ABS(fLimitCorrectionX);
+_fLimitCorrectionY := ABS(fLimitCorrectionY);
 
 fbPa.bSyncAfterDone := FALSE;
-fbPa.init(iPcAdapter := fB_PcAdapter, iPsInterface:=fbPs);
+fbPa.init(iPcAdapter := fB_PcAdapter, iPsInterface := fbPs);
 
-fbFineAlignement.init(fPxReso:=_fPrintResolution, fPuWidth:=fPrintUnitWidth);]]></ST>
+fbFineAlignement.init(pAdsCam := _pAdsCam, fPxReso := _fPrintResolution, fPuWidth := fPrintUnitWidth);]]></ST>
       </Implementation>
     </Method>
     <Method Name="mJobStart" Id="{e6930aa0-f0d8-458e-9de3-18f675c41155}" FolderPath="I_PrintStatusClient\">
@@ -829,6 +846,9 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="179" Count="34" />
       <LineId Id="5" Count="0" />
     </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Print.InitAds">
+      <LineId Id="5" Count="0" />
+    </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.InitMsg">
       <LineId Id="35" Count="1" />
       <LineId Id="6" Count="3" />
@@ -845,6 +865,7 @@ fB_PcAdapter.LogLevel := LogLevel;
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.InitWorkerPrint">
       <LineId Id="7" Count="0" />
+      <LineId Id="29" Count="0" />
       <LineId Id="16" Count="0" />
       <LineId Id="15" Count="0" />
       <LineId Id="10" Count="1" />

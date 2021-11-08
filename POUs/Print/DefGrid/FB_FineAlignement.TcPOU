@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_FineAlignement" Id="{b0fdbfcd-2a71-4ede-b938-0e28dbf7b80d}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   This fb handles mechanical print unit corrections.
@@ -11,6 +11,7 @@ FUNCTION_BLOCK FB_FineAlignement EXTENDS FB_BasePrint
 VAR
   // config
   _fPxResolution     : LREAL; // pixel resolution
+  _pAdsCam           : POINTER TO ST_ADS_CAMERA;  // camera interface PUC
   // corrections
   //-- 4 point PU deformation correction/distortion
   //    VISU setup point providing reference and correction (NOTE: persists settings internally)
@@ -47,10 +48,21 @@ END_VAR]]></Declaration>
 
 //-- 4p correction
 //    visu overrides (limitation rectancular point definition)
+(*limitation is not used anymore
 _fbPUCorrPoints[3].fX_Ref := _fbPUCorrPoints[1].fX_Ref;
 _fbPUCorrPoints[4].fX_Ref := _fbPUCorrPoints[2].fX_Ref;
 _fbPUCorrPoints[2].fY_Ref := _fbPUCorrPoints[1].fY_Ref;
 _fbPUCorrPoints[4].fY_Ref := _fbPUCorrPoints[3].fY_Ref;
+*)
+// ref points are now set by PUC
+_fbPUCorrPoints[1].fX_Ref := _pAdsCam^.sI_CorrectionPointIndication[1].posx;
+_fbPUCorrPoints[1].fY_Ref := _pAdsCam^.sI_CorrectionPointIndication[1].posy;
+_fbPUCorrPoints[2].fX_Ref := _pAdsCam^.sI_CorrectionPointIndication[2].posx;
+_fbPUCorrPoints[2].fY_Ref := _pAdsCam^.sI_CorrectionPointIndication[2].posy;
+_fbPUCorrPoints[3].fX_Ref := _pAdsCam^.sI_CorrectionPointIndication[3].posx;
+_fbPUCorrPoints[3].fY_Ref := _pAdsCam^.sI_CorrectionPointIndication[3].posy;
+_fbPUCorrPoints[4].fX_Ref := _pAdsCam^.sI_CorrectionPointIndication[4].posx;
+_fbPUCorrPoints[4].fY_Ref := _pAdsCam^.sI_CorrectionPointIndication[4].posy;
 //    update view elements and handle inputs
 FOR lCtr := 1 TO 4 DO
   _fbPUCorrPoints[lCtr](); 
@@ -188,10 +200,10 @@ x2 := _fbPUCorrPoints[2].fX_Ref / 1000;    // [mm -> m]
 dx := x2-x1;
 IF dx = 0 THEN F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); RETURN; END_IF
 
-cx1 := (x2-GPx)/dx * (_fbPUCorrPoints[1].fX / 1000) + (GPx-x1)/dx * (_fbPUCorrPoints[2].fX / 1000);
-cx2 := (x2-GPx)/dx * (_fbPUCorrPoints[3].fX / 1000) + (GPx-x1)/dx * (_fbPUCorrPoints[4].fX / 1000);
-cy1 := (x2-GPx)/dx * (_fbPUCorrPoints[1].fY / 1000) + (GPx-x1)/dx * (_fbPUCorrPoints[2].fY / 1000);
-cy2 := (x2-GPx)/dx * (_fbPUCorrPoints[3].fY / 1000) + (GPx-x1)/dx * (_fbPUCorrPoints[4].fY / 1000);
+cx1 := (x2-GPx)/dx * ((_fbPUCorrPoints[1].fX + _pAdsCam^.sI_CorrectionPointIndication[1].x) / 1000) + (GPx-x1)/dx * ((_fbPUCorrPoints[2].fX + _pAdsCam^.sI_CorrectionPointIndication[2].x) / 1000);
+cx2 := (x2-GPx)/dx * ((_fbPUCorrPoints[3].fX + _pAdsCam^.sI_CorrectionPointIndication[3].x) / 1000) + (GPx-x1)/dx * ((_fbPUCorrPoints[4].fX + _pAdsCam^.sI_CorrectionPointIndication[4].x) / 1000);
+cy1 := (x2-GPx)/dx * ((_fbPUCorrPoints[1].fY + _pAdsCam^.sI_CorrectionPointIndication[1].y) / 1000) + (GPx-x1)/dx * ((_fbPUCorrPoints[2].fY + _pAdsCam^.sI_CorrectionPointIndication[2].y) / 1000);
+cy2 := (x2-GPx)/dx * ((_fbPUCorrPoints[3].fY + _pAdsCam^.sI_CorrectionPointIndication[3].y) / 1000) + (GPx-x1)/dx * ((_fbPUCorrPoints[4].fY + _pAdsCam^.sI_CorrectionPointIndication[4].y) / 1000);
 
 // Interpolation in y
 y1 := _fbPUCorrPoints[1].fY_Ref / 1000;    // [mm -> m]
@@ -275,13 +287,16 @@ END_VAR
     <Method Name="init" Id="{22d51a6a-e008-40d7-a511-92f228aee50f}">
       <Declaration><![CDATA[METHOD init : BOOL
 VAR_INPUT
+  pAdsCam        : POINTER TO ST_ADS_CAMERA;  // camera interface PUC
   fPxReso        : LREAL;   // pixel resolution
   fPuWidth       : LREAL;   // Print unit width [m]
 END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[_fPxResolution := fPxReso;
-_y_max := fPuWidth * 1000;  // -> [mm]
+_y_max         := fPuWidth * 1000;  // -> [mm]
+_pAdsCam       := pAdsCam;
+IF _pAdsCam = 0 THEN LogError('Call InitAds() before, ads interface unknown'); END_IF
 
 // PU Deformation
 _fbPUCorrPoints[1].init(aName:='P1', aUnit:='mm', fX_Min:=-5, fX_Max:=5, fY_Min:=-5, fY_Max:=5, fIncrStep:=0.1, 
@@ -339,7 +354,13 @@ updateCorrection := TRUE;]]></ST>
       <LineId Id="106" Count="0" />
       <LineId Id="108" Count="0" />
       <LineId Id="107" Count="0" />
-      <LineId Id="69" Count="4" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="274" Count="0" />
+      <LineId Id="70" Count="3" />
+      <LineId Id="275" Count="0" />
+      <LineId Id="277" Count="0" />
+      <LineId Id="276" Count="0" />
+      <LineId Id="278" Count="6" />
       <LineId Id="183" Count="0" />
       <LineId Id="75" Count="0" />
       <LineId Id="77" Count="1" />
@@ -417,6 +438,8 @@ updateCorrection := TRUE;]]></ST>
     <LineIds Name="FB_FineAlignement.init">
       <LineId Id="23" Count="0" />
       <LineId Id="46" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="54" Count="0" />
       <LineId Id="24" Count="0" />
       <LineId Id="13" Count="1" />
       <LineId Id="30" Count="0" />

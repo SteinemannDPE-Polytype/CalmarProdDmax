@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <DUT Name="ST_ADS_CAMERA" Id="{552d0fda-3188-40d4-86c0-339b89e8eaf3}">
     <Declaration><![CDATA[TYPE ST_ADS_CAMERA :
 (*************************************************************************************************)
@@ -15,7 +15,7 @@
 (*************************************************************************************************)
 
 STRUCT
-  iO_Version                : INT    := 010200;  (*1.2.0*)
+  iO_Version                : INT    := 010300;  (*1.3.0*)
   aO_Type                   : STRING := 'Camera';
   aO_Name                   : STRING := 'Camera';
   sO_Message                : ST_ADS_MSG_IF;
@@ -28,6 +28,8 @@ STRUCT
 
   eI_TeachProgress          : EN_CAMERA_TEACH;   (*Teach progress*)
   sI_TeachPointsQV          : ARRAY[1..GVL_Camera.cC_QUALIVISION_MAX_NB_MARKS] OF ST_CAMERA_TEACH_QV;
+  
+  sI_CorrectionPointIndication: ARRAY[1..4] OF ST_CORRECTION_POINT;
 
   (*Out*)
   iO_MaxNbMarksQV           : INT := GVL_Camera.cC_QUALIVISION_MAX_NB_MARKS; 

@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="ST_CORRECTION_POINT" Id="{fb39ab0f-616a-4897-a143-ffec017958c6}">
+    <Declaration><![CDATA[TYPE ST_CORRECTION_POINT :
+(*************************************************************************************************)
+(*  FILENAME:    ST_CORRECTION_POINT                                                             *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2021)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    PUC correction point indication provided from job, written at print start.                 *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+  x        : REAL := 0;      (*Correction indication x [mm]*)
+  y        : REAL := 0;      (*Correction indication y [mm]*)
+  posx     : REAL := 0;      (*Correction location in x [mm]*)
+  posy     : REAL := 0;      (*Correction location in y [mm]*)
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>
