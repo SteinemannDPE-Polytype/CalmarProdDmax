@@ -49,12 +49,10 @@ END_VAR]]></Declaration>
 
 //-- 4p correction
 //    visu overrides (limitation rectancular point definition)
-(*limitation is not used anymore
 _fbPUCorrPoints[3].fX_Ref := _fbPUCorrPoints[1].fX_Ref;
 _fbPUCorrPoints[4].fX_Ref := _fbPUCorrPoints[2].fX_Ref;
 _fbPUCorrPoints[2].fY_Ref := _fbPUCorrPoints[1].fY_Ref;
 _fbPUCorrPoints[4].fY_Ref := _fbPUCorrPoints[3].fY_Ref;
-*)
 //    update view elements and handle inputs
 FOR lCtr := 1 TO 4 DO
   _fbPUCorrPoints[lCtr](); 
@@ -282,38 +280,20 @@ END_VAR]]></Declaration>
 GPx := x_pos; 
 GPy := y_pos;
 
-//overwrite Visu settings
-_fbPUCorrPoints[1].fX_Ref := _pAdsCam^.sI_CorrectionPointIndication[1].posx;
-_fbPUCorrPoints[1].fY_Ref := _pAdsCam^.sI_CorrectionPointIndication[1].posy;
-_fbPUCorrPoints[2].fX_Ref := _pAdsCam^.sI_CorrectionPointIndication[2].posx;
-_fbPUCorrPoints[2].fY_Ref := _pAdsCam^.sI_CorrectionPointIndication[2].posy;
-_fbPUCorrPoints[3].fX_Ref := _pAdsCam^.sI_CorrectionPointIndication[3].posx;
-_fbPUCorrPoints[3].fY_Ref := _pAdsCam^.sI_CorrectionPointIndication[3].posy;
-_fbPUCorrPoints[4].fX_Ref := _pAdsCam^.sI_CorrectionPointIndication[4].posx;
-_fbPUCorrPoints[4].fY_Ref := _pAdsCam^.sI_CorrectionPointIndication[4].posy;
-_fbPUCorrPoints[1].fX     := _pAdsCam^.sI_CorrectionPointIndication[1].x;
-_fbPUCorrPoints[1].fY     := _pAdsCam^.sI_CorrectionPointIndication[1].y;
-_fbPUCorrPoints[2].fX     := _pAdsCam^.sI_CorrectionPointIndication[2].x;
-_fbPUCorrPoints[2].fY     := _pAdsCam^.sI_CorrectionPointIndication[2].y;
-_fbPUCorrPoints[3].fX     := _pAdsCam^.sI_CorrectionPointIndication[3].x;
-_fbPUCorrPoints[3].fY     := _pAdsCam^.sI_CorrectionPointIndication[3].y;
-_fbPUCorrPoints[4].fX     := _pAdsCam^.sI_CorrectionPointIndication[4].x;
-_fbPUCorrPoints[4].fY     := _pAdsCam^.sI_CorrectionPointIndication[4].y;
-
 // Interpolation in x
-x1 := _fbPUCorrPoints[1].fX_Ref / 1000;    // [mm -> m]
-x2 := _fbPUCorrPoints[2].fX_Ref / 1000;    // [mm -> m]
+x1 := _pAdsCam^.sI_CorrectionPointIndication[1].posx / 1000;    // [mm -> m]
+x2 := _pAdsCam^.sI_CorrectionPointIndication[2].posx / 1000;    // [mm -> m]
 dx := x2-x1;
 IF dx = 0 THEN F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); RETURN; END_IF
 
-cx1 := (x2-GPx)/dx * (_fbPUCorrPoints[1].fX / 1000) + (GPx-x1)/dx * (_fbPUCorrPoints[2].fX / 1000);
-cx2 := (x2-GPx)/dx * (_fbPUCorrPoints[3].fX / 1000) + (GPx-x1)/dx * (_fbPUCorrPoints[4].fX / 1000);
-cy1 := (x2-GPx)/dx * (_fbPUCorrPoints[1].fY / 1000) + (GPx-x1)/dx * (_fbPUCorrPoints[2].fY / 1000);
-cy2 := (x2-GPx)/dx * (_fbPUCorrPoints[3].fY / 1000) + (GPx-x1)/dx * (_fbPUCorrPoints[4].fY / 1000);
+cx1 := (x2-GPx)/dx * (_pAdsCam^.sI_CorrectionPointIndication[1].x / 1000) + (GPx-x1)/dx * (_pAdsCam^.sI_CorrectionPointIndication[2].x / 1000);
+cx2 := (x2-GPx)/dx * (_pAdsCam^.sI_CorrectionPointIndication[3].x / 1000) + (GPx-x1)/dx * (_pAdsCam^.sI_CorrectionPointIndication[4].x / 1000);
+cy1 := (x2-GPx)/dx * (_pAdsCam^.sI_CorrectionPointIndication[1].y / 1000) + (GPx-x1)/dx * (_pAdsCam^.sI_CorrectionPointIndication[2].y / 1000);
+cy2 := (x2-GPx)/dx * (_pAdsCam^.sI_CorrectionPointIndication[3].y / 1000) + (GPx-x1)/dx * (_pAdsCam^.sI_CorrectionPointIndication[4].y / 1000);
 
 // Interpolation in y
-y1 := _fbPUCorrPoints[1].fY_Ref / 1000;    // [mm -> m]
-y2 := _fbPUCorrPoints[3].fY_Ref / 1000;    // [mm -> m]
+y1 := _pAdsCam^.sI_CorrectionPointIndication[1].posy / 1000;    // [mm -> m]
+y2 := _pAdsCam^.sI_CorrectionPointIndication[3].posy / 1000;    // [mm -> m]
 dy := y2-y1;
 IF dy = 0 THEN F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); RETURN; END_IF
 
@@ -400,19 +380,19 @@ dy_corr := 0;
 
 // calc - 4 point sheet deformation (PU and machine mechanical distortions)
 IF _bEnable_4p THEN
-  IF _pAdsCam^.iO_Version >= 010300 THEN  (*PUC 4P correction used*)
-    _bEnablePuc_4p := TRUE;
+  calc_4p_correction(x_pos:=x_pos, y_pos:=y_pos, dx_corr=>dx_tmp, dy_corr=>dy_tmp);
+  dx_corr := dx_tmp + dx_corr;
+  dy_corr := dy_tmp + dy_corr;
+END_IF
 
-    calc_PUC_4p_correction(x_pos:=x_pos, y_pos:=y_pos, dx_corr=>dx_tmp, dy_corr=>dy_tmp);
-    dx_corr := dx_tmp + dx_corr;
-    dy_corr := dy_tmp + dy_corr;
-  ELSE                                    (*PLC Visu 4P correction used*)
-    _bEnablePuc_4p := FALSE;
+IF _pAdsCam^.iO_Version >= 010300 THEN  (*PUC 4P correction used*)
+  _bEnablePuc_4p := TRUE;
 
-    calc_4p_correction(x_pos:=x_pos, y_pos:=y_pos, dx_corr=>dx_tmp, dy_corr=>dy_tmp);
-    dx_corr := dx_tmp + dx_corr;
-    dy_corr := dy_tmp + dy_corr;
-  END_IF
+  calc_PUC_4p_correction(x_pos:=x_pos, y_pos:=y_pos, dx_corr=>dx_tmp, dy_corr=>dy_tmp);
+  dx_corr := dx_tmp + dx_corr;
+  dy_corr := dy_tmp + dy_corr;
+ELSE                                    (*PLC Visu 4P correction used*)
+  _bEnablePuc_4p := FALSE;
 END_IF
 
 // calc - banana correction
@@ -431,10 +411,7 @@ updateCorrection := TRUE;]]></ST>
       <LineId Id="106" Count="0" />
       <LineId Id="108" Count="0" />
       <LineId Id="107" Count="0" />
-      <LineId Id="69" Count="0" />
-      <LineId Id="274" Count="0" />
-      <LineId Id="70" Count="3" />
-      <LineId Id="275" Count="0" />
+      <LineId Id="69" Count="4" />
       <LineId Id="183" Count="0" />
       <LineId Id="75" Count="0" />
       <LineId Id="77" Count="1" />
@@ -508,11 +485,6 @@ updateCorrection := TRUE;]]></ST>
       <LineId Id="95" Count="0" />
       <LineId Id="50" Count="1" />
       <LineId Id="130" Count="0" />
-      <LineId Id="117" Count="8" />
-      <LineId Id="132" Count="0" />
-      <LineId Id="131" Count="0" />
-      <LineId Id="133" Count="5" />
-      <LineId Id="80" Count="0" />
       <LineId Id="16" Count="0" />
       <LineId Id="126" Count="1" />
       <LineId Id="19" Count="0" />
@@ -565,14 +537,15 @@ updateCorrection := TRUE;]]></ST>
       <LineId Id="11" Count="0" />
       <LineId Id="5" Count="0" />
       <LineId Id="53" Count="0" />
+      <LineId Id="95" Count="2" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="98" Count="0" />
       <LineId Id="71" Count="0" />
       <LineId Id="80" Count="1" />
       <LineId Id="77" Count="2" />
       <LineId Id="72" Count="0" />
-      <LineId Id="82" Count="1" />
-      <LineId Id="74" Count="2" />
+      <LineId Id="82" Count="0" />
       <LineId Id="73" Count="0" />
-      <LineId Id="30" Count="0" />
       <LineId Id="54" Count="0" />
       <LineId Id="29" Count="0" />
       <LineId Id="52" Count="0" />

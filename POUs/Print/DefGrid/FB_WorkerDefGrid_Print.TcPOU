@@ -43,6 +43,7 @@ VAR
   fBStartTimeout     : TON;
   rTrigSync          : R_TRIG;
   _bForceDefGridOff  : BOOL;    // force deformation grid stream to ph off (send 0)
+  _fPrintUnitWidth   : LREAL;   // print unit width [m]
   
   (*grid correction*)
   _fDxGlobalShift    : LREAL;
@@ -488,6 +489,7 @@ IF (_pAdsCam = 0) OR (_pAdsPu = 0) THEN LogError('Call InitAds() before, ads int
 // worker specific init
 
 //Print Aggregate
+_fPrintUnitWidth   := fPrintUnitWidth;
 _fLimitCorrectionX := ABS(fLimitCorrectionX);
 _fLimitCorrectionY := ABS(fLimitCorrectionY);
 
@@ -513,13 +515,15 @@ _bJobActive := TRUE;
 
 // set correction ref points
 _pAdsCam^.sI_CorrectionPointIndication[1].posx := 0;
-_pAdsCam^.sI_CorrectionPointIndication[1].posy := 0;
+_pAdsCam^.sI_CorrectionPointIndication[1].posy := (((_fPrintUnitWidth * 1000) - (DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageWidth) / 1000)) / 2);
 _pAdsCam^.sI_CorrectionPointIndication[2].posx := DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageDepth) / 1000;
-_pAdsCam^.sI_CorrectionPointIndication[2].posy := 0;
+_pAdsCam^.sI_CorrectionPointIndication[2].posy := (((_fPrintUnitWidth * 1000) - (DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageWidth) / 1000)) / 2);
 _pAdsCam^.sI_CorrectionPointIndication[3].posx := 0;
-_pAdsCam^.sI_CorrectionPointIndication[3].posy := DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageWidth) / 1000;
+_pAdsCam^.sI_CorrectionPointIndication[3].posy :=   (((_fPrintUnitWidth * 1000) - (DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageWidth) / 1000)) / 2)
+                                                  + DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageWidth) / 1000;
 _pAdsCam^.sI_CorrectionPointIndication[4].posx := DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageDepth) / 1000;
-_pAdsCam^.sI_CorrectionPointIndication[4].posy := DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageWidth) / 1000;
+_pAdsCam^.sI_CorrectionPointIndication[4].posy :=   (((_fPrintUnitWidth * 1000) - (DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageWidth) / 1000)) / 2)
+                                                  + DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageWidth) / 1000;
 ]]></ST>
       </Implementation>
     </Method>
@@ -884,6 +888,7 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="16" Count="0" />
       <LineId Id="15" Count="0" />
       <LineId Id="10" Count="1" />
+      <LineId Id="36" Count="0" />
       <LineId Id="20" Count="0" />
       <LineId Id="22" Count="0" />
       <LineId Id="21" Count="0" />
@@ -899,7 +904,10 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="22" Count="0" />
       <LineId Id="59" Count="0" />
       <LineId Id="68" Count="0" />
-      <LineId Id="60" Count="7" />
+      <LineId Id="60" Count="5" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="66" Count="1" />
+      <LineId Id="74" Count="0" />
       <LineId Id="58" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.mJobStop">
