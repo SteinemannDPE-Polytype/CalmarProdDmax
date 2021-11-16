@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
   <POU Name="FB_WorkerDefGrid_Print" Id="{a3c0fca9-0a63-49f3-a9fd-25e7fe09223b}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Print EXTENDS FB_WorkerDefGrid
 VAR_INPUT
@@ -29,7 +29,6 @@ VAR
   fbPa               : FB_PA;
   fB_PcAdapter       : FB_PC_Adapter;
 
-  _pAdsPu            : POINTER TO ST_ADS_PU;      // PU interface
   _pAdsCam           : POINTER TO ST_ADS_CAMERA;  // camera interface PUC
   _fPrintStartOffset : LREAL;   // internal print start offset (distance Cam -> PG1 + PG Offset + PU offset)
   _fWorkerOffset     : LREAL;   // worker offset from X0 static
@@ -433,18 +432,6 @@ IF fCurrentColumnPos + _fColumnsToPrecharge > nChargedColumns AND nChargedColumn
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="InitAds" Id="{700fac9c-ee52-417d-9b1e-ccb8aad2f589}">
-      <Declaration><![CDATA[METHOD InitAds
-VAR_INPUT
-  pAdsIfCam  : POINTER TO ST_ADS_CAMERA;
-  pAdsIfPu   : POINTER TO ST_ADS_PU;
-END_VAR
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[_pAdsCam := pAdsIfCam;
-_pAdsPu  := pAdsIfPu;]]></ST>
-      </Implementation>
-    </Method>
     <Method Name="InitMsg" Id="{dfa2c5d7-d315-4391-826a-3f0a13e8b388}">
       <Declaration><![CDATA[METHOD InitMsg : BOOL
 VAR_INPUT
@@ -477,16 +464,18 @@ _bMsgInitialized := TRUE;]]></ST>
     <Method Name="InitWorkerPrint" Id="{9e11bfb6-2c3b-4cf3-ab44-81a61cbfe170}">
       <Declaration><![CDATA[METHOD InitWorkerPrint : BOOL
 VAR_INPUT
+  pAdsIfCam         : POINTER TO ST_ADS_CAMERA;   // provide camera access
   fPrintUnitWidth   : LREAL;     // print unit width [m]
   fLimitCorrectionX : LREAL;     // correction limit in y (abs) [px]
   fLimitCorrectionY : LREAL;     // correction limit in y (abs) [px]
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF NOT bInitialized                THEN LogError('Base Worker not initialized! call init() before'); RETURN; END_IF
-IF (_pAdsCam = 0) OR (_pAdsPu = 0) THEN LogError('Call InitAds() before, ads interface unknown');    RETURN; END_IF
+        <ST><![CDATA[IF NOT bInitialized THEN LogError('Base Worker not initialized! call init() before'); RETURN; END_IF
+IF pAdsIfCam = 0 THEN LogError('Not valid Ads camera interface provided'); RETURN; END_IF
 
 // worker specific init
+_pAdsCam := pAdsIfCam;
 
 //Print Aggregate
 _fPrintUnitWidth   := fPrintUnitWidth;
@@ -496,7 +485,8 @@ _fLimitCorrectionY := ABS(fLimitCorrectionY);
 fbPa.bSyncAfterDone := FALSE;
 fbPa.init(iPcAdapter := fB_PcAdapter, iPsInterface := fbPs);
 
-fbFineAlignement.init(pAdsCam := _pAdsCam, fPxReso := _fPrintResolution, fPuWidth := fPrintUnitWidth);]]></ST>
+fbFineAlignement.init(pAdsCam := _pAdsCam, fPxReso := _fPrintResolution, fPuWidth := fPrintUnitWidth);
+]]></ST>
       </Implementation>
     </Method>
     <Method Name="mJobStart" Id="{e6930aa0-f0d8-458e-9de3-18f675c41155}" FolderPath="I_PrintStatusClient\">
@@ -515,15 +505,13 @@ _bJobActive := TRUE;
 
 // set correction ref points
 _pAdsCam^.sI_CorrectionPointIndication[1].posx := 0;
-_pAdsCam^.sI_CorrectionPointIndication[1].posy := (((_fPrintUnitWidth * 1000) - (DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageWidth) / 1000)) / 2);
-_pAdsCam^.sI_CorrectionPointIndication[2].posx := DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageDepth) / 1000;
-_pAdsCam^.sI_CorrectionPointIndication[2].posy := (((_fPrintUnitWidth * 1000) - (DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageWidth) / 1000)) / 2);
+_pAdsCam^.sI_CorrectionPointIndication[1].posy := LREAL_TO_REAL(((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2);
+_pAdsCam^.sI_CorrectionPointIndication[2].posx := LREAL_TO_REAL(sJobDef.fImageDepth);
+_pAdsCam^.sI_CorrectionPointIndication[2].posy := LREAL_TO_REAL(((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2);
 _pAdsCam^.sI_CorrectionPointIndication[3].posx := 0;
-_pAdsCam^.sI_CorrectionPointIndication[3].posy :=   (((_fPrintUnitWidth * 1000) - (DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageWidth) / 1000)) / 2)
-                                                  + DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageWidth) / 1000;
-_pAdsCam^.sI_CorrectionPointIndication[4].posx := DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageDepth) / 1000;
-_pAdsCam^.sI_CorrectionPointIndication[4].posy :=   (((_fPrintUnitWidth * 1000) - (DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageWidth) / 1000)) / 2)
-                                                  + DINT_TO_REAL(_pAdsPu^.sI_JobSettings.lI_ImageWidth) / 1000;
+_pAdsCam^.sI_CorrectionPointIndication[3].posy := LREAL_TO_REAL((((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2) + sJobDef.fImageWidth);
+_pAdsCam^.sI_CorrectionPointIndication[4].posx := LREAL_TO_REAL(sJobDef.fImageDepth);
+_pAdsCam^.sI_CorrectionPointIndication[4].posy := LREAL_TO_REAL((((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2) + sJobDef.fImageWidth);
 ]]></ST>
       </Implementation>
     </Method>
@@ -864,10 +852,6 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="179" Count="34" />
       <LineId Id="5" Count="0" />
     </LineIds>
-    <LineIds Name="FB_WorkerDefGrid_Print.InitAds">
-      <LineId Id="11" Count="0" />
-      <LineId Id="5" Count="0" />
-    </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.InitMsg">
       <LineId Id="35" Count="1" />
       <LineId Id="6" Count="3" />
@@ -885,8 +869,9 @@ fB_PcAdapter.LogLevel := LogLevel;
     <LineIds Name="FB_WorkerDefGrid_Print.InitWorkerPrint">
       <LineId Id="7" Count="0" />
       <LineId Id="29" Count="0" />
-      <LineId Id="16" Count="0" />
+      <LineId Id="45" Count="0" />
       <LineId Id="15" Count="0" />
+      <LineId Id="47" Count="0" />
       <LineId Id="10" Count="1" />
       <LineId Id="36" Count="0" />
       <LineId Id="20" Count="0" />
@@ -894,6 +879,7 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="21" Count="0" />
       <LineId Id="12" Count="2" />
       <LineId Id="5" Count="0" />
+      <LineId Id="48" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.mJobStart">
       <LineId Id="43" Count="0" />
@@ -904,11 +890,8 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="22" Count="0" />
       <LineId Id="59" Count="0" />
       <LineId Id="68" Count="0" />
-      <LineId Id="60" Count="5" />
-      <LineId Id="73" Count="0" />
-      <LineId Id="66" Count="1" />
-      <LineId Id="74" Count="0" />
-      <LineId Id="58" Count="0" />
+      <LineId Id="60" Count="7" />
+      <LineId Id="81" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.mJobStop">
       <LineId Id="6" Count="0" />

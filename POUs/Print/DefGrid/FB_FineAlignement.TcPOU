@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
   <POU Name="FB_FineAlignement" Id="{b0fdbfcd-2a71-4ede-b938-0e28dbf7b80d}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   This fb handles mechanical print unit corrections.
@@ -48,18 +48,18 @@ END_VAR]]></Declaration>
       <ST><![CDATA[// cyclic caluclation and view updates
 
 //-- 4p correction
-//    visu overrides (limitation rectancular point definition)
+//   visu overrides (limitation rectancular point definition)
 _fbPUCorrPoints[3].fX_Ref := _fbPUCorrPoints[1].fX_Ref;
 _fbPUCorrPoints[4].fX_Ref := _fbPUCorrPoints[2].fX_Ref;
 _fbPUCorrPoints[2].fY_Ref := _fbPUCorrPoints[1].fY_Ref;
 _fbPUCorrPoints[4].fY_Ref := _fbPUCorrPoints[3].fY_Ref;
-//    update view elements and handle inputs
+//   update CorrectionPoints view elements
 FOR lCtr := 1 TO 4 DO
   _fbPUCorrPoints[lCtr](); 
 END_FOR
 
 //-- banana correction
-// no cyclic update (here just for visu)
+// just calculate the dx in the middle of the PU, just for the VISU
 calc_banana_correction(x_pos:=0, y_pos:=_y_max/(2*1000), fT1:=_fT1, fT2:=_fT2, dx_corr=>_dx_middle);
 _dx_middle := _dx_middle * 1000; // [m] --> [mm] for visu
 
@@ -385,14 +385,10 @@ IF _bEnable_4p THEN
   dy_corr := dy_tmp + dy_corr;
 END_IF
 
-IF _pAdsCam^.iO_Version >= 010300 THEN  (*PUC 4P correction used*)
-  _bEnablePuc_4p := TRUE;
-
+IF _bEnablePuc_4p THEN  (*PUC 4P correction used*)
   calc_PUC_4p_correction(x_pos:=x_pos, y_pos:=y_pos, dx_corr=>dx_tmp, dy_corr=>dy_tmp);
   dx_corr := dx_tmp + dx_corr;
   dy_corr := dy_tmp + dy_corr;
-ELSE                                    (*PLC Visu 4P correction used*)
-  _bEnablePuc_4p := FALSE;
 END_IF
 
 // calc - banana correction
@@ -541,10 +537,7 @@ updateCorrection := TRUE;]]></ST>
       <LineId Id="99" Count="0" />
       <LineId Id="98" Count="0" />
       <LineId Id="71" Count="0" />
-      <LineId Id="80" Count="1" />
       <LineId Id="77" Count="2" />
-      <LineId Id="72" Count="0" />
-      <LineId Id="82" Count="0" />
       <LineId Id="73" Count="0" />
       <LineId Id="54" Count="0" />
       <LineId Id="29" Count="0" />
