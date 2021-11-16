@@ -22,6 +22,7 @@
 {library public}
 VAR_INPUT
   bI_HwEnable                             : BOOL;            // relase (enable SheetDetect) from machine
+  bI_AutomaticMode                        : BOOL;            // machine is in automatic mode
   (* - (EL1252) StartPosition detect sensor*)
   bI_Sensor_State                   AT%I* : BOOL;            // Sensor signal
   tI_Sensor_TimeStampPos            AT%I* : T_DCTIME64;      // Sensor last detection timestamp
@@ -128,7 +129,7 @@ bCamValid     := SEL(iActiveCam<>0, FALSE, TRUE);             // camera valid (i
 tCurrentTime  := F_GetCurDcTaskTime64();                      // current dc time (most accurate time stamp we have)
 fCycleTime    := (TO_LREAL(tCurrentTime) - TO_LREAL(tLastTimeStamp)) * 1E-9;  tLastTimeStamp  := tCurrentTime;  // calculate cycle time of this block
 bSheetDetected:= FALSE;                                       // Set to true below just for one cycle
-bTriggerArmed :=  NOT bInhibitTrigger AND bSpeedValid AND bI_HwEnable;
+bTriggerArmed :=  NOT bInhibitTrigger AND bSpeedValid AND bI_HwEnable AND (bI_AutomaticMode OR _bCamManualTeachMode);
 rT_Sensor(CLK:=bI_Sensor_State);
 
 IF bCamValid THEN    // save dynamic changable settings

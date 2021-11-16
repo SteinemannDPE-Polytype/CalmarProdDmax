@@ -10,6 +10,14 @@
 Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 
 ---
+### changes `2.0.0.7` BRM
+* CHG: enable SheetDetect in machine manual mode (not automatic) if the `ManualTeach` mode is active. Needed for camera calibration by hand.
+
+### changes `2.0.0.6` HOA
+* CHG: add 4p correction point calculation and update from PCU
+
+### changes `2.0.0.5` BRM
+* CHG: add DropSpeed Dead/Add time correction calculation
 
 ### changes `2.0.0.4` BRM
 * CHG: fix related sub-libraries according main project
