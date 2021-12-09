@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_FineAlignement" Id="{b0fdbfcd-2a71-4ede-b938-0e28dbf7b80d}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   This fb handles mechanical print unit corrections.
@@ -72,12 +72,37 @@ IF _bUT_banana THEN _bUT_banana := FALSE; _test_banana(); END_IF
       <Declaration><![CDATA[METHOD PRIVATE _test_4p
 VAR
   sPoint : ST_DeformationPoint;
-  nCol, nRow : DINT;
+  nCol, nRow, nCrPoint : DINT;
   dx, dy : LREAL;       // correction in [m]
   dx_px, dy_px : DINT;  // correction in [px]
+  nCorrectionX : ARRAY[1..4] OF REAL := [-0.25, -0.2, 0.35, 0.35];
+  nCorrectionY : ARRAY[1..4] OF REAL := [-0.45, -0.3, -0.8, -0.65];
+  nCorrectionPointX_PLC : ARRAY[1..4] OF REAL := [0, 1000,   0, 1000];
+  nCorrectionPointY_PLC : ARRAY[1..4] OF REAL := [0,   0, 702, 702];
+  nCorrectionPointX_PUC : ARRAY[1..4] OF REAL := [0, 671.99,   0, 671.99];
+  nCorrectionPointY_PUC : ARRAY[1..4] OF REAL := [-0.0001666666, -0.0001666666, 754.2108, 754.2108];
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[// generate internal grid
+        <ST><![CDATA[// setup test correcton points location for PLC & PUC 4p testing
+FOR nCrPoint:=1 TO 4 DO
+  // correction point location
+  // -- PLC
+  _fbPUCorrPoints[nCrPoint].fX_Ref := nCorrectionPointX_PLC[nCrPoint];
+  _fbPUCorrPoints[nCrPoint].fY_Ref := nCorrectionPointY_PLC[nCrPoint];
+  // -- PUC  
+  _pAdsCam^.sI_CorrectionPointIndication[nCrPoint].posx := nCorrectionPointX_PUC[nCrPoint];
+  _pAdsCam^.sI_CorrectionPointIndication[nCrPoint].posy := nCorrectionPointY_PUC[nCrPoint];
+  
+  // point correction  
+  // -- PLC
+  _fbPUCorrPoints[nCrPoint].fX := nCorrectionX[nCrPoint];
+  _fbPUCorrPoints[nCrPoint].fY := nCorrectionY[nCrPoint];
+  // -- PUC
+  _pAdsCam^.sI_CorrectionPointIndication[nCrPoint].x := nCorrectionX[nCrPoint];
+  _pAdsCam^.sI_CorrectionPointIndication[nCrPoint].y := nCorrectionY[nCrPoint];
+END_FOR
+
+// generate internal test grid
 FOR nCol:=0 TO nC_UT_cols DO
   FOR nRow:=0 TO nC_UT_rows DO
     sPoint.col := nCol;
@@ -86,12 +111,23 @@ FOR nCol:=0 TO nC_UT_cols DO
     sPoint.y_ref := nRow * TO_DINT(GVL_Deformation.nC_GridPitch_Y);
     sPoint.dx := 0;   // no previous deformation
     sPoint.dy := 0;   // no previous deformation
-    // calc correction and apply to point
+    
+    // calc 4p PLC correction and apply to point
     calc_4p_correction(
         x_pos:=F_SubPixelToMeter(lPosSubPx:=sPoint.x_ref, fResSubPx:=_fPxResolution), 
         y_pos:=F_SubPixelToMeter(lPosSubPx:=sPoint.y_ref, fResSubPx:=_fPxResolution), 
         dx_corr=>dx, 
         dy_corr=>dy);
+    LogInfo(
+      F_Concat4(
+        '4p PLC: point:', 
+        F_Concat4(' x=', TO_STRING(sPoint.x_ref), '/y=', TO_STRING(sPoint.y_ref)),
+        F_Concat2(' dx=', TO_STRING(dx)),
+        F_Concat2(' dy=', TO_STRING(dy))
+      )
+    );
+
+    // --- store in table for verification with Excel caluculation
     dx_px := F_MeterToSubPixel(fPosMeter:=dx, fResoSubPx:=_fPxResolution);
     dy_px := F_MeterToSubPixel(fPosMeter:=dy, fResoSubPx:=_fPxResolution);
     // save corrected point
@@ -101,11 +137,28 @@ FOR nCol:=0 TO nC_UT_cols DO
     LogInfo(
       F_Concat4(
         F_Concat4('[c/r] ', TO_STRING(sPoint.col), '/', TO_STRING(sPoint.row)),
-        F_Concat6(' dx: ', TO_STRING(sPoint.dx), '>', TO_STRING(dx_px), ' [', TO_STRING(dx)),
-        F_Concat6('  dy: ', TO_STRING(sPoint.dy), '>', TO_STRING(dy_px), ' [', TO_STRING(dy)),
+        F_Concat7(' dx: ', TO_STRING(sPoint.dx), '>', TO_STRING(dx_px), ' (', TO_STRING(dx), ')'),
+        F_Concat7(' dy: ', TO_STRING(sPoint.dy), '>', TO_STRING(dy_px), ' (', TO_STRING(dy), ')'),
         SEL(sPoint.dx<>dx_px OR sPoint.dy<>dy_px,'',' !!!')
       )
     );
+    // ---------------------------------
+    
+    // calc 4p PUC correction and apply to point
+    calc_PUC_4p_correction(
+        x_pos:=F_SubPixelToMeter(lPosSubPx:=sPoint.x_ref, fResSubPx:=_fPxResolution), 
+        y_pos:=F_SubPixelToMeter(lPosSubPx:=sPoint.y_ref, fResSubPx:=_fPxResolution), 
+        dx_corr=>dx, 
+        dy_corr=>dy);
+    LogInfo(
+      F_Concat4(
+        '4p PUC: point:', 
+        F_Concat4(' x=', TO_STRING(sPoint.x_ref), '/y=', TO_STRING(sPoint.y_ref)),
+        F_Concat2(' dx=', TO_STRING(dx)),
+        F_Concat2(' dy=', TO_STRING(dy))
+      )
+    );
+
   END_FOR  
 END_FOR]]></ST>
       </Implementation>
@@ -273,6 +326,10 @@ VAR
   GPx, GPy : LREAL;
   CVx, CVy : LREAL;
   lErrCtr : UDINT;
+END_VAR
+VAR CONSTANT
+  bC_InvertValX : BOOL := TRUE;
+  bC_InvertValY : BOOL := FALSE;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[
@@ -286,10 +343,11 @@ x2 := _pAdsCam^.sI_CorrectionPointIndication[2].posx / 1000;    // [mm -> m]
 dx := x2-x1;
 IF dx = 0 THEN F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); RETURN; END_IF
 
-cx1 := (x2-GPx)/dx * (_pAdsCam^.sI_CorrectionPointIndication[1].x / 1000) + (GPx-x1)/dx * (_pAdsCam^.sI_CorrectionPointIndication[2].x / 1000);
-cx2 := (x2-GPx)/dx * (_pAdsCam^.sI_CorrectionPointIndication[3].x / 1000) + (GPx-x1)/dx * (_pAdsCam^.sI_CorrectionPointIndication[4].x / 1000);
-cy1 := (x2-GPx)/dx * (_pAdsCam^.sI_CorrectionPointIndication[1].y / 1000) + (GPx-x1)/dx * (_pAdsCam^.sI_CorrectionPointIndication[2].y / 1000);
-cy2 := (x2-GPx)/dx * (_pAdsCam^.sI_CorrectionPointIndication[3].y / 1000) + (GPx-x1)/dx * (_pAdsCam^.sI_CorrectionPointIndication[4].y / 1000);
+// NOTE: x is inverted (compare to fX / fY method of FB_PointCorr)
+cx1 := (x2-GPx)/dx * ((_pAdsCam^.sI_CorrectionPointIndication[1].x * -1) / 1000) + (GPx-x1)/dx * ((_pAdsCam^.sI_CorrectionPointIndication[2].x * -1) / 1000);
+cx2 := (x2-GPx)/dx * ((_pAdsCam^.sI_CorrectionPointIndication[3].x * -1) / 1000) + (GPx-x1)/dx * ((_pAdsCam^.sI_CorrectionPointIndication[4].x * -1) / 1000);
+cy1 := (x2-GPx)/dx * ((_pAdsCam^.sI_CorrectionPointIndication[1].y) / 1000) + (GPx-x1)/dx * ((_pAdsCam^.sI_CorrectionPointIndication[2].y) / 1000);
+cy2 := (x2-GPx)/dx * ((_pAdsCam^.sI_CorrectionPointIndication[3].y) / 1000) + (GPx-x1)/dx * ((_pAdsCam^.sI_CorrectionPointIndication[4].y) / 1000);
 
 // Interpolation in y
 y1 := _pAdsCam^.sI_CorrectionPointIndication[1].posy / 1000;    // [mm -> m]
@@ -346,13 +404,13 @@ _pAdsCam       := pAdsCam;
 IF _pAdsCam = 0 THEN LogError('Call InitAds() before, ads interface unknown'); END_IF
 
 // PU Deformation
-_fbPUCorrPoints[1].init(aName:='P1', aUnit:='mm', fX_Min:=-5, fX_Max:=5, fY_Min:=-5, fY_Max:=5, fIncrStep:=0.1, 
+_fbPUCorrPoints[1].init(aName:='P1', aUnit:='mm', fX_Min:=-5, fX_Max:=5, fY_Min:=-5, fY_Max:=5, fIncrStep:=0.05, 
                         bButnInvertX:=TRUE, bButnInvertY:=TRUE, bValInvertX:=TRUE, bValInvertY:=FALSE);
-_fbPUCorrPoints[2].init(aName:='P2', aUnit:='mm', fX_Min:=-5, fX_Max:=5, fY_Min:=-5, fY_Max:=5, fIncrStep:=0.1,
+_fbPUCorrPoints[2].init(aName:='P2', aUnit:='mm', fX_Min:=-5, fX_Max:=5, fY_Min:=-5, fY_Max:=5, fIncrStep:=0.05,
                         bButnInvertX:=TRUE, bButnInvertY:=TRUE, bValInvertX:=TRUE, bValInvertY:=FALSE);
-_fbPUCorrPoints[3].init(aName:='P3', aUnit:='mm', fX_Min:=-5, fX_Max:=5, fY_Min:=-5, fY_Max:=5, fIncrStep:=0.1,
+_fbPUCorrPoints[3].init(aName:='P3', aUnit:='mm', fX_Min:=-5, fX_Max:=5, fY_Min:=-5, fY_Max:=5, fIncrStep:=0.05,
                         bButnInvertX:=TRUE, bButnInvertY:=TRUE, bValInvertX:=TRUE, bValInvertY:=FALSE);
-_fbPUCorrPoints[4].init(aName:='P4', aUnit:='mm', fX_Min:=-5, fX_Max:=5, fY_Min:=-5, fY_Max:=5, fIncrStep:=0.1,
+_fbPUCorrPoints[4].init(aName:='P4', aUnit:='mm', fX_Min:=-5, fX_Max:=5, fY_Min:=-5, fY_Max:=5, fIncrStep:=0.05,
                         bButnInvertX:=TRUE, bButnInvertY:=TRUE, bValInvertX:=TRUE, bValInvertY:=FALSE);
 
 ]]></ST>
@@ -421,7 +479,7 @@ updateCorrection := TRUE;]]></ST>
       <LineId Id="48" Count="0" />
     </LineIds>
     <LineIds Name="FB_FineAlignement._test_4p">
-      <LineId Id="167" Count="29" />
+      <LineId Id="212" Count="76" />
       <LineId Id="9" Count="0" />
     </LineIds>
     <LineIds Name="FB_FineAlignement._test_banana">
@@ -485,6 +543,7 @@ updateCorrection := TRUE;]]></ST>
       <LineId Id="126" Count="1" />
       <LineId Id="19" Count="0" />
       <LineId Id="36" Count="0" />
+      <LineId Id="167" Count="0" />
       <LineId Id="20" Count="0" />
       <LineId Id="139" Count="3" />
       <LineId Id="25" Count="1" />
