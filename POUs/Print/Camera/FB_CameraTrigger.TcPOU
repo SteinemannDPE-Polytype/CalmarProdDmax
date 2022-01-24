@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_CameraTrigger" Id="{ec098ee4-1e1e-4fe3-8952-b23d7a573fda}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_CameraTrigger EXTENDS FB_Commons IMPLEMENTS I_CameraTrigger, I_StartPosDetect
 (*************************************************************************************************)
@@ -34,9 +34,6 @@ VAR_INPUT
   iI_CurrentPos                   : DINT;                   // Current position in [SubPx]*)
   fI_ConveyorSpeed                : LREAL;                  // Current speed of substrate in [m/s]*)
   
-  (*Exernal command*)
- // bI_ManualTeach                  : BOOL;                   // External manual teach is active
-
   (*Debug & Test*)
   bI_ManualTrigger                : BOOL;                   // Manual start trigger
 END_VAR
@@ -94,8 +91,6 @@ VAR
   fRemDist                        : LREAL;           (*Remaining distance until trigger occurs [m]*)
   fPreTriggerPosition             : LREAL;           (*Margin between effective trigger position and generation of timestamp*)
 
-  fb_FTrig_ManualTeach            : F_TRIG;          (*FTrig for teach to release inhibit*)
-  
   (*Debug*)
   _bVerbose                       : BOOL;
 END_VAR
@@ -289,12 +284,10 @@ OtTriggerStartTime := tTrigger_EventTime;
 _tMemTriggerFeedback_TimeStampPos := tI_TriggerFeedback_TimeStampPos;
 
 (*Release inhibit trigger*)
-bReleaseInhibitTrigger := (iI_CurrentPos >= (_nX0 + _nSubstrateLength));
-//fb_FTrig_ManualTeach(CLK := bI_ManualTeach);
-
-IF (bReleaseInhibitTrigger OR fb_FTrig_ManualTeach.Q) AND bInhibitTrigger THEN
-	bInhibitTrigger := FALSE;
-END_IF;
+bReleaseInhibitTrigger := bInhibitTrigger AND (iI_CurrentPos - (_nX0 + _nSubstrateLength)) > 0;
+IF bReleaseInhibitTrigger THEN
+  bInhibitTrigger := FALSE;
+END_IF
 
 (********************************* END OF FB *****************************************************)]]></ST>
     </Implementation>
@@ -549,8 +542,10 @@ _nSubstrateLength := F_MeterToSubPixel(fPosMeter:=_fSubstrateLength, fResoSubPx:
       <LineId Id="2544" Count="1" />
       <LineId Id="2547" Count="11" />
       <LineId Id="2561" Count="3" />
-      <LineId Id="2566" Count="11" />
-      <LineId Id="2580" Count="2" />
+      <LineId Id="2566" Count="7" />
+      <LineId Id="4089" Count="2" />
+      <LineId Id="4088" Count="0" />
+      <LineId Id="4095" Count="0" />
       <LineId Id="1688" Count="0" />
     </LineIds>
     <LineIds Name="FB_CameraTrigger.bManualTeach.Get">

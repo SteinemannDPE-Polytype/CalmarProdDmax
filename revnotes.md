@@ -10,6 +10,9 @@
 Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 
 ---
+### changes `2.0.0.9` HOA/BRM
+* FIX: FB_CameraTrigger: correction for bReleaseInhibitTrigger
+
 ### changes `2.0.0.8` BRM
 * FIX: 4p Correction PUC calculation (x inversed), CHG: 4p Correction PLC adapt step size
 
