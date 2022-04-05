@@ -1,12 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
   <GVL Name="GVL_Deformation" Id="{6fb70b60-a61f-45d6-ba91-f9d9465c112a}">
     <Declaration><![CDATA[{attribute 'qualified_only'}
 VAR_GLOBAL
   nC_GridPitch_X  : UDINT := 1024;    // GRID: distance between grid point in y [px] (FPGA definition)
   nC_GridPitch_Y  : UDINT := 2048;    // GRID: distance between grid point in y [px] (FPGA definition)
   nC_GridRoiRows  : UINT  := 3;       // ROI: [1024=4,  2048=3] number of roi rows per head (FPGA definition) 
-  nC_GridRoiCols  : UINT  := 16;      // ROI: [1024=62, 2048=16] number of roi columns per head (FPGA definition) 
+  nC_GridRoiCols  : UINT  := 85;      // ROI: [1024=62, 2048=85] number of roi columns per head (FPGA definition) 
   nC_GridSubReso  : UDINT := 10;      // sub resolution of grid definitions (script handling)
   bC_UseGlobalGridShift : BOOL := FALSE; // not yet tested!!! 
   bC_UsePUDeformation : BOOL := TRUE;   // enable calculation of PU deformation/correction
