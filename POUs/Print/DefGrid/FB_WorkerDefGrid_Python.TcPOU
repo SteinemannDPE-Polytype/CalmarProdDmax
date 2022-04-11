@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_WorkerDefGrid_Python" Id="{da715aa5-d637-40ab-8d33-e404e3b6a6f1}" SpecialFunc="None">
     <Declaration><![CDATA[{attribute 'reflection'} 
 FUNCTION_BLOCK FB_WorkerDefGrid_Python EXTENDS FB_WorkerDefGrid
@@ -161,6 +161,8 @@ IF _pParamMediator = 0 THEN LogError('JobStart: invalid parameter configuration'
 IF _fWorkerPosition = 0 THEN _fWorkerPosition := fC_DEFAULT_WOKER_POSITION; LogError(F_Concat3(_name, ': worker position not set, set default=', TO_STRING(fC_DEFAULT_WOKER_POSITION))); END_IF
 
 // configure
+_aJobName := sJobDef.aJobName;
+_aJobGuid := sJobDef.aJobId;
 _fImageDepthM := sJobDef.fImageDepth/1000;
 _fImageWidthM := sJobDef.fImageWidth/1000;
 _fCtSecurityReleasePos := F_MeterToSubPixel(fPosMeter:=_fImageDepthM + fC_MIN_SHEET_GAP, fResoSubPx:=_fPrintResolution*_fSubPxResolution);
@@ -209,6 +211,8 @@ IF _bNewJob OR rT_EnablePyIf.Q THEN   // new job activated or ente
   
   // setup script
   fbPythonInterface.JobStart(
+    aJobName:=_aJobName,
+    aJobGuid:=_aJobGuid,
     nJobImageWidth:=DINT_TO_UDINT(F_MeterToSubPixel(fPosMeter:=_fImageDepthM, fResoSubPx:=_fPrintResolution)),
     nJobImageHeigth:=DINT_TO_UDINT(F_MeterToSubPixel(fPosMeter:=_fImageWidthM, fResoSubPx:=_fPrintResolution)),
     nCamFrameWidth:=DINT_TO_UDINT(FC_LREAL_TO_DINT(_CamGridSettings.fGridFeaturePitch, ADR(nConvErr))),
@@ -301,6 +305,7 @@ IF fbMsg_PythonNotRunning.bMsgAck THEN fbPythonInterface.ackError(); END_IF]]></
       <LineId Id="84" Count="0" />
       <LineId Id="102" Count="0" />
       <LineId Id="83" Count="0" />
+      <LineId Id="131" Count="1" />
       <LineId Id="114" Count="2" />
       <LineId Id="126" Count="0" />
       <LineId Id="82" Count="0" />
@@ -321,7 +326,9 @@ IF fbMsg_PythonNotRunning.bMsgAck THEN fbPythonInterface.ackError(); END_IF]]></
       <LineId Id="226" Count="0" />
       <LineId Id="241" Count="0" />
       <LineId Id="228" Count="0" />
-      <LineId Id="230" Count="3" />
+      <LineId Id="230" Count="0" />
+      <LineId Id="335" Count="1" />
+      <LineId Id="231" Count="2" />
       <LineId Id="302" Count="0" />
       <LineId Id="236" Count="0" />
       <LineId Id="271" Count="0" />

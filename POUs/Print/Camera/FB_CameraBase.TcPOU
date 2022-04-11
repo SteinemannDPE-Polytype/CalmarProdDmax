@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_CameraBase" Id="{c8d0ba07-7a01-4a8a-a6e6-67ad2b34ba59}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   Base camera system
@@ -29,8 +29,8 @@ VAR
   stCamPoint                : ST_DeformationPointAccurate;(*actual camera point*)
   
   _bCamTriggerOk            : BOOL;
-  _bCamStarted              : BOOL;
-  _bCamDone                 : BOOL;   
+  _bCamTriggerStarted       : BOOL;
+  _bCamTriggerDone          : BOOL;   
   _nCamStartPos             : DINT;    //Cam start position ideal [SubPx]
   _nCamStartPosDeviation    : DINT;    //Cam stated position real [SubPx]
   
@@ -137,8 +137,8 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[_nRxCamPoints := 0;
-_bCamStarted    := TRUE;
-_bCamDone       := FALSE;
+_bCamTriggerStarted    := TRUE;
+_bCamTriggerDone       := FALSE;
 _bCamTriggerOk  := bOk;
 _nCamStartPos   := nPos;
 _nCamStartPosDeviation := nPosDeviation;
@@ -153,8 +153,8 @@ END_IF
       <Declaration><![CDATA[METHOD CamTriggerDone
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[_bCamStarted    := FALSE;  // this call marks the end of the camera trigger period
-_bCamDone       := TRUE;]]></ST>
+        <ST><![CDATA[_bCamTriggerStarted    := FALSE;  // this call marks the end of the camera trigger period
+_bCamTriggerDone       := TRUE;]]></ST>
       </Implementation>
     </Method>
     <Method Name="DeactivateCam" Id="{a856b950-c2e0-49b9-8c57-589d4c82956d}">

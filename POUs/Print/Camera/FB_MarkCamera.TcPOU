@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_MarkCamera" Id="{f402e88b-9648-4173-b602-808ed11a92b0}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   Mark camera system
@@ -206,8 +206,8 @@ END_VAR]]></Declaration>
 bTeachOk       := TRUE; // NO teach availabe
 nTeachedPoints := 2;    // 2 marks only
 nScannedPoints := _nRxCamPoints;
-bCamStarted    := _bCamStarted;
-bCamDone       := _bCamDone;
+bCamStarted    := _bCamTriggerStarted;
+bCamDone       := _bCamTriggerDone;
 
 GetCamStatus := bConnectionOK AND bTeachOk;   // camera ready]]></ST>
       </Implementation>

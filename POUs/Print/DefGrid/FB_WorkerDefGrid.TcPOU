@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_WorkerDefGrid" Id="{3650ee95-10b0-4788-8cb9-9677368dce0d}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK ABSTRACT FB_WorkerDefGrid EXTENDS FB_Worker
 VAR_OUTPUT
@@ -27,6 +27,8 @@ VAR
 END_VAR
 VAR_STAT
   // static variables, same for all Workers
+  _aJobName         : T_MaxString;
+  _aJobGuid         : T_MaxString;
   _fImageWidthM     : LREAL;          // image width in [m]
   _fImageDepthM     : LREAL;          // image depth in [m]
   _fCtSecurityReleasePos : LREAL := 0;     // [SubPx] position where to release current ct at last (security release)

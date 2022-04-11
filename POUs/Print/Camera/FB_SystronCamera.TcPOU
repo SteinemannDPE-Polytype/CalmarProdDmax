@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_SystronCamera" Id="{a6c36bce-dec5-430c-b3a6-e5194ad905ad}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   Systron camera system
@@ -74,8 +74,8 @@ END_VAR]]></Declaration>
 bTeachOk       := TRUE; //NO teach availabe (teached by a specific sheet from machine)
 nTeachedPoints := 0;
 nScannedPoints := 0;
-bCamStarted    := _bCamStarted;
-bCamDone       := _bCamDone; 
+bCamStarted    := _bCamTriggerStarted;
+bCamDone       := _bCamTriggerDone; 
 {warning 'TODO: get real teach information'}
 
 GetCamStatus := bConnectionOK;]]></ST>

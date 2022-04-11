@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_LineCamera" Id="{e6d6755d-f9bc-4501-9145-ca5769d0ea2d}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   QualiVision line camera system
@@ -385,7 +385,7 @@ VAR_OUTPUT
   nTeachedPoints : UDINT;   // Teached points for this job
   nScannedPoints : UDINT;   // Scanned points on current sheet  
   bCamStarted    : BOOL;    // Camera trigger is active, cam started
-  bCamDone       : BOOL;    // Camera finished on last CT
+  bCamDone       : BOOL;    // Camera finished on CT
   bErrors        : ARRAY[1..GVL_Camera.nC_NbCamErrors] OF BOOL;  // generic error flag list
 END_VAR]]></Declaration>
       <Implementation>
@@ -393,14 +393,14 @@ END_VAR]]></Declaration>
 bTeachOk       := _bTeachOk OR bSimulate;
 nTeachedPoints := nNbMarksTeach;
 nScannedPoints := nNbMarksScanned;
-bCamStarted    := _bCamStarted;
+bCamStarted    := _bCamTriggerStarted;
 // camera finished
 IF nNbVersion = cProtoVersion_110 THEN
   // Done: Trigger released and last sector was received
-  bCamDone       := _bCamDone AND ((nSector >= nNbSectorTeach) OR (nSector = SINT_TO_DINT(-1)));
+  bCamDone       := _bCamTriggerDone AND ((nSector >= nNbSectorTeach) OR (nSector = SINT_TO_DINT(-1)));
 ELSE
   // Done: Trigger released and same all teached points are scanned // NOTE: this will not work if not all marks are detected by camera
-  bCamDone       := _bCamDone AND (nScannedPoints>=nTeachedPoints);
+  bCamDone       := _bCamTriggerDone AND (nScannedPoints>=nTeachedPoints);
 END_IF
 GetCamStatus := bConnectionOK AND bTeachOk;   // camera ready]]></ST>
       </Implementation>
@@ -1227,7 +1227,7 @@ IF NOT fbScriptCamSim.bBusy THEN
 END_IF
 
 // --- script live interface -------
-IF _bCamStarted THEN
+IF _bCamTriggerStarted THEN
   IF tOnFrame.Q THEN
     nFrameNr := nFrameNr + 1; // demand next frame
 	END_IF
