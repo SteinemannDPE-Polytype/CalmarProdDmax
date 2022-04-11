@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_WorkerDefGrid_Camera" Id="{6056a89a-8aeb-47d0-8a92-08f600f3d0b4}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Camera EXTENDS FB_WorkerDefGrid IMPLEMENTS I_CameraSink
 VAR
@@ -12,6 +12,7 @@ VAR
   _nRegisteredCam : UDINT;    // number registered cameras
   _iActiveCam     : I_Camera; // active selected camera interface
   
+  // cam status
   _bCamValid      : BOOL;
   _bCamReady      : BOOL;    // Camera no error
   _bConnectionOk  : BOOL;    //
@@ -25,6 +26,16 @@ VAR
   _bLineCamType   : BOOL;    // TRUE if it's a LineCamera
   _bSetInitCam    : BOOL;    // set initial camera
   
+  // deformation status
+  _eDeformStep                : E_DeformationStep;   // status deformation of ct
+  _bDeformationError          : BOOL;   // status deformation of ct
+  _bDeformationBusy           : BOOL;   // status deformation of ct
+  _bDeformationDone           : BOOL;   // status deformation of ct
+  _nDeformationErrorId        : UDINT;  // status deformation of ct
+  _tDeformationExecutionTime  : TIME;   // status deformation of ct
+  _nDeformationProcPoints     : UDINT;  // available grid points on ct
+  _nDeformationProcCols       : UDINT;  // number of already generated grid columns
+
   // puc message
   fb_MsgQueue                  : FB_MSG_QUEUE;                        (*Message queue*)
   fb_MsgHandler                : FB_MSG_HANDLER;                      (*Message handler*)
@@ -461,9 +472,6 @@ END_IF]]></ST>
       <Declaration><![CDATA[METHOD  work
 VAR_INST
   rT_CamStarted : R_TRIG;
-  bDone : BOOL;
-  bError : BOOL;
-  eStep : E_DeformationStep;
 END_VAR
 VAR
   lCtr : UDINT;
@@ -496,15 +504,21 @@ SUPER^.work();
 rT_CamStarted(CLK:=_bCamStarted);
 
 IF _pAttachedCt <> 0 THEN
-  bError := _pAttachedCt^.getDeformationStatus(eDStep=>eStep, bDone=>bDone);
+  bError := _pAttachedCt^.getDeformationStatus(eDStep => _eDeformStep, 
+                          bBusy => _bDeformationBusy,
+                          bDone => _bDeformationDone,
+                          nErrorId => _nDeformationErrorId, 
+                          tExecutionTime => _tDeformationExecutionTime);
+_nDeformationProcPoints := _pAttachedCt^.nAvailableGridPoints;
+_nDeformationProcCols   := _pAttachedCt^.nAvailableGridCols;
   
-  IF _bCamReady AND eStep > E_DeformationStep.nothing AND NOT bDone AND NOT bError AND _bTeachOk THEN      // start only if py started
+  IF _bCamReady AND _eDeformStep > E_DeformationStep.nothing AND NOT _bDeformationDone AND NOT bError AND _bTeachOk THEN      // start only if py started
     IF rT_CamStarted.Q THEN
       // -- setup deformation with cam settings
       _pAttachedCt^.SetupDeformation(eCameraMode:=_iActiveCam.eCameraMode);
       _pAttachedCt^.StartDeformation(eDeformationStep:=E_DeformationStep.cameraStarted);
 		END_IF
-    IF eStep >= E_DeformationStep.cameraStarted AND _nScannedPoints > 3 THEN   // TODO: handle this in py script / select local Grid generation or script
+    IF _eDeformStep >= E_DeformationStep.cameraStarted AND _nScannedPoints > 3 THEN   // TODO: handle this in py script / select local Grid generation or script
       _pAttachedCt^.UpdateDeformation(fUpdateInterval:=_fFeatureGrid);         // update with cam feature grid  
       IF _bCamDone THEN
         _pAttachedCt^.StartDeformation(eDeformationStep:=E_DeformationStep.cameraDone);
@@ -722,7 +736,8 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="293" Count="0" />
       <LineId Id="136" Count="0" />
       <LineId Id="135" Count="0" />
-      <LineId Id="180" Count="0" />
+      <LineId Id="328" Count="5" />
+      <LineId Id="327" Count="0" />
       <LineId Id="195" Count="0" />
       <LineId Id="182" Count="0" />
       <LineId Id="184" Count="0" />
