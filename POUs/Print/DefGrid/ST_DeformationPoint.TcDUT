@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <DUT Name="ST_DeformationPoint" Id="{7f63224d-82cf-4a17-8090-0299e8263e52}">
     <Declaration><![CDATA[{attribute 'pack_mode' := '8'}
 (* Force the structure to be aligned on LREAL word 8 Byte even if the biggest type in the struct is smaller - simplify access for Python script *)
@@ -7,12 +7,13 @@
 TYPE ST_DeformationPoint :
 STRUCT
   index         : DINT := 0;      (*ID*)
-	x_ref         : DINT := 0;      (*Referenz x deviation [px * SubResolution]*)
-	y_ref         : DINT := 0;      (*Referenz y deviation [px * SubResolution]*)
-	dx            : DINT := 0;      (*x deviation [px * SubResolution]*)
-	dy            : DINT := 0;      (*y deviation [px * SubResolution]*)
-	col				    : DINT := 0;      (*point definition*)
-	row				    : DINT := 0;      (*point definition*)
+  x_ref         : DINT := 0;      (*Referenz x deviation [px * SubResolution]*)
+  y_ref         : DINT := 0;      (*Referenz y deviation [px * SubResolution]*)
+  dx            : DINT := 0;      (*x deviation [px * SubResolution]*)
+  dy            : DINT := 0;      (*y deviation [px * SubResolution]*)
+  col           : DINT := 0;      (*point definition*)
+  row           : DINT := 0;      (*point definition*)
+  valid         : DINT := 0;      (*point valid*)
 END_STRUCT
 END_TYPE
 ]]></Declaration>

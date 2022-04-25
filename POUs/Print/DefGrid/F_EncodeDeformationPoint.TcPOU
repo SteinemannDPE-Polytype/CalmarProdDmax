@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="F_EncodeDeformationPoint" Id="{7f708707-8a1e-4cbb-87f4-7b0e9de48e25}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION F_EncodeDeformationPoint : ST_DeformationPoint
 VAR_INPUT
@@ -18,6 +18,7 @@ F_EncodeDeformationPoint.x_ref := FC_LREAL_TO_DINT(sPoint.x_ref * nResolution, p
 F_EncodeDeformationPoint.y_ref := FC_LREAL_TO_DINT(sPoint.y_ref * nResolution, pI_ConversionErr:=ADR(nErrCtr));
 F_EncodeDeformationPoint.dx    := FC_LREAL_TO_DINT(sPoint.dx * nResolution, pI_ConversionErr:=ADR(nErrCtr));
 F_EncodeDeformationPoint.dy    := FC_LREAL_TO_DINT(sPoint.dy * nResolution, pI_ConversionErr:=ADR(nErrCtr));
+F_EncodeDeformationPoint.valid := SEL(sPoint.valid, 0, 1);
 ]]></ST>
     </Implementation>
     <LineIds Name="F_EncodeDeformationPoint">
@@ -28,6 +29,7 @@ F_EncodeDeformationPoint.dy    := FC_LREAL_TO_DINT(sPoint.dy * nResolution, pI_C
       <LineId Id="52" Count="0" />
       <LineId Id="38" Count="0" />
       <LineId Id="41" Count="0" />
+      <LineId Id="63" Count="0" />
       <LineId Id="24" Count="0" />
     </LineIds>
   </POU>

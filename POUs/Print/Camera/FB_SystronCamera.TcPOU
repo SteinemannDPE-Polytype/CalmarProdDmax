@@ -44,8 +44,10 @@ END_VAR]]></Declaration>
         <ST><![CDATA[(*Test points*)
 stCameraResult[1].x_ref :=   54;  (*[mm]*)
 stCameraResult[1].y_ref := 1003;  (*[mm]*)
+stCameraResult[1].valid := TRUE;
 stCameraResult[2].x_ref :=   46;  (*[mm]*)
 stCameraResult[2].y_ref :=  376;  (*[mm]*)
+stCameraResult[2].valid := TRUE;
 
 (*Points are send every 15s*)
 fbTonTimer(IN := NOT fbTonTimer.Q, PT := T#15S);
@@ -318,8 +320,11 @@ END_VAR
     </LineIds>
     <LineIds Name="FB_SystronCamera.CreateSimCamPoints">
       <LineId Id="23" Count="0" />
-      <LineId Id="6" Count="3" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="8" Count="1" />
       <LineId Id="32" Count="0" />
+      <LineId Id="85" Count="0" />
       <LineId Id="38" Count="0" />
       <LineId Id="33" Count="1" />
       <LineId Id="20" Count="0" />

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="F_DecodeDeformationPoint" Id="{35d944e7-27af-430e-88d8-837c1562c337}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION F_DecodeDeformationPoint : ST_DeformationPointAccurate
 VAR_INPUT
@@ -19,6 +19,7 @@ F_DecodeDeformationPoint.x_ref := TO_LREAL(sPoint.x_ref) / nReso;
 F_DecodeDeformationPoint.y_ref := TO_LREAL(sPoint.y_ref) / nReso;
 F_DecodeDeformationPoint.dx    := TO_LREAL(sPoint.dx) / nReso;
 F_DecodeDeformationPoint.dy    := TO_LREAL(sPoint.dy) / nReso;
+F_DecodeDeformationPoint.valid := SEL(sPoint.valid>0, FALSE, TRUE);
 ]]></ST>
     </Implementation>
     <LineIds Name="F_DecodeDeformationPoint">
@@ -30,6 +31,7 @@ F_DecodeDeformationPoint.dy    := TO_LREAL(sPoint.dy) / nReso;
       <LineId Id="64" Count="0" />
       <LineId Id="38" Count="0" />
       <LineId Id="41" Count="0" />
+      <LineId Id="74" Count="0" />
       <LineId Id="24" Count="0" />
     </LineIds>
   </POU>

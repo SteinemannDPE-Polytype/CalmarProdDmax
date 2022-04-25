@@ -83,7 +83,8 @@ IF bSensorStateOK[1] AND bSensorStateOK[2] THEN
     stCamPoint.dx    := 0;
     stCamPoint.dy    := F_MeterToSubPixelReal( fLateralOffset * 0.001                              (*[mm] => [m]*)
                                               , UDINT_TO_LREAL(_nPrintUnitResolution));             (*Result should be in pixels*)
-  
+    stCamPoint.valid := TRUE;
+    
     _iCameraSink.AddCamPoint(stCamPoint);
     _nRxCamPoints := _nRxCamPoints + 1 ;
   
@@ -96,7 +97,8 @@ IF bSensorStateOK[1] AND bSensorStateOK[2] THEN
                                              , UDINT_TO_LREAL(_nPrintUnitResolution));             (*Result should be in pixels*)
     stCamPoint.dy    := F_MeterToSubPixelReal( fLateralOffset * 0.001                              (*[mm] => [m]*)
                                              , UDINT_TO_LREAL(_nPrintUnitResolution));             (*Result should be in pixels*)
-  
+    stCamPoint.valid := TRUE;
+    
     _iCameraSink.AddCamPoint(stCamPoint);
     _nRxCamPoints := _nRxCamPoints + 1;
   END_IF;
@@ -267,7 +269,11 @@ END_VAR
       </Get>
     </Property>
     <LineIds Name="FB_MarkCamera">
-      <LineId Id="617" Count="74" />
+      <LineId Id="617" Count="41" />
+      <LineId Id="732" Count="0" />
+      <LineId Id="659" Count="12" />
+      <LineId Id="731" Count="0" />
+      <LineId Id="672" Count="19" />
       <LineId Id="9" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkCamera.eCameraMode.Get">
