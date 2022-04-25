@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_WorkerDefGrid_Deformation" Id="{8683d501-d2f8-4b2f-9f84-75930406cf79}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Deformation EXTENDS FB_WorkerDefGrid
 VAR_INPUT
@@ -127,7 +127,6 @@ IF _sDeformationGridSettings.nGridPitchX > 0 AND _sDeformationGridSettings.nGrid
 END_IF
 _sDeformationGridSettings.nGridPoints :=  _sDeformationGridSettings.nGridSizeX * _sDeformationGridSettings.nGridSizeY;
 
-_bNewJob := TRUE;
 _bJobActive := TRUE;]]></ST>
       </Implementation>
     </Method>
@@ -178,25 +177,24 @@ VAR
   sTmpCamGidSettings : ST_CameraGridSettings;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[SUPER^.work();
+        <ST><![CDATA[IF _pParamMediator = 0 THEN RETURN; END_IF
 
-// new job activated
-IF _pParamMediator <> 0 AND _bNewJob THEN 
-  _bNewJob := FALSE;
-  
-  // - update time from camera settings
-  sTmpCamGidSettings := _pParamMediator^.sCameraGridSettings;
-  _fRefreshPeriod := sTmpCamGidSettings.fGridFeaturePitch;
-  
-  // - enable / disable worker based on mode
-  IF sTmpCamGidSettings.eCameraMode > E_CameraMode.NoCorrection THEN  
-    bEnable := TRUE;
-  ELSE 
-    bEnable := FALSE;
-  END_IF
+SUPER^.work();
+
+//-----------------------------------------------------------
+//- automatic worker setup & control
+//-- update camera and grid settings from current camera
+sTmpCamGidSettings := _pParamMediator^.sCameraGridSettings;
+_fRefreshPeriod := sTmpCamGidSettings.fGridFeaturePitch;
+//-- enable / disable worker based on mode
+IF sTmpCamGidSettings.eCameraMode > E_CameraMode.NoCorrection THEN  
+  bEnable := TRUE;    // enable this worker
+ELSE 
+  bEnable := FALSE;   // disable this worker
 END_IF
 
 
+//-----------------------------------------------------------
 // Work only with attached container
 IF _pAttachedCt <> 0 THEN
   //Get information from container
@@ -288,7 +286,6 @@ END_IF]]></ST>
       <LineId Id="38" Count="0" />
       <LineId Id="23" Count="0" />
       <LineId Id="18" Count="0" />
-      <LineId Id="77" Count="0" />
       <LineId Id="52" Count="0" />
       <LineId Id="51" Count="0" />
     </LineIds>
@@ -308,18 +305,17 @@ END_IF]]></ST>
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Deformation.work">
-      <LineId Id="37" Count="0" />
-      <LineId Id="138" Count="0" />
-      <LineId Id="120" Count="0" />
-      <LineId Id="119" Count="0" />
-      <LineId Id="121" Count="0" />
-      <LineId Id="133" Count="0" />
-      <LineId Id="124" Count="5" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="158" Count="1" />
+      <LineId Id="157" Count="0" />
+      <LineId Id="150" Count="1" />
+      <LineId Id="124" Count="2" />
+      <LineId Id="128" Count="1" />
       <LineId Id="139" Count="0" />
       <LineId Id="131" Count="1" />
       <LineId Id="123" Count="0" />
-      <LineId Id="122" Count="0" />
       <LineId Id="141" Count="0" />
+      <LineId Id="149" Count="0" />
       <LineId Id="140" Count="0" />
       <LineId Id="38" Count="1" />
       <LineId Id="88" Count="0" />
