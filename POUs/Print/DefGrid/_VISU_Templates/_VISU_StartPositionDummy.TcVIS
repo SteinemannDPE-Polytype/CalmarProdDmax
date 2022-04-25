@@ -335,7 +335,7 @@
                     </o>
                     <o>
                       <v n="Id">390574330L</v>
-                      <v n="Value">"Speed [m/min] %s [m/s]"</v>
+                      <v n="Value">"Speed [m/min] %0.03f [m/s]"</v>
                     </o>
                     <o>
                       <v n="Id">2477733581L</v>
@@ -351,7 +351,7 @@
                     </o>
                     <o>
                       <v n="Id">823443203L</v>
-                      <v n="Value">"1515"</v>
+                      <v n="Value">"1484"</v>
                     </o>
                   </l>
                 </o>
@@ -899,7 +899,7 @@
                 <v n="VisualElementIdentifier">"GenElemInst_10"</v>
                 <n n="VisualElementOfflinePaintCommands" />
                 <n n="VisualElementFrameInformation" />
-                <d n="VisualElementInputActions" t="Hashtable" ckt="String" cvt="IInputAction[]">
+                <d n="VisualElementInputActions" t="Hashtable" ckt="String" cvt="InputBoxInputAction[]">
                   <v>OnMouseClick</v>
                   <a cet="InputBoxInputAction">
                     <o>
@@ -2026,16 +2026,18 @@
           <o n="GeneratedLMMDescriptions" t="GeneratedLanguageModelEntriesData">
             <o n="GeneratedVisuFbDescription" t="GenericFbDescription">
               <d n="FbMethods" t="CaseInsensitiveHashtable" ckt="String" cvt="Guid">
-                <v>GetUpdateRects</v>
-                <v>6fdd1156-97c9-494d-b56d-208951b99673</v>
+                <v>HasVisibilityAccess</v>
+                <v>bbfe9997-3c42-4876-a257-42ffacac5284</v>
                 <v>ContainsPoint</v>
                 <v>a43a1aef-72bf-4d64-ad5f-e8213b20879c</v>
-                <v>SetStaticState</v>
-                <v>9965f8e8-ac23-4d70-9be2-1e48f5efa3da</v>
+                <v>HasInputAccess</v>
+                <v>ec1249e8-2012-4c63-ad38-e8ed5baeb490</v>
                 <v>HasInputAccessIntern</v>
                 <v>9b5735be-d54b-47b0-9d63-cabfae9696b7</v>
                 <v>GetTooltip</v>
                 <v>b0fc70d9-5234-4269-9a25-93bdc53108c1</v>
+                <v>GetUpdateRects</v>
+                <v>6fdd1156-97c9-494d-b56d-208951b99673</v>
                 <v>GetNamespace</v>
                 <v>cc5e7916-be06-4b85-b770-e17bfe41f4aa</v>
                 <v>GetTranslator</v>
@@ -2048,8 +2050,6 @@
                 <v>5fa495e3-217d-4591-9285-5d0e0a4c92b0</v>
                 <v>Paint</v>
                 <v>ae719dc9-3032-404e-832a-723e44e862bf</v>
-                <v>HasVisibilityAccess</v>
-                <v>bbfe9997-3c42-4876-a257-42ffacac5284</v>
                 <v>GetElementArray</v>
                 <v>d32c6d50-429a-48ab-b68a-133ede3dde4d</v>
                 <v>SetVisuFlagsInternal</v>
@@ -2062,14 +2062,14 @@
                 <v>b19d69f8-bd2d-405a-bb2e-3a6e54d5749e</v>
                 <v>Initialize</v>
                 <v>761ec0d0-34b0-4834-b886-09d08454e0ee</v>
-                <v>HasInputAccess</v>
-                <v>ec1249e8-2012-4c63-ad38-e8ed5baeb490</v>
                 <v>HasVisibilityAccessIntern</v>
                 <v>f30a78be-5b63-4157-bf9c-0166a91c92e0</v>
                 <v>GetSurroundingRect</v>
                 <v>1822467f-912c-454c-8ed4-8abac7051f69</v>
                 <v>ElementInfo</v>
                 <v>ffea9f7e-6d88-4226-8b7d-8faa37fcc0f5</v>
+                <v>SetStaticState</v>
+                <v>9965f8e8-ac23-4d70-9be2-1e48f5efa3da</v>
                 <v>GetLocalUsergroup</v>
                 <v>706fac38-d51a-471d-a2db-51a225763cdf</v>
                 <v>GetName</v>
@@ -2100,10 +2100,10 @@
               <d n="FbMethods" t="CaseInsensitiveHashtable" ckt="String" cvt="Guid">
                 <v>FB_Init</v>
                 <v>cb1d2780-3b8c-4473-9a1e-73463ee5baf0</v>
-                <v>FB_Reinit</v>
-                <v>20207c30-64f9-4ae2-bf37-07f40702ac0b</v>
                 <v>FB_Exit</v>
                 <v>be16990d-d293-471b-ac1c-ff4fba6067e2</v>
+                <v>FB_Reinit</v>
+                <v>20207c30-64f9-4ae2-bf37-07f40702ac0b</v>
               </d>
               <v n="FbName">"NotImportant"</v>
               <v n="FbGuid">{3b1de2ec-465e-4804-a573-79c4f936297a}</v>
@@ -2158,7 +2158,7 @@
               <o>
                 <v n="Id">5L</v>
                 <n n="Tag" />
-                <v n="Text">"	m_Inst : FB_StartPositionDummy;"</v>
+                <v n="Text">"  m_Inst : FB_StartPositionDummy;"</v>
               </o>
               <o>
                 <v n="Id">1L</v>
@@ -2211,7 +2211,6 @@
         <Type n="Guid">System.Guid</Type>
         <Type n="Hashtable">System.Collections.Hashtable</Type>
         <Type n="HotkeyConfiguration">{6b108d46-58af-4e41-a3f4-174d8f160cc4}</Type>
-        <Type n="IInputAction[]">_3S.CoDeSys.VisualElem.IInputAction[], VisualElem, Version=3.5.13.0, Culture=neutral, PublicKeyToken=null</Type>
         <Type n="InputBoxInputAction">{e8e7e747-f76f-4dee-ab1c-b9637e41ac26}</Type>
         <Type n="InputBoxInputAction[]">_3S.CoDeSys.VisualElem.InputBoxInputAction[], VisualElem.plugin, Version=3.5.13.31, Culture=neutral, PublicKeyToken=null</Type>
         <Type n="Int16">System.Int16</Type>

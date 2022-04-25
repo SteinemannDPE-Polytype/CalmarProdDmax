@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_WorkerDefGrid_Print" Id="{a3c0fca9-0a63-49f3-a9fd-25e7fe09223b}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Print EXTENDS FB_WorkerDefGrid
 VAR_INPUT
@@ -384,7 +384,7 @@ IF fCurrentColumnPos + _fColumnsToPrecharge > nChargedColumns AND nChargedColumn
           // get points
           IF _pAttachedCt^.getDeformationPoint(nCol:=nChargedColumns, nRow:=nRow, sPoint => sPoint) THEN
             // transfer the displacement into a correction
-            sPoint.dx := sPoint.dx;
+            sPoint.dx := sPoint.dx;   // nothing to change
             sPoint.dy := sPoint.dy;
             
             // apply PU corrections
