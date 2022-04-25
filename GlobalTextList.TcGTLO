@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <GlobalTextList Name="GlobalTextList" Id="{203f0000-e452-49ef-afd7-9a4cdbc0d524}">
     <XmlArchive>
       <Data>
@@ -121,6 +121,11 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"1864"</v>
+              <v n="TextDefault">"%0.4f"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"11719"</v>
               <v n="TextDefault">"%0.4f  [m]"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -178,6 +183,11 @@
             <o>
               <v n="TextID">"456"</v>
               <v n="TextDefault">"%f"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2383"</v>
+              <v n="TextDefault">"%f [m/min]"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -955,6 +965,21 @@ sdfsd"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"453"</v>
+              <v n="TextDefault">"Gap [mm]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1280"</v>
+              <v n="TextDefault">"Gap [m]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"982"</v>
+              <v n="TextDefault">"Gap [m], %d [mm]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"4929"</v>
               <v n="TextDefault">"Global dX"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -965,6 +990,11 @@ sdfsd"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"1397"</v>
+              <v n="TextDefault">"Grid ImageOffset Y [px]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"12596"</v>
               <v n="TextDefault">"Grid Points"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -972,6 +1002,16 @@ sdfsd"</v>
             <o>
               <v n="TextID">"7895"</v>
               <v n="TextDefault">"Grid size c/r/y"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"851"</v>
+              <v n="TextDefault">"Grid Size X"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1029"</v>
+              <v n="TextDefault">"Grid SizeY"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -1027,6 +1067,16 @@ sdfsd"</v>
             <o>
               <v n="TextID">"1053"</v>
               <v n="TextDefault">"JobActive"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"376"</v>
+              <v n="TextDefault">"Length [mm]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1522"</v>
+              <v n="TextDefault">"Length [m]"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -1315,8 +1365,28 @@ sdfsd"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"2344"</v>
+              <v n="TextDefault">"SheetGap [mm]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"1697"</v>
               <v n="TextDefault">"SheetLength"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2532"</v>
+              <v n="TextDefault">"SheetLength [mm]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"822"</v>
+              <v n="TextDefault">"SheetSpeed"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1118"</v>
+              <v n="TextDefault">"SheetSpeed [m/min]"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -1330,13 +1400,38 @@ sdfsd"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"450"</v>
+              <v n="TextDefault">"Simulation auto-trigger"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"159"</v>
+              <v n="TextDefault">"Simulation enable"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"2330"</v>
               <v n="TextDefault">"Speed"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"105"</v>
+              <v n="TextDefault">"Speed [m/min]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1515"</v>
+              <v n="TextDefault">"Speed [m/min] %s [m/s]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"12089"</v>
               <v n="TextDefault">"Speed [m/s]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1654"</v>
+              <v n="TextDefault">"Speed [sheet/h]"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>

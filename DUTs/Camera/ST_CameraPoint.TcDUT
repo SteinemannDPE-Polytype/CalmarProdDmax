@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <DUT Name="ST_CameraPoint" Id="{c39ecd96-24fd-4da6-bb67-f1320fea4450}">
     <Declaration><![CDATA[TYPE ST_CameraPoint :
 STRUCT
   (*Valus from camera [px/4800dpi]*)
-  id                  : UDINT := 0;      (*mark id*)
+  id                  : UDINT := 0;     (*mark id*)
   x_ref               : DINT := 0;      (*Referenz x deviation [px/4800dpi]*)
   y_ref               : DINT := 0;      (*Referenz y deviation [px/4800dpi]*)
   lx                  : DINT := 0;      (*Referenz in picture x deviation [px/4800dpi]*)

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <Visu Name="_VISU_WorkerDefGrid_Deformation" Id="{e6c91e55-ff0b-4e93-a921-cff1a4b7baa0}">
     <XmlArchive>
       <Data>
@@ -1712,7 +1712,7 @@
                   <l n="VisualElemMemberList" t="VisualElemMemberCollection" cet="VisualElemMember">
                     <o>
                       <v n="Id">571893170L</v>
-                      <v n="Value">""</v>
+                      <v n="Value">"Grid SizeY"</v>
                     </o>
                     <o>
                       <v n="Id">494569607L</v>
@@ -1864,6 +1864,10 @@
                     <o>
                       <v n="Id">823443203L</v>
                       <v n="Value">"9"</v>
+                    </o>
+                    <o>
+                      <v n="Id">3438453433L</v>
+                      <v n="Value">"1029"</v>
                     </o>
                   </l>
                 </o>
@@ -3063,7 +3067,7 @@
                   <l n="VisualElemMemberList" t="VisualElemMemberCollection" cet="VisualElemMember">
                     <o>
                       <v n="Id">571893170L</v>
-                      <v n="Value">""</v>
+                      <v n="Value">"Grid Size X"</v>
                     </o>
                     <o>
                       <v n="Id">494569607L</v>
@@ -3215,6 +3219,10 @@
                     <o>
                       <v n="Id">823443203L</v>
                       <v n="Value">"9"</v>
+                    </o>
+                    <o>
+                      <v n="Id">3438453433L</v>
+                      <v n="Value">"851"</v>
                     </o>
                   </l>
                 </o>
@@ -5153,7 +5161,7 @@
                   <l n="VisualElemMemberList" t="VisualElemMemberCollection" cet="VisualElemMember">
                     <o>
                       <v n="Id">571893170L</v>
-                      <v n="Value">""</v>
+                      <v n="Value">"Grid ImageOffset Y [px]"</v>
                     </o>
                     <o>
                       <v n="Id">494569607L</v>
@@ -5306,6 +5314,10 @@
                       <v n="Id">823443203L</v>
                       <v n="Value">"9"</v>
                     </o>
+                    <o>
+                      <v n="Id">3438453433L</v>
+                      <v n="Value">"1397"</v>
+                    </o>
                   </l>
                 </o>
                 <v n="VisualElementName">"Rectangle"</v>
@@ -5428,10 +5440,10 @@
               <d n="FbMethods" t="CaseInsensitiveHashtable_1" ckt="String" cvt="Guid">
                 <v>FB_Init</v>
                 <v>90e8d78c-3b5c-49a8-9124-4f1b2db6db18</v>
-                <v>FB_Exit</v>
-                <v>f7e88679-eac6-4d5c-bdb1-14b1c0252dfc</v>
                 <v>FB_Reinit</v>
                 <v>a113034b-44ae-40cb-9ccb-c740072e2e1f</v>
+                <v>FB_Exit</v>
+                <v>f7e88679-eac6-4d5c-bdb1-14b1c0252dfc</v>
               </d>
               <v n="FbName">"NotImportant"</v>
               <v n="FbGuid">{c226043b-8c46-4302-a2f5-25bf6756f3fe}</v>
@@ -5543,7 +5555,7 @@
         <Type n="Hashtable">System.Collections.Hashtable</Type>
         <Type n="HotkeyConfiguration">{6b108d46-58af-4e41-a3f4-174d8f160cc4}</Type>
         <Type n="InputBoxInputAction">{e8e7e747-f76f-4dee-ab1c-b9637e41ac26}</Type>
-        <Type n="InputBoxInputAction[]">_3S.CoDeSys.VisualElem.InputBoxInputAction[], VisualElem.plugin, Version=3.5.13.30, Culture=neutral, PublicKeyToken=null</Type>
+        <Type n="InputBoxInputAction[]">_3S.CoDeSys.VisualElem.InputBoxInputAction[], VisualElem.plugin, Version=3.5.13.31, Culture=neutral, PublicKeyToken=null</Type>
         <Type n="Int16">System.Int16</Type>
         <Type n="Int32">System.Int32</Type>
         <Type n="Int64">System.Int64</Type>

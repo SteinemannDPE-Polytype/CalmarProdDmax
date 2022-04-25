@@ -27,6 +27,7 @@ END_VAR
     <Implementation>
       <ST><![CDATA[]]></ST>
     </Implementation>
+    <Folder Name="I_PrintStatusClient" Id="{f883ee39-a8eb-4a93-9829-26e2a724ffe3}" />
     <Method Name="Attach" Id="{42eaf325-ff4e-48df-be91-9b20bce3da44}">
       <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
 VAR_INPUT
@@ -149,7 +150,7 @@ fbPythonInterface.Init(
 );]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStart" Id="{0fd0f7ed-3d4d-47aa-ba8e-6404bd51c209}">
+    <Method Name="mJobStart" Id="{0fd0f7ed-3d4d-47aa-ba8e-6404bd51c209}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mJobStart
 VAR_INPUT
 	sJobDef	: CalmarCompPrint.I_JobDefinition;
@@ -171,7 +172,7 @@ _bNewJob := TRUE;
 _bJobActive := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStop" Id="{db89a0b9-8d28-4bf7-9778-94d597d27cae}">
+    <Method Name="mJobStop" Id="{db89a0b9-8d28-4bf7-9778-94d597d27cae}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD  mJobStop
 VAR_INPUT
 	sStatus	: CalmarCompPrint.I_JobStatus;

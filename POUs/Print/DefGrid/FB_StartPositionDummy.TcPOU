@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_StartPositionDummy" Id="{8c44436b-fdf6-4982-bb45-487571d5b646}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   A start position detection function block dummy.
@@ -7,95 +7,84 @@
 *)
 FUNCTION_BLOCK FB_StartPositionDummy EXTENDS FB_BasePrint IMPLEMENTS I_StartPosDetect, I_PrintStatusClient, I_Simulation
 VAR_INPUT
-  bTrigger              AT%I* : BOOL;       // (INPUT) trigger (rising edge)
-  tTrigger_TimeStamp    AT%I* : T_DCTIME64; // (INPUT) rigger timerstamp
+  bTrigger                    : BOOL;       // manual trigger
   lPosition                   : DINT;       // current position [SubPx]
   fSpeed                      : LREAL;      // current speed [m/s]
   fResolution                 : LREAL;      // current print resolution [dpi*SubPx]
 END_VAR
 
 VAR
+  // properties
   _bSim               : BOOL;       // simulatio mode active (PROPERTY)
   _bCreateTrigger     : BOOL;       // create new CT trigger (PROPERTY)
-  _nStartPosition     : DINT;       // create position for CT (absolut) [SubPx] (PROPERTY)
-
-  // local helper
-  bNewCt              : BOOL;
-  tCycle              : TIME;
-  tonNewSheet         : TON;
-  rfTrig_NewCT        : RF_TRIG;
+  _nStartPosX0        : DINT;       // create position for CT (absolut) [SubPx] (PROPERTY)
+  _bAutoTrigger       : BOOL;       // automatic sheet triggers
+  
+  // config
   iJobDefinition      : CalmarCompPrint.I_JobDefinition;
-  nCalcPosition       : DINT;            (*calculated position [SubPx]*)
-  nSheetEndPosition   : DINT;            (*sheet end position [SubPx]*)
-  bStartTrigger       : BOOL;            (*start trigger*)
-  bInhibSensor        : BOOL;            (*inhibit sensor signals, TRUE=inhibit*)
-  tCurrentTimeStamp   : T_DCTIME64;      (*get current timestamp*)
-  fCurrentTimeStamp   : LREAL;           (*current timestamp*)
-  fSensorTimeStamp    : LREAL;           (*sensor timestamp*)
-  fDeltaDistance      : LREAL;           (*distance that the substrate moved between the detection and the treatment of the information [m]*)
+  
+  // local helper
+  rfNewCT             : RF_TRIG;    // trigger new ct
+  nSheetLength        : DINT;       // sheet length in [SubPx]
+  nSheetGap           : DINT;       // sheet gap in [SubPx]
+  nSheetEndPosition   : DINT;       // sheet end position [SubPx]
+  nNextSheetPosition  : DINT;       // next trigger location
+  fSheetPerHour       : LREAL;      // sheets per hour
+  fSheetSpeed         : LREAL;      // [m/min] speed meter per minute
+  tCheckTrigger       : TON;
+  
+  tCurrentTimeStamp   : T_DCTIME64; // get current timestamp
+  fCurrentTimeStamp   : LREAL;      // current timestamp
+  fSensorTimeStamp    : LREAL;      // sensor timestamp
+  fDeltaDistance      : LREAL;      // distance that the substrate moved between the detection and the treatment of the information [m]
 END_VAR
 
 VAR PERSISTENT
-  // local simulation configurations persistent
-  iCreateType    : UINT := 2;   // 0,1=by input rising edge, 2=create by sheets p.m. 3=create by sheet gap  
-  fSheetCycle    : REAL := 20;  // [-] sheets per minute
-  fSheetGap      : REAL := 20;  // [mm] gap between two sheets
-  fSheetLength   : LREAL := 500; // [mm] sheet length TODO: remove if given by job(default if not given by jobDefinition)
-END_VAR
-
-VAR CONSTANT
-  sCreateTArray : ARRAY[1..3] OF STRING := ['Input Trigger', 'Cycle', 'Gap'];
+  // simulation configuration
+  fSheetLength   : LREAL := 0.5;    // [m] sheet length (local or per job given)
+  fSheetGap      : LREAL := 0.12;   // [m] gap between two sheets
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[// Create CT triggers with a given cycle (based on configuration of Simulation)
-IF    iCreateType = 0 OR iCreateType = 1 OR NOT _bSim THEN   
-  // --> trigger by input (default)
-  IF bTrigger AND NOT bInhibSensor THEN
-    bStartTrigger := TRUE;
-    bInhibSensor  := TRUE;
+      <ST><![CDATA[// checks and fixes
+IF iJobDefinition = 0 THEN RETURN; END_IF
+IF NOT _bSim THEN RETURN; END_IF
+IF fSpeed = 0 THEN RETURN; END_IF
+IF fSheetLength = 0 THEN fSheetLength := 1; END_IF
+IF fResolution = 0 THEN fResolution := 600*32; END_IF
 
-    (* Calculate the current and sensor time stamp *)
-    tCurrentTimeStamp := F_GetCurDcTaskTime64();
-    fCurrentTimeStamp := (ULINT_TO_LREAL(tCurrentTimeStamp )) / 1_000_000.0; (*in ms*)
-    fSensorTimeStamp  := fCurrentTimeStamp;// (ULINT_TO_LREAL(tTrigger_TimeStamp)) / 1_000_000.0; (*in ms*)
-    (* Treatment of the information *)
-    fDeltaDistance := (fCurrentTimeStamp - fSensorTimeStamp) * 0.001 * fSpeed;  (*Distance that the substrate moved between the detection and the treatment of the information [m]*)
-    nCalcPosition     := lPosition - F_MeterToSubPixel(fPosMeter := fDeltaDistance, fResoSubPx := fResolution);
-    nSheetEndPosition := nCalcPosition + F_MeterToSubPixel(fPosMeter := fSheetLength / 1000, fResoSubPx := fResolution);
-  ELSE
-    bStartTrigger := FALSE;
-	END_IF
+// calculations
+fSheetSpeed := fSpeed * 60;  // [m/s] -> [m/min]
+nSheetGap := F_MeterToSubPixel(fPosMeter := fSheetGap, fResoSubPx := fResolution);  // [m] -> [SubPx]
+fSheetPerHour := (60*60)/((fSheetLength+fSheetGap)/fSpeed);
+nSheetLength := F_MeterToSubPixel(fPosMeter := fSheetLength, fResoSubPx := fResolution);  // [mm] -> [SubPx]
+nNextSheetPosition := _nStartPosX0 + nSheetLength + nSheetGap; 
+tCheckTrigger(PT:=TO_TIME(((fSheetLength+fSheetGap)/fSpeed)*1000));
 
-  bNewCt := bStartTrigger;
-
-ELSIF iCreateType = 2 AND _bSim THEN   
-  // --> trigger by sheets per minute
-  tCycle := prodspeed_to_time(lCycle := fSheetCycle);
-  tonNewSheet(IN := NOT tonNewSheet.Q, PT := tCycle, Q => bNewCt);
-  nCalcPosition := lPosition;
-  
-ELSIF iCreateType = 3 AND _bSim THEN
-  // --> trigger by sheet gap;
-  //  we need current job settings
-  IF fSheetLength = 0 THEN fSheetLength := 1*1000; END_IF  // set some valid size 1000mm if no job is given
-  tCycle := length_to_time(dist := (fSheetGap + fSheetLength) / 1000, speed := fSpeed); 
-  tonNewSheet(IN := NOT tonNewSheet.Q, PT := tCycle, Q => bNewCt);
-  nCalcPosition := lPosition;
-  
-ELSE
-  ;  // not supported ignore
+// internal trigger creation
+IF (lPosition - nNextSheetPosition) > 0 AND _bAutoTrigger THEN
+  bTrigger := TRUE;
+  tCheckTrigger(IN:=FALSE);
+  tCheckTrigger(IN:=TRUE);
 END_IF
 
-// set ouputs (properties)
-rfTrig_NewCT(CLK := bNewCt, RT => _bCreateTrigger);    // set ouput trigger
-IF _bCreateTrigger THEN 
-  _nStartPosition := nCalcPosition;
+// on trigger
+rfNewCT(CLK := bTrigger, RT => _bCreateTrigger);
+IF _bCreateTrigger THEN   // new ct created
+  bTrigger := FALSE;  // reset trigger
+  
+  (* Calculate the current and sensor time stamp (keep old code not really necessary because we use current timestamp)*)
+  tCurrentTimeStamp := F_GetCurDcTaskTime64();
+  fCurrentTimeStamp := (ULINT_TO_LREAL(tCurrentTimeStamp )) / 1_000_000.0; (*in ms*)
+  fSensorTimeStamp  := fCurrentTimeStamp;
+  fDeltaDistance := (fCurrentTimeStamp - fSensorTimeStamp) * 0.001 * fSpeed;  (*Distance that the substrate moved between the detection and the treatment of the information [m]*)
+  
+  // sheet start and sheet end pos in [SubPx]
+  _nStartPosX0     := lPosition - F_MeterToSubPixel(fPosMeter := fDeltaDistance, fResoSubPx := fResolution);
+  nSheetEndPosition := _nStartPosX0 + nSheetLength;
 END_IF
 
-(*stop trigger to reset bInhibSensor*)
-IF (lPosition >= nSheetEndPosition) AND bInhibSensor THEN
-  bInhibSensor := FALSE;
-END_IF;
+
+
 ]]></ST>
     </Implementation>
     <Folder Name="I_PrintStatusClient" Id="{0f059572-48fa-432b-b785-512422fd1dfe}" />
@@ -152,22 +141,6 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Method Name="length_to_time" Id="{6d1890ed-cd04-401d-8fa5-d36c469783e5}">
-      <Declaration><![CDATA[(*
-Convert a distance to time with current speed
-*)
-METHOD PRIVATE length_to_time : TIME
-VAR_INPUT
-  dist  : LREAL; // [m] distance
-  speed : LREAL; // [m/s] @speet
-END_VAR
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[IF speed = 0 THEN  RETURN; END_IF   // ignore if speed = 0
-
-length_to_time := LREAL_TO_TIME((dist * 1000)/ speed);  // TIME base is in [ms]]]></ST>
-      </Implementation>
-    </Method>
     <Method Name="mJobStart" Id="{e393908f-23a1-4595-a465-2cf3c9f6001e}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mJobStart
 VAR_INPUT
@@ -175,15 +148,11 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[
-// sample new CT configuration from job
+        <ST><![CDATA[IF sJobDef = 0 THEN LogError('JobStart: no sJobDef given'); RETURN; END_IF
+
 iJobDefinition := sJobDef;    // current job definition
-
-IF iJobDefinition <> 0 THEN
-  fSheetLength := iJobDefinition.fSubstrateDepth * 1000; // [m] -> [mm]
-END_IF
-
-bInhibSensor := FALSE;]]></ST>
+fSheetLength := iJobDefinition.fSubstrateDepth;
+]]></ST>
       </Implementation>
     </Method>
     <Method Name="mJobStop" Id="{d8356075-2335-4b08-acc5-155ab282c68f}" FolderPath="I_PrintStatusClient\">
@@ -218,32 +187,21 @@ PROPERTY nStartPositionX0 : DINT
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[nStartPositionX0 := _nStartPosition;]]></ST>
+          <ST><![CDATA[nStartPositionX0 := _nStartPosX0;]]></ST>
         </Implementation>
       </Get>
     </Property>
-    <Method Name="prodspeed_to_time" Id="{c91d715b-46ec-45b5-8769-aca2c4f1baa0}">
-      <Declaration><![CDATA[(*
-Convert production speed to a time. E.g. number of sheet per minute to a cycle time.
-*)
-METHOD PRIVATE prodspeed_to_time : TIME
-VAR_INPUT
-  lCycle        : REAL;    // sheets per minute
-END_VAR
-VAR
-  fCycleTime    : LREAL;
-END_VAR]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[fCycleTime := (60 / REAL_TO_LREAL(lCycle)) * 1000;
-prodspeed_to_time := LREAL_TO_TIME(fCycleTime);]]></ST>
-      </Implementation>
-    </Method>
     <Method Name="SimEnter" Id="{5f3afcf0-45e7-43f3-b7fa-173569233158}" FolderPath="I_Simulation\">
       <Declaration><![CDATA[METHOD SimEnter : BOOL
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[LogInfo('Enter start position creator simulation');
-_bSim := TRUE;]]></ST>
+_bSim := TRUE;
+
+_nStartPosX0 := lPosition;
+nSheetEndPosition := lPosition;
+nNextSheetPosition := lPosition;
+]]></ST>
       </Implementation>
     </Method>
     <Method Name="SimExit" Id="{48b25644-8173-4c12-af95-8aee36151a4f}" FolderPath="I_Simulation\">
@@ -262,30 +220,31 @@ _bSim := FALSE;]]></ST>
       </Implementation>
     </Method>
     <LineIds Name="FB_StartPositionDummy">
-      <LineId Id="179" Count="2" />
-      <LineId Id="253" Count="0" />
-      <LineId Id="259" Count="1" />
-      <LineId Id="264" Count="4" />
-      <LineId Id="273" Count="1" />
-      <LineId Id="279" Count="0" />
-      <LineId Id="295" Count="0" />
-      <LineId Id="256" Count="0" />
-      <LineId Id="262" Count="0" />
-      <LineId Id="257" Count="0" />
-      <LineId Id="280" Count="0" />
-      <LineId Id="182" Count="0" />
-      <LineId Id="263" Count="0" />
-      <LineId Id="185" Count="3" />
-      <LineId Id="249" Count="0" />
-      <LineId Id="189" Count="3" />
-      <LineId Id="340" Count="0" />
-      <LineId Id="194" Count="1" />
-      <LineId Id="250" Count="0" />
-      <LineId Id="196" Count="4" />
-      <LineId Id="202" Count="4" />
-      <LineId Id="282" Count="1" />
-      <LineId Id="286" Count="1" />
-      <LineId Id="281" Count="0" />
+      <LineId Id="709" Count="1" />
+      <LineId Id="797" Count="0" />
+      <LineId Id="818" Count="0" />
+      <LineId Id="711" Count="0" />
+      <LineId Id="783" Count="0" />
+      <LineId Id="809" Count="0" />
+      <LineId Id="756" Count="0" />
+      <LineId Id="716" Count="0" />
+      <LineId Id="807" Count="0" />
+      <LineId Id="817" Count="0" />
+      <LineId Id="762" Count="0" />
+      <LineId Id="758" Count="0" />
+      <LineId Id="812" Count="0" />
+      <LineId Id="810" Count="0" />
+      <LineId Id="764" Count="0" />
+      <LineId Id="757" Count="0" />
+      <LineId Id="766" Count="0" />
+      <LineId Id="820" Count="1" />
+      <LineId Id="765" Count="0" />
+      <LineId Id="730" Count="3" />
+      <LineId Id="808" Count="0" />
+      <LineId Id="806" Count="0" />
+      <LineId Id="734" Count="8" />
+      <LineId Id="745" Count="2" />
+      <LineId Id="751" Count="0" />
       <LineId Id="39" Count="0" />
     </LineIds>
     <LineIds Name="FB_StartPositionDummy.bSimEnable.Get">
@@ -300,18 +259,12 @@ _bSim := FALSE;]]></ST>
     <LineIds Name="FB_StartPositionDummy.bValid.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_StartPositionDummy.length_to_time">
-      <LineId Id="5" Count="0" />
-      <LineId Id="15" Count="0" />
-      <LineId Id="14" Count="0" />
-    </LineIds>
     <LineIds Name="FB_StartPositionDummy.mJobStart">
       <LineId Id="8" Count="0" />
-      <LineId Id="7" Count="0" />
+      <LineId Id="34" Count="0" />
       <LineId Id="9" Count="0" />
-      <LineId Id="22" Count="1" />
-      <LineId Id="28" Count="1" />
-      <LineId Id="15" Count="1" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="16" Count="0" />
     </LineIds>
     <LineIds Name="FB_StartPositionDummy.mJobStop">
       <LineId Id="7" Count="0" />
@@ -322,12 +275,13 @@ _bSim := FALSE;]]></ST>
     <LineIds Name="FB_StartPositionDummy.nStartPositionX0.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_StartPositionDummy.prodspeed_to_time">
-      <LineId Id="5" Count="0" />
-      <LineId Id="13" Count="0" />
-    </LineIds>
     <LineIds Name="FB_StartPositionDummy.SimEnter">
       <LineId Id="4" Count="1" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="9" Count="0" />
     </LineIds>
     <LineIds Name="FB_StartPositionDummy.SimExit">
       <LineId Id="4" Count="1" />

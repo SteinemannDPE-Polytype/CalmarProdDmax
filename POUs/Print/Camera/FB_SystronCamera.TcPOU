@@ -28,9 +28,44 @@ END_VAR
     <Implementation>
       <ST><![CDATA[(*Simulation*)
 IF _bSimulate THEN
-  SimulatePoints();
+  CreateSimCamPoints();
 END_IF]]></ST>
     </Implementation>
+    <Method Name="CreateSimCamPoints" Id="{378225cb-fa44-4cef-9044-ea9afe88fa30}">
+      <Declaration><![CDATA[(*
+  Simulate camera data
+*)
+METHOD CreateSimCamPoints : BOOL
+VAR_INST
+  fbTonTimer    : TON;    (*Send timer*)
+  nCounter      : UDINT;  (*Loop counter*)
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(*Test points*)
+stCameraResult[1].x_ref :=   54;  (*[mm]*)
+stCameraResult[1].y_ref := 1003;  (*[mm]*)
+stCameraResult[2].x_ref :=   46;  (*[mm]*)
+stCameraResult[2].y_ref :=  376;  (*[mm]*)
+
+(*Points are send every 15s*)
+fbTonTimer(IN := NOT fbTonTimer.Q, PT := T#15S);
+IF fbTonTimer.Q THEN
+  FOR nCounter := 1 TO 2 DO
+    stCamPoint.x_ref := F_MeterToSubPixelReal( stCameraResult[nCounter].x_ref * 0.001      (*[mm] => [m]*)
+                                             , UDINT_TO_LREAL(_nPrintUnitResolution));     (*Result should be in pixels*)
+    stCamPoint.y_ref := F_MeterToSubPixelReal( stCameraResult[nCounter].y_ref * 0.001      (*[m]*)
+                                             , UDINT_TO_LREAL(_nPrintUnitResolution));     (*Result should be in pixels*)
+    stCamPoint.dx    := F_MeterToSubPixelReal( 0.100 * UDINT_TO_REAL(nCounter) * 0.001     (*[mm] => [m]*)
+                                            , UDINT_TO_LREAL(_nPrintUnitResolution));     (*Result should be in pixels*)
+    stCamPoint.dy    := F_MeterToSubPixelReal( 0.200 * UDINT_TO_REAL(nCounter) * 0.001     (*[mm] => [m]*)
+                                            , UDINT_TO_LREAL(_nPrintUnitResolution));     (*Result should be in pixels*)
+  
+    _iCameraSink.AddCamPoint(stCamPoint);
+  END_FOR  
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
     <Property Name="eCameraMode" Id="{e5951198-b845-45c0-92a9-897b5e1419fe}">
       <Declaration><![CDATA[{attribute 'monitoring':='call'}
 PROPERTY eCameraMode : E_CameraMode
@@ -264,41 +299,6 @@ END_IF
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="SimulatePoints" Id="{378225cb-fa44-4cef-9044-ea9afe88fa30}">
-      <Declaration><![CDATA[(*
-  Simulate camera data
-*)
-METHOD SimulatePoints : BOOL
-VAR_INST
-  fbTonTimer    : TON;    (*Send timer*)
-  nCounter      : UDINT;  (*Loop counter*)
-END_VAR]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[(*Test points*)
-stCameraResult[1].x_ref :=   54;  (*[mm]*)
-stCameraResult[1].y_ref := 1003;  (*[mm]*)
-stCameraResult[2].x_ref :=   46;  (*[mm]*)
-stCameraResult[2].y_ref :=  376;  (*[mm]*)
-
-(*Points are send every 15s*)
-fbTonTimer(IN := NOT fbTonTimer.Q, PT := T#15S);
-IF fbTonTimer.Q THEN
-  FOR nCounter := 1 TO 2 DO
-    stCamPoint.x_ref := F_MeterToSubPixelReal( stCameraResult[nCounter].x_ref * 0.001      (*[mm] => [m]*)
-                                             , UDINT_TO_LREAL(_nPrintUnitResolution));     (*Result should be in pixels*)
-    stCamPoint.y_ref := F_MeterToSubPixelReal( stCameraResult[nCounter].y_ref * 0.001      (*[m]*)
-                                             , UDINT_TO_LREAL(_nPrintUnitResolution));     (*Result should be in pixels*)
-    stCamPoint.dx    := F_MeterToSubPixelReal( 0.100 * UDINT_TO_REAL(nCounter) * 0.001     (*[mm] => [m]*)
-                                            , UDINT_TO_LREAL(_nPrintUnitResolution));     (*Result should be in pixels*)
-    stCamPoint.dy    := F_MeterToSubPixelReal( 0.200 * UDINT_TO_REAL(nCounter) * 0.001     (*[mm] => [m]*)
-                                            , UDINT_TO_LREAL(_nPrintUnitResolution));     (*Result should be in pixels*)
-  
-    _iCameraSink.AddCamPoint(stCamPoint);
-  END_FOR  
-END_IF
-]]></ST>
-      </Implementation>
-    </Method>
     <Property Name="sName" Id="{b04a7b8e-bad3-4516-bd51-f585d8c1b504}">
       <Declaration><![CDATA[{attribute 'monitoring':='variable'}
 PROPERTY sName : STRING
@@ -315,6 +315,19 @@ END_VAR
     <LineIds Name="FB_SystronCamera">
       <LineId Id="29" Count="2" />
       <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SystronCamera.CreateSimCamPoints">
+      <LineId Id="23" Count="0" />
+      <LineId Id="6" Count="3" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="69" Count="7" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="35" Count="0" />
     </LineIds>
     <LineIds Name="FB_SystronCamera.eCameraMode.Get">
       <LineId Id="13" Count="2" />
@@ -357,19 +370,6 @@ END_VAR
       <LineId Id="42" Count="0" />
       <LineId Id="41" Count="0" />
       <LineId Id="22" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_SystronCamera.SimulatePoints">
-      <LineId Id="23" Count="0" />
-      <LineId Id="6" Count="3" />
-      <LineId Id="32" Count="0" />
-      <LineId Id="38" Count="0" />
-      <LineId Id="33" Count="1" />
-      <LineId Id="20" Count="0" />
-      <LineId Id="69" Count="7" />
-      <LineId Id="21" Count="1" />
-      <LineId Id="5" Count="0" />
-      <LineId Id="37" Count="0" />
-      <LineId Id="35" Count="0" />
     </LineIds>
     <LineIds Name="FB_SystronCamera.sName.Get">
       <LineId Id="2" Count="0" />

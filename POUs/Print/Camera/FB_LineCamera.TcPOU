@@ -20,8 +20,8 @@ VAR
   _fMechOffsetCameraToPU    : LREAL;       (*Camera mechanical offset to PrintUnit [mm]*)
   _fPrintUnitMechOffsetTC   : LREAL;       (*PrintUnit mechanical offset at calibration temp [mm]*)
   _nPrintUnitWidthNormal    : UDINT;       (*Print unit width [px] native*)
-  _fPrintUnitWidthTC         : LREAL;       (*pWc: Print unit width [m]*)
-  _fPrintUnitCalTemp         : LREAL;       (*calibration temperature for the PrintUnit*)
+  _fPrintUnitWidthTC        : LREAL;       (*pWc: Print unit width [m]*)
+  _fPrintUnitCalTemp        : LREAL;       (*calibration temperature for the PrintUnit*)
 
   fCameraWidthTC            : LREAL;       (*cWc: Camera width [m] at specific calibration temperature*)
   fCameraTemp               : LREAL;       (*Camera actual temp [°C]*)
@@ -75,10 +75,13 @@ VAR
   _tTimeFramesMs_TestMsg    : ARRAY[0..20] OF LREAL;       // elapsed time of each frame since trigger 
   // tcp camera simulation
   _nSimMode                 : UDINT := 0; // 0=generate points in plc, 1=use ext. cam simulation script, 2=send rx_callback messages directly
+  _sSimCamPoints            : ARRAY [1..GVL_Camera.cMaxNbMarks] OF ST_DeformationPointAccurate;
+  _nSimCamFrameDepth        : UDINT := 2048;   // distance of cam frames (point pitch in x in [px])
+  _nSimCamMarksPerFrame     : UDINT := 6;  
   _aCamSimScriptPath        : T_MaxString;
   fbScriptCamSim            : FB_ScriptLauncher;    // external cam simulation script
   _rfTrigSim                : RF_TRIG;
-  _tStartSim                : TON;
+//  _tStartSim                : TON;
   // ---- NOTE: vars accesses by CameraSimulation script, edit on both sides
   nScriptPID                : UDINT;
   nFrameNr                  : UDINT;
@@ -330,7 +333,6 @@ END_VAR]]></Declaration>
 _tTimeTrigger := F_GetCurDcTaskTime64();    // save trigger time stamp (a little later than the real)
 nNbMarksScanned := 0;
 
-_tStartSim(IN:=TRUE, PT:=T#4MS);
 ]]></ST>
       </Implementation>
     </Method>
@@ -340,6 +342,52 @@ _tStartSim(IN:=TRUE, PT:=T#4MS);
         <ST><![CDATA[SUPER^.CamTriggerDone();
 
 SimExit();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CreateSimCamPoints" Id="{497de848-0bbb-4608-8fd6-c3ae48b03141}" FolderPath="I_Simulation\">
+      <Declaration><![CDATA[(*
+  Simulate camera points.
+*)
+METHOD PRIVATE CreateSimCamPoints : BOOL
+VAR
+  fbTonTimer     : TON;
+  nCounter       : UDINT;
+  nCamGridHeight : UDINT;    // cam points pitch in y in [px]
+  nCamGridDepth  : UDINT;
+  nIndex         : UDINT;
+  nOffsetY       : UDINT;
+  nCtr           : UDINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nCamGridDepth := _nSimCamFrameDepth;
+nNbMarksTeach := _nSimCamMarksPerFrame * TO_UDINT((SEL(fSubstrateLength<>0, 5*nCamGridDepth, DINT_TO_UDINT(F_MeterToSubPixel(fPosMeter:=fSubstrateLength, fResoSubPx:=_nPrintUnitResolution)))) / nCamGridDepth);
+nCamGridHeight := SEL(fSubstrateWidth<>0, 200, DINT_TO_UDINT(F_MeterToSubPixel(fPosMeter:=fSubstrateWidth, fResoSubPx:=_nPrintUnitResolution))/_nSimCamMarksPerFrame);
+_bTeachOk := TRUE;
+
+(*Test points*)
+nCtr := 0;
+nNbMarks := nNbMarksTeach;
+nOffsetY := (_nPrintUnitWidthNormal-TO_UDINT(F_MeterToSubPixel(fPosMeter:=_fImageWidth, fResoSubPx:=_nPrintUnitResolution)))/2;
+
+FOR nCounter := 0 TO nNbMarksTeach/_nSimCamMarksPerFrame - 1 DO    // col
+  FOR nIndex := 0 TO _nSimCamMarksPerFrame-1 DO  // row
+    // create point
+    stCamPoint := getSimCamPoint(
+      fOffsetMin:=-5.0,
+      fOffsetMax:=5.0,
+      fXMin:=nCounter*nCamGridDepth,
+      fXMax:=(nCounter+1)*nCamGridDepth,
+      fYMin:=nIndex*nCamGridHeight+nOffsetY,
+      fYMax:=(nIndex+1)*nCamGridHeight+nOffsetY
+    );
+    //stCamPoint.dx := nCounter;
+    //stCamPoint.dy := 0;
+    // save simulation cam point
+    nCtr := nCtr + 1;
+    _sSimCamPoints[nCtr] := stCamPoint;
+  END_FOR
+END_FOR
+]]></ST>
       </Implementation>
     </Method>
     <Property Name="eCameraMode" Id="{d4155a50-e5e0-4ccf-af89-73b07ac1930f}">
@@ -1134,8 +1182,8 @@ END_VAR]]></Declaration>
         <ST><![CDATA[IF NOT bSimEnable THEN RETURN; END_IF
 
 IF    _nSimMode = 0 THEN
-   nNbMarksTeach := 4; // just somebigger than 2
-   nNbMarks := nNbMarksTeach;
+   //nNbMarksTeach := 4; // just somebigger than 2
+   //nNbMarks := nNbMarksTeach;
 ELSIF _nSimMode = 1 THEN
   // use external camera simulation script
   nFrameNr := 0;
@@ -1236,84 +1284,38 @@ IF _bCamTriggerStarted THEN
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="SimulatePoints" Id="{497de848-0bbb-4608-8fd6-c3ae48b03141}" FolderPath="I_Simulation\">
-      <Declaration><![CDATA[(*
-  Simulate camera points.
-*)
-METHOD SimulatePoints : BOOL
-VAR
-  fbTonTimer     : TON;
-  nCounter       : UDINT;
-  nGridHeight    : UDINT;
-  nIndex         : UDINT;
-  nOffsetY       : UDINT;
-END_VAR
-VAR CONSTANT
-  nFrameSize     : UDINT := 2048;
-  nMarksPerFrame : UDINT := 4;
-END_VAR]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[nNbMarksTeach := nMarksPerFrame * TO_UDINT((SEL(fSubstrateLength<>0, 5*nFrameSize, DINT_TO_UDINT(F_MeterToSubPixel(fPosMeter:=fSubstrateLength, fResoSubPx:=_nPrintUnitResolution)))) / nFrameSize);
-nGridHeight := SEL(fSubstrateWidth<>0, 200, DINT_TO_UDINT(F_MeterToSubPixel(fPosMeter:=fSubstrateWidth, fResoSubPx:=_nPrintUnitResolution))/nMarksPerFrame);
-_bTeachOk := TRUE;
-
-(*Test points*)
-nNbMarks := nNbMarksTeach;
-nOffsetY := (_nPrintUnitWidthNormal-TO_UDINT(F_MeterToSubPixel(fPosMeter:=_fImageWidth, fResoSubPx:=_nPrintUnitResolution)))/2;
-
-FOR nCounter := 0 TO nNbMarksTeach/nMarksPerFrame - 1 DO    // col
-  FOR nIndex := 0 TO nMarksPerFrame-1 DO  // row
-    // create point
-    stCamPoint := getSimCamPoint(
-      fOffsetMin:=-5.0,
-      fOffsetMax:=5.0,
-      fXMin:=nCounter*nFrameSize,
-      fXMax:=(nCounter+1)*nFrameSize,
-      fYMin:=nIndex*nGridHeight+nOffsetY,
-      fYMax:=(nIndex+1)*nGridHeight+nOffsetY
-    );
-    //stCamPoint.dx := nCounter;
-    //stCamPoint.dy := 0;
-    
-    // add to container
-    IF _iCameraSink<>0 THEN
-      _iCameraSink.AddCamPoint(stCamPoint);
-    END_IF;
-  END_FOR
-END_FOR
-
-nNbMarksScanned := nNbMarksTeach;
-_ePossibleMode := E_CameraMode.Live;]]></ST>
-      </Implementation>
-    </Method>
     <Method Name="SimUpdate" Id="{9dd7039c-acb3-4c79-a1d4-b41a588914a2}" FolderPath="I_Simulation\">
       <Declaration><![CDATA[METHOD SimUpdate : BOOL
 VAR_INST
-  rTrigCamTriggered : R_TRIG;
+  rfTrigCamTrigger : RF_TRIG;
   sSimMsg          : CalmarCompTcpIp.ST_TcpMsg;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[_rfTrigSim(CLK:=_bSimulate);
+        <ST><![CDATA[// simulation handling
+_rfTrigSim(CLK:=_bSimulate);
 IF _rfTrigSim.RT THEN    SimEnter();
 ELSIF _rfTrigSim.FT THEN SimExit(); END_IF
-
-_tStartSim();
-
 IF NOT _bSimulate THEN RETURN; END_IF
 
-rTrigCamTriggered(CLK:=_tStartSim.Q);                 // generate rising edge trigger
-IF _tStartSim.Q THEN _tStartSim(IN:=FALSE); END_IF   // reset start trigger timer
+// we are in simulation mode
+// - triggered
+rfTrigCamTrigger(CLK:=_bCamTriggerStarted);
 
 IF    _nSimMode = 0 THEN
   // direct points stream of all points in trigger
-  IF rTrigCamTriggered.Q THEN
-     SimulatePoints();
+  IF rfTrigCamTrigger.RT THEN
+     CreateSimCamPoints();
+     _ePossibleMode := E_CameraMode.Live;
   END_IF
+  // stream points
+  StreamSimCamPoint();
+ 
 ELSIF _nSimMode = 1 THEN
   // use external camera simulation script
   SimulateCamera();
+  
 ELSIF _nSimMode = 2 THEN
-  IF rTrigCamTriggered.Q THEN
+  IF rfTrigCamTrigger.RT THEN
     // send directly some messages
     sSimMsg.sMessage:='<position(110,A,5,1,125,0,0,0,0,1,12196,9766,137,0,0,0,0,1,69013,9660,149,0,0,0,0,1,135374,9496,161,0,0,0,0,1,40589,9699,163,0,0,0,0,1,116414,9527);';
     rx_callback(sMessage:=sSimMsg);
@@ -1364,6 +1366,52 @@ FOR i := 1 TO nNbMarksTeach DO
 	END_FOR
 END_FOR
 
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="StreamSimCamPoint" Id="{20dc3674-5dbd-4a43-8d8a-47b81547dfd3}" FolderPath="I_Simulation\">
+      <Declaration><![CDATA[METHOD PRIVATE StreamSimCamPoint : BOOL
+VAR_INPUT
+END_VAR
+VAR
+ tCurrent : T_DCTIME64;
+ tElapsed : LREAL;
+ tCol : LREAL;
+ nCol : UDINT;
+ nPointCt : UDINT;
+ tFrameFirstDelayFix : LREAL := 50; // deleat to first received frame after trigger
+ tFrameTimeJitterMax : LREAL := 30; // max. process time for a camera frame to be received after a simulated scan [ms]
+END_VAR
+VAR_INST
+ fbRand : DRAND;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF IfSpeed = 0 THEN RETURN; END_IF
+
+fbRand();
+tCurrent := F_GetCurDcTaskTime64();             // current time 
+tElapsed := TO_LREAL((tCurrent-_tTimeTrigger)   // time elapsed after trigger
+                  / EC_DCTIME_TICKSPERMSEC64); 
+tCol := F_SubPixelToMeter(                      // time for one column  in [ms] 
+                  lPosSubPx:=TO_DINT(_nSimCamFrameDepth), 
+                  fResSubPx:=_nPrintUnitResolution) * 1000 / IfSpeed;
+tElapsed := tElapsed-tFrameFirstDelayFix-(tFrameTimeJitterMax * fbRand.Num);
+IF tElapsed < 0 THEN nCol := 0;
+ELSE                 nCol := TO_UDINT(tElapsed / tCol);  // current column number
+END_IF
+
+nPointCt := nCol*_nSimCamMarksPerFrame;         // current number of points to be streamed
+
+// stream new points
+WHILE nNbMarksScanned < nPointCt AND nNbMarksScanned < nNbMarks DO
+  // add to container
+  IF _iCameraSink<>0 THEN
+    stCamPoint := _sSimCamPoints[nNbMarksScanned+1];
+    _iCameraSink.AddCamPoint(stCamPoint);
+    // add scanned marks
+  END_IF;
+  nNbMarksScanned := nNbMarksScanned + 1;
+END_WHILE
 ]]></ST>
       </Implementation>
     </Method>
@@ -1483,12 +1531,22 @@ _bTeachOk       := TRUE;]]></ST>
       <LineId Id="64" Count="0" />
       <LineId Id="32" Count="0" />
       <LineId Id="21" Count="0" />
-      <LineId Id="65" Count="0" />
       <LineId Id="59" Count="0" />
       <LineId Id="6" Count="0" />
     </LineIds>
     <LineIds Name="FB_LineCamera.CamTriggerDone">
       <LineId Id="12" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LineCamera.CreateSimCamPoints">
+      <LineId Id="490" Count="0" />
+      <LineId Id="456" Count="4" />
+      <LineId Id="487" Count="0" />
+      <LineId Id="461" Count="15" />
+      <LineId Id="489" Count="0" />
+      <LineId Id="485" Count="0" />
+      <LineId Id="488" Count="0" />
+      <LineId Id="481" Count="1" />
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_LineCamera.eCameraMode.Get">
@@ -1729,38 +1787,10 @@ _bTeachOk       := TRUE;]]></ST>
       <LineId Id="92" Count="0" />
       <LineId Id="83" Count="1" />
     </LineIds>
-    <LineIds Name="FB_LineCamera.SimulatePoints">
-      <LineId Id="380" Count="12" />
-      <LineId Id="407" Count="0" />
-      <LineId Id="394" Count="4" />
-      <LineId Id="408" Count="1" />
-      <LineId Id="399" Count="7" />
-      <LineId Id="2" Count="0" />
-      <LineId Id="424" Count="0" />
-    </LineIds>
     <LineIds Name="FB_LineCamera.SimUpdate">
-      <LineId Id="12" Count="0" />
-      <LineId Id="8" Count="0" />
-      <LineId Id="13" Count="0" />
-      <LineId Id="64" Count="0" />
-      <LineId Id="63" Count="0" />
-      <LineId Id="62" Count="0" />
-      <LineId Id="17" Count="0" />
-      <LineId Id="45" Count="0" />
-      <LineId Id="44" Count="0" />
-      <LineId Id="47" Count="0" />
-      <LineId Id="18" Count="3" />
-      <LineId Id="48" Count="1" />
-      <LineId Id="22" Count="3" />
-      <LineId Id="50" Count="0" />
-      <LineId Id="26" Count="0" />
-      <LineId Id="34" Count="1" />
-      <LineId Id="56" Count="1" />
-      <LineId Id="37" Count="2" />
-      <LineId Id="51" Count="0" />
-      <LineId Id="15" Count="0" />
-      <LineId Id="14" Count="0" />
-      <LineId Id="5" Count="0" />
+      <LineId Id="78" Count="13" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="92" Count="21" />
       <LineId Id="4" Count="0" />
     </LineIds>
     <LineIds Name="FB_LineCamera.sName.Get">
@@ -1774,6 +1804,33 @@ _bTeachOk       := TRUE;]]></ST>
       <LineId Id="7" Count="0" />
       <LineId Id="9" Count="0" />
       <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LineCamera.StreamSimCamPoint">
+      <LineId Id="22" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="62" Count="2" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="28" Count="0" />
     </LineIds>
     <LineIds Name="FB_LineCamera.tx_test">
       <LineId Id="5" Count="0" />
