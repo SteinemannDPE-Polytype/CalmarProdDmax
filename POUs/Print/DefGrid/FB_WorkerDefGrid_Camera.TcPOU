@@ -477,32 +477,40 @@ VAR
   lCtr : UDINT;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[// get camera status
-IF _bSetInitCam AND _iActiveCam = 0 THEN
-  // try to a default camera at start
-  ActivateCamera(selectCamera(eNewCam:=E_CameraDevice.SheetDetect));
+        <ST><![CDATA[IF _pParamMediator = 0 THEN RETURN; END_IF
+
+SUPER^.work();
+
+//-----------------------------------------------------------
+//- automatic worker setup & control
+IF _bSetInitCam AND _iActiveCam = 0 THEN    // try to a default camera at start
+  ActivateCamera(selectCamera(eNewCam:=E_CameraDevice.Scanner));
   _bSetInitCam := FALSE;
   _bCamValid := TRUE;
-  
-ELSIF _iActiveCam <> 0 THEN
+ELSIF _iActiveCam <> 0 THEN                 // a camera is activated
   _bCamValid := TRUE;
+  //-- update status  
   _bCamReady := _iActiveCam.GetCamStatus(
                               bConnectionOK => _bConnectionOk, 
                               bTeachOk => _bTeachOk, 
                               nTeachedPoints => _nTeachedPoints, 
                               nScannedPoints => _nScannedPoints,
                               bCamStarted => _bCamStarted,
-                              bCamDone => _bCamDone
-                            );
+                              bCamDone => _bCamDone);
+  // -- worker position setup
+  IF _pAttachedCt = 0 THEN     // Update only without attached container
+    // WorkerPosition = TriggerDistance<-SheetDetect
+    fPosition := _iActiveCam.fTriggerDistance;    //_pParamMediator^.fDetectToCamera;
+  END_IF
 ELSE
-  _bCamValid := FALSE;
+  _bCamValid := FALSE;                    // invalid camera
 END_IF
-
-// work
-SUPER^.work();
-
 rT_CamStarted(CLK:=_bCamStarted);
 
+
+
+// -----------------------------------------------------------
+// Work only with attached container
 IF _pAttachedCt <> 0 THEN
   bError := _pAttachedCt^.getDeformationStatus(eDStep => _eDeformStep, 
                           bBusy => _bDeformationBusy,
@@ -718,22 +726,28 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.work">
-      <LineId Id="115" Count="0" />
+      <LineId Id="341" Count="0" />
+      <LineId Id="362" Count="0" />
+      <LineId Id="340" Count="0" />
+      <LineId Id="347" Count="2" />
       <LineId Id="121" Count="0" />
-      <LineId Id="247" Count="0" />
       <LineId Id="260" Count="0" />
       <LineId Id="249" Count="0" />
       <LineId Id="276" Count="0" />
-      <LineId Id="301" Count="0" />
-      <LineId Id="251" Count="7" />
+      <LineId Id="251" Count="2" />
+      <LineId Id="356" Count="0" />
+      <LineId Id="254" Count="4" />
       <LineId Id="269" Count="0" />
-      <LineId Id="250" Count="0" />
+      <LineId Id="353" Count="0" />
+      <LineId Id="359" Count="2" />
+      <LineId Id="357" Count="0" />
       <LineId Id="245" Count="0" />
       <LineId Id="122" Count="1" />
-      <LineId Id="215" Count="0" />
-      <LineId Id="213" Count="1" />
-      <LineId Id="294" Count="0" />
       <LineId Id="293" Count="0" />
+      <LineId Id="351" Count="0" />
+      <LineId Id="346" Count="0" />
+      <LineId Id="344" Count="0" />
+      <LineId Id="343" Count="0" />
       <LineId Id="136" Count="0" />
       <LineId Id="135" Count="0" />
       <LineId Id="328" Count="5" />
