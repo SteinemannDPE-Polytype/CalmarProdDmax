@@ -143,6 +143,7 @@ _bCamTriggerOk  := bOk;
 _nCamStartPos   := nPos;
 _nCamStartPosDeviation := nPosDeviation;
 
+LogLvl(Lvl:=E_LogSeverity.Debug, Msg:='CamTrigger');
 IF _iCameraSink <> 0 THEN   // link to sink (wokerCam -> CT)
   ;
 END_IF
@@ -154,7 +155,9 @@ END_IF
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[_bCamTriggerStarted    := FALSE;  // this call marks the end of the camera trigger period
-_bCamTriggerDone       := TRUE;]]></ST>
+_bCamTriggerDone       := TRUE;
+
+LogLvl(Lvl:=E_LogSeverity.Debug, Msg:='CamTriggerDone');]]></ST>
       </Implementation>
     </Method>
     <Method Name="DeactivateCam" Id="{a856b950-c2e0-49b9-8c57-589d4c82956d}">
@@ -541,6 +544,7 @@ END_VAR
       <LineId Id="54" Count="0" />
       <LineId Id="39" Count="0" />
       <LineId Id="38" Count="0" />
+      <LineId Id="61" Count="0" />
       <LineId Id="40" Count="0" />
       <LineId Id="31" Count="0" />
       <LineId Id="29" Count="0" />
@@ -550,6 +554,8 @@ END_VAR
     <LineIds Name="FB_CameraBase.CamTriggerDone">
       <LineId Id="4" Count="0" />
       <LineId Id="6" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="8" Count="0" />
     </LineIds>
     <LineIds Name="FB_CameraBase.DeactivateCam">
       <LineId Id="7" Count="7" />

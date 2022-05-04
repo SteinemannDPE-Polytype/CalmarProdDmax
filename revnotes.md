@@ -10,6 +10,13 @@
 Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 
 ---
+### changes `2.0.0.12` BRM
+* CHG: speed improvements
+* CHG: DefGrid_WorkerDeformation can have multiple CTs attached
+* CHG: auto-setup of WorkerPosition for DefGrid_WorkerCamera
+* CHG: interaction with FB_ImageProcessing and Workers (Camera, Deformation)
+* CHG: improve debugging and logging
+
 ### changes `2.0.0.9` HOA/BRM
 * FIX: FB_CameraTrigger: correction for bReleaseInhibitTrigger
 

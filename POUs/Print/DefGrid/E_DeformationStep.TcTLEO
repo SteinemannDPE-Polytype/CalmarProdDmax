@@ -1,12 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <EnumerationTextList Name="E_DeformationStep" Id="{425d62ec-1999-49f2-9c64-945fc74e4c23}">
     <Declaration><![CDATA[{attribute 'qualified_only'}
 {attribute 'strict'}
 {attribute 'to_string'}
 TYPE E_DeformationStep :
 (
-	nothing := 0,
+  nothing := 0,
   createdScriptContainer := 1,
   cameraStarted := 2,
   cameraDone := 3,

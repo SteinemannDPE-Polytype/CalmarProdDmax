@@ -9,23 +9,25 @@ END_VAR
 VAR
   //Worker specific configuration
   _nPrintUnitWidth            : UDINT;  // default print unit width [px]  
+  _nImageWidthPx              : UDINT;  // size of the image (width)
+  _nImageDepthPx              : UDINT;  // size of the image (depth)
 
+  // - current CTs
+  _nMultiAttachedCTs          : UDINT;
+  _pMultiAttachedCTs          : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF POINTER TO FB_ContainerDefGrid;
+  
   // -
-  _fRefreshPeriod             : LREAL;
   _bNewJob                    : BOOL;   // new job started 
 
   //Deformation status
-  _nDeformationProcPoints     : UDINT;  // available grid points on ct
-  _nDeformationProcCols       : UDINT;  // number of already generated grid columns
-  _nImageWidthPx              : UDINT;  // size of the image (width)
-  _nImageDepthPx              : UDINT;  // size of the image (depth)
-  
-  _eDeformStep                : E_DeformationStep;   // status deformation of ct
-  _bDeformationError          : BOOL;   // status deformation of ct
-  _bDeformationBusy           : BOOL;   // status deformation of ct
-  _bDeformationDone           : BOOL;   // status deformation of ct
-  _nDeformationErrorId        : UDINT;  // status deformation of ct
-  _tDeformationExecutionTime  : TIME;   // status deformation of ct
+  _nDeformationProcPoints     : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF UDINT;  // available grid points on ct
+  _nDeformationProcCols       : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF UDINT;  // number of already generated grid columns
+  _eDeformStep                : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF E_DeformationStep;   // status deformation of ct
+  _bDeformationError          : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF BOOL;   // status deformation of ct
+  _bDeformationBusy           : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF BOOL;   // status deformation of ct
+  _bDeformationDone           : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF BOOL;   // status deformation of ct
+  _nDeformationErrorId        : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF UDINT;  // status deformation of ct
+  _tDeformationExecutionTime  : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF TIME;   // status deformation of ct
 END_VAR
 
 VAR PERSISTENT
@@ -34,7 +36,10 @@ VAR PERSISTENT
                                   nGridPitchY:=GVL_Deformation.nC_GridPitch_Y
                               );
 END_VAR
-]]></Declaration>
+VAR CONSTANT
+  nLowerIndexCTList : UDINT := 1;
+  nUpperIndexCTList : UDINT := 4; 
+END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[]]></ST>
     </Implementation>
@@ -44,42 +49,71 @@ VAR_INPUT
   iCT              : I_CT;                         (*container at triggered event position*)
 END_VAR
 VAR
-  tempCt :  POINTER TO FB_ContainerDefGrid;
+  i : UDINT;
+  pCt :  POINTER TO FB_ContainerDefGrid;
   bDeformErr : BOOL;
+  eDeformStep : E_DeformationStep;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[Attach := FALSE;
-IF SUPER^.Attach(iCT:=iCT) THEN
-  // OK, attached (enabled, was ok to be attached)
-  
-  bDeformErr := _pAttachedCt^.getDeformationStatus(eDStep=>_eDeformStep);   // get latest status 
-  
-  // Additional worker checks
-    
-  // - deformation started? and no deformation error so far
-  IF bDeformErr OR _eDeformStep = E_DeformationStep.nothing THEN
-    Release(iCT:=iCT);  // nothing to do anymore
+// error handling
+IF iCT = 0 THEN LogError(Msg:='attach failed -> not ct given'); RETURN; END_IF
+IF _nMultiAttachedCTs >= nUpperIndexCTList THEN 
+  // no free element for processing
+  LogError('Deformation processing list full, ignore new CT');
+  Abort(iCT:=iCT, sReason:='attach failed');  // abort new CT (no release because not yet attached)
+  RETURN;
+END_IF
+IF NOT bEnable AND _nMultiAttachedCTs > 0 THEN 
+  // release current processing
+  FOR i := nLowerIndexCTList TO nLowerIndexCTList + _nMultiAttachedCTs - 1 DO
+    Release(iCT:=_pMultiAttachedCTs[i]^);
+	END_FOR
+  RETURN;
+END_IF
+IF getCtInst(iCT:=iCT, pCT=>pCt) = 0 THEN
+  // no ct instance found
+  RETURN;
+END_IF
 
-    // - job is valid?
-  ELSIF _pAttachedCt^.pJob = 0 OR NOT _bJobActive THEN
-    _pAttachedCt^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^);
-    Release(iCT:=iCT);
-    
-  // - did camera start?  
-  ELSIF _eDeformStep < E_DeformationStep.cameraStarted THEN
-    _pAttachedCt^.AbortDeformation(sReason:='Prio steps did not start', Src:=_pEcSrc^);
-    Release(iCT:=iCT);
-    
-  // - OK attach
-  ELSE
-    _pAttachedCt^.sDefGridSettings := _sDeformationGridSettings;   // apply settings on container
-    _pAttachedCt^.StartDeformation(eDeformationStep:=E_DeformationStep.gridStarted);
-    Attach := TRUE;
+
+// - add CT to list ---------------------------------------------------------------
+IF _nMultiAttachedCTs = 0 THEN // register first to parent as well
+  IF NOT SUPER^.Attach(iCT:=iCT) THEN
+    RETURN;
 	END_IF
+END_IF
+_nMultiAttachedCTs := _nMultiAttachedCTs + 1;
+_pMultiAttachedCTs[_nMultiAttachedCTs] := pCt;
+
+bDeformErr := pCt^.getDeformationStatus(eDStep=>eDeformStep);   // get latest status 
+
+// - Additional worker checks
   
+// - deformation started? and no deformation error so far
+IF bDeformErr OR eDeformStep = E_DeformationStep.nothing THEN
+  Release(iCT:=iCT);  // nothing to do anymore
+
+  // - job is valid?
+ELSIF pCt^.pJob = 0 OR NOT _bJobActive THEN
+  pCt^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^);
+  Release(iCT:=iCT);
+  
+// - did camera start?  
+(*ELSIF eDeformStep < E_DeformationStep.cameraStarted THEN
+  pCt^.AbortDeformation(sReason:='Prio steps did not start', Src:=_pEcSrc^);
+  Release(iCT:=iCT);
+*)
+  
+// - OK attach
 ELSE
-  // parent attach failed case
-END_IF]]></ST>
+  IF eDeformStep < E_DeformationStep.cameraStarted THEN LogWarning('Sub-optimal timing, camera did not yet start'); END_IF
+   LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat4('Attach CT[', TO_STRING(_nMultiAttachedCTs), '] ', pCt^.print(0)));
+  pCt^.sDefGridSettings := _sDeformationGridSettings;   // apply settings on container
+  pCt^.StartDeformation();
+  Attach := TRUE;
+END_IF
+]]></ST>
       </Implementation>
     </Method>
     <Method Name="InitWorkerDeformation" Id="{ca5ccc6c-1e73-4750-be64-2b40d202a999}">
@@ -149,15 +183,56 @@ METHOD Release : BOOL
 VAR_INPUT
   iCT              : I_CT;                         (*container at triggered event position*)
 END_VAR
+VAR
+  i                : DINT;
+  Index            : DINT;
+  LowerIndex       : DINT := 1;
+  pCT              : POINTER TO FB_ContainerDefGrid;
+  eStep            : E_DeformationStep;
+END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF _pParamMediator <> 0 THEN
-  IF _eDeformStep >= E_DeformationStep.createdScriptContainer THEN
+        <ST><![CDATA[IF iCT = 0 OR _nMultiAttachedCTs = 0 THEN RETURN; END_IF
+
+// remove CT -----------------------------------------------------
+// -- remove from list
+//  --- search ct in list
+pCT := getCtInst(iCT:=iCT);
+IF pCT = 0 THEN RETURN; END_IF
+
+// release from deformation module
+IF _pParamMediator <> 0 THEN
+  pCt^.getDeformationStatus(eDStep => estep);
+  IF estep >= E_DeformationStep.createdScriptContainer THEN
     _pParamMediator^.ReleaseDeformationCT(iCT:=iCT);
   END_IF
 END_IF
+// find if ct is in attached list
+Index := -1;
+FOR i:= TO_DINT(nLowerIndexCTList) TO TO_DINT(nLowerIndexCTList + _nMultiAttachedCTs) DO
+  IF _pMultiAttachedCTs[i] = pCT THEN
+    Index := i;
+    EXIT;     // found
+  END_IF
+END_FOR
 
-SUPER^.Release(iCT:=iCT);]]></ST>
+LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat4('Release CT[', TO_STRING(_nMultiAttachedCTs), '] ', pCt^.print(0)));  
+
+// if found compress list
+IF Index >= TO_DINT(nLowerIndexCTList) AND Index < TO_DINT(nUpperIndexCTList) THEN
+  MEMMOVE(              // shift all above entries down
+    destAddr := ADR( _pMultiAttachedCTs[Index] ), 
+    srcAddr  := ADR( _pMultiAttachedCTs[Index + 1] ), 
+    n        := DINT_TO_UDINT(SIZEOF(_pMultiAttachedCTs[LowerIndex]) * (UDINT_TO_DINT(_nMultiAttachedCTs) - Index - 1 + LowerIndex))
+  );
+  _pMultiAttachedCTs[nUpperIndexCTList] := 0;   // erase last(compressed) list entry
+END_IF
+// on last ct, remove it from parent
+IF _nMultiAttachedCTs = 1 THEN
+  SUPER^.Release(iCT:=iCT);       // when it was the last
+END_IF
+
+_nMultiAttachedCTs := _nMultiAttachedCTs - 1;]]></ST>
       </Implementation>
     </Method>
     <Property Name="sDeformationGridSettings" Id="{a6a325bf-1bf6-4de3-a446-119ecaf0ad62}">
@@ -174,59 +249,70 @@ END_VAR
     <Method Name="work" Id="{9d84abdd-b080-4ea5-b34b-481b6fa9d0e0}">
       <Declaration><![CDATA[METHOD  work
 VAR
-  sTmpCamGidSettings : ST_CameraGridSettings;
+  i : UDINT;
+  sCamSettings : ST_CameraGridSettings;
+  pCT : POINTER TO FB_ContainerDefGrid;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF _pParamMediator = 0 THEN RETURN; END_IF
+        <ST><![CDATA[// OVERRIDES SUPER^.work() completely
 
-SUPER^.work();
+IF _pParamMediator = 0 THEN RETURN; END_IF
 
 //-----------------------------------------------------------
 //- automatic worker setup & control
 //-- update camera and grid settings from current camera
-sTmpCamGidSettings := _pParamMediator^.sCameraGridSettings;
-_fRefreshPeriod := sTmpCamGidSettings.fGridFeaturePitch;
+sCamSettings := _pParamMediator^.sCameraGridSettings;
 //-- enable / disable worker based on mode
-IF sTmpCamGidSettings.eCameraMode > E_CameraMode.NoCorrection THEN  
+IF sCamSettings.eCameraMode > E_CameraMode.NoCorrection THEN  
   bEnable := TRUE;    // enable this worker
 ELSE 
   bEnable := FALSE;   // disable this worker
 END_IF
 
 
+
 //-----------------------------------------------------------
 // Work only with attached container
-IF _pAttachedCt <> 0 THEN
+FOR i := nLowerIndexCTList TO nLowerIndexCTList + _nMultiAttachedCTs - 1 DO
   //Get information from container
-  _bDeformationError := _pAttachedCt^.getDeformationStatus(eDStep => _eDeformStep, 
-                            bBusy => _bDeformationBusy,
-                            bDone => _bDeformationDone,
-                            nErrorId => _nDeformationErrorId, 
-                            tExecutionTime => _tDeformationExecutionTime);
-  _nDeformationProcPoints := _pAttachedCt^.nAvailableGridPoints;
-  _nDeformationProcCols   := _pAttachedCt^.nAvailableGridCols;
-
-  IF _eDeformStep >= E_DeformationStep.cameraDone THEN
-    // take over deformation control from camera
-    // update deformation module
-    _pAttachedCt^.UpdateDeformation(fUpdateInterval:=_fRefreshPeriod);
-	END_IF
- 
+  pCt := _pMultiAttachedCTs[i];
+  
+  //override SUPER^.work();
+  // update CT position
+  fCtPosition := pCt^.GetPos(nPosDomain:=E_PosDomain.master_pos) - _nTrackOffset; 
+  
+  // get status
+  _bDeformationError[i] := pCt^.getDeformationStatus(eDStep => _eDeformStep[i], 
+                            bBusy => _bDeformationBusy[i],
+                            bDone => _bDeformationDone[i],
+                            nErrorId => _nDeformationErrorId[i], 
+                            tExecutionTime => _tDeformationExecutionTime[i]);
+  _nDeformationProcPoints[i] := pCt^.nAvailableGridPoints;
+  _nDeformationProcCols[i]   := pCt^.nAvailableGridCols;
      
   //Release container when all points have been processed or error
-  IF _bDeformationDone OR _bDeformationError THEN
+  IF _bDeformationDone[i] OR _bDeformationError[i] THEN
     // tag CT with error if deformation had an error
-    IF _bDeformationError THEN _pAttachedCt^.setError(ErrDef:=EC_DefGrid.ecDefGrid_DefGridError, Src:=_pEcSrc^); END_IF
-    
-    Release(_pAttachedCt^);
+    IF _bDeformationError[i] THEN 
+      pCt^.setError(ErrDef:=EC_DefGrid.ecDefGrid_DefGridError, Src:=_pEcSrc^); 
+    END_IF
+    LogLvl(Lvl:=E_LogSeverity.Detail, Msg:=F_Concat4('Done with: CamP=',  TO_STRING(pCT^.nRegisteredCameraPoints), ' GridP=', TO_STRING(pCt^.nAvailableGridPoints)));
+    Release(pCt^);
 	END_IF
-  
-  //TODO Error handling, timeout, etc
-  (*
-    - Release CT after sheet + after process is further 
-    - Abort deformation (=DeformationError, so PythonWorker can do a release)
+    // release CT (manually and security)
+  IF _bForceRelease THEN
+    pCt^.AbortDeformation(sReason:='Manually realease CT', Src:=_pEcSrc^);
+    Release(iCT:=_pAttachedCt^);
+  (*can be attached longer because of parallel processing
+    ELSIF _fCtSecurityReleasePos > 0 AND (fCtPosition > _fCtSecurityReleasePos) THEN
+    LogError(F_Concat2('Security released CTId=', TO_STRING(_pAttachedCt^.pCT^.iId)));
+    pCt^.AbortDeformation(sReason:='Security released CT', Src:=_pEcSrc^);
+    Release(iCT:=_pAttachedCt^);
   *)
-END_IF]]></ST>
+  END_IF
+  
+END_FOR
+]]></ST>
       </Implementation>
     </Method>
     <LineIds Name="FB_WorkerDefGrid_Deformation">
@@ -234,8 +320,33 @@ END_IF]]></ST>
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Deformation.Attach">
       <LineId Id="63" Count="0" />
-      <LineId Id="6" Count="0" />
-      <LineId Id="94" Count="2" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="170" Count="0" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="175" Count="0" />
+      <LineId Id="181" Count="0" />
+      <LineId Id="178" Count="0" />
+      <LineId Id="177" Count="0" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="188" Count="0" />
+      <LineId Id="184" Count="0" />
+      <LineId Id="186" Count="1" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="183" Count="0" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="208" Count="0" />
+      <LineId Id="179" Count="0" />
+      <LineId Id="210" Count="0" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="167" Count="1" />
+      <LineId Id="195" Count="1" />
+      <LineId Id="169" Count="0" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="157" Count="0" />
+      <LineId Id="95" Count="1" />
       <LineId Id="32" Count="0" />
       <LineId Id="104" Count="0" />
       <LineId Id="109" Count="3" />
@@ -245,15 +356,16 @@ END_IF]]></ST>
       <LineId Id="126" Count="0" />
       <LineId Id="132" Count="0" />
       <LineId Id="125" Count="0" />
+      <LineId Id="213" Count="0" />
       <LineId Id="118" Count="0" />
       <LineId Id="133" Count="0" />
       <LineId Id="119" Count="0" />
-      <LineId Id="129" Count="1" />
+      <LineId Id="214" Count="0" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="212" Count="0" />
       <LineId Id="127" Count="0" />
       <LineId Id="102" Count="0" />
-      <LineId Id="100" Count="0" />
-      <LineId Id="42" Count="0" />
-      <LineId Id="85" Count="0" />
       <LineId Id="8" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Deformation.InitWorkerDeformation">
@@ -293,51 +405,70 @@ END_IF]]></ST>
       <LineId Id="6" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Deformation.Release">
-      <LineId Id="13" Count="0" />
-      <LineId Id="25" Count="0" />
-      <LineId Id="16" Count="0" />
-      <LineId Id="26" Count="0" />
-      <LineId Id="15" Count="0" />
-      <LineId Id="11" Count="0" />
-      <LineId Id="10" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="94" Count="1" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="96" Count="2" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="47" Count="3" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="67" Count="3" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="57" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Deformation.sDeformationGridSettings.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Deformation.work">
-      <LineId Id="154" Count="0" />
-      <LineId Id="158" Count="1" />
-      <LineId Id="157" Count="0" />
-      <LineId Id="150" Count="1" />
-      <LineId Id="124" Count="2" />
-      <LineId Id="128" Count="1" />
-      <LineId Id="139" Count="0" />
-      <LineId Id="131" Count="1" />
-      <LineId Id="123" Count="0" />
-      <LineId Id="141" Count="0" />
-      <LineId Id="149" Count="0" />
-      <LineId Id="140" Count="0" />
-      <LineId Id="38" Count="1" />
-      <LineId Id="88" Count="0" />
-      <LineId Id="91" Count="0" />
-      <LineId Id="107" Count="2" />
-      <LineId Id="117" Count="1" />
-      <LineId Id="145" Count="0" />
-      <LineId Id="111" Count="0" />
-      <LineId Id="92" Count="1" />
-      <LineId Id="97" Count="0" />
-      <LineId Id="95" Count="0" />
-      <LineId Id="94" Count="0" />
-      <LineId Id="96" Count="0" />
-      <LineId Id="71" Count="0" />
-      <LineId Id="50" Count="0" />
-      <LineId Id="98" Count="0" />
-      <LineId Id="72" Count="0" />
-      <LineId Id="103" Count="1" />
-      <LineId Id="52" Count="3" />
-      <LineId Id="113" Count="0" />
-      <LineId Id="115" Count="1" />
-      <LineId Id="114" Count="0" />
+      <LineId Id="287" Count="1" />
+      <LineId Id="168" Count="13" />
+      <LineId Id="183" Count="2" />
+      <LineId Id="227" Count="0" />
+      <LineId Id="229" Count="0" />
+      <LineId Id="261" Count="1" />
+      <LineId Id="272" Count="0" />
+      <LineId Id="270" Count="1" />
+      <LineId Id="264" Count="0" />
+      <LineId Id="263" Count="0" />
+      <LineId Id="230" Count="5" />
+      <LineId Id="253" Count="0" />
+      <LineId Id="244" Count="4" />
+      <LineId Id="273" Count="1" />
+      <LineId Id="291" Count="0" />
+      <LineId Id="250" Count="1" />
+      <LineId Id="276" Count="1" />
+      <LineId Id="284" Count="0" />
+      <LineId Id="279" Count="1" />
+      <LineId Id="289" Count="0" />
+      <LineId Id="281" Count="0" />
+      <LineId Id="286" Count="0" />
+      <LineId Id="282" Count="0" />
+      <LineId Id="290" Count="0" />
+      <LineId Id="275" Count="0" />
+      <LineId Id="252" Count="0" />
+      <LineId Id="224" Count="0" />
       <LineId Id="6" Count="0" />
     </LineIds>
   </POU>

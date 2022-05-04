@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_ContainerDefGrid" Id="{2d8beb5a-7741-4f53-9b5d-5bba1cb243c4}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_ContainerDefGrid EXTENDS FB_ContainerBase
 VAR_INPUT
@@ -7,11 +7,11 @@ END_VAR
 VAR_OUTPUT
 END_VAR
 VAR
-  fBImageDeformation : FB_ImageDeformation;  
+  fBImageDeformation : FB_ImageDeformation;
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[fBImageDeformation();                       // call run cyclic image deformation
+      <ST><![CDATA[fBImageDeformation(fPos := DINT_TO_LREAL(GetPos(nPosDomain:=E_PosDomain.pos_px)));  // call run cyclic image deformation
 fBImageDeformation.LogLevel := LogLevel;    // distribute container logLevel to image deformation fb]]></ST>
     </Implementation>
     <Method Name="AbortDeformation" Id="{f4e769e7-fdcb-497a-869a-11c396829281}">
@@ -181,57 +181,34 @@ END_VAR
         </Implementation>
       </Set>
     </Property>
-    <Method Name="SetupDeformation" Id="{fa9cfc27-a9f9-4b08-a02d-72b82e2069db}">
-      <Declaration><![CDATA[METHOD SetupDeformation
+    <Method Name="StartCamera" Id="{fa9cfc27-a9f9-4b08-a02d-72b82e2069db}">
+      <Declaration><![CDATA[METHOD StartCamera
 VAR_INPUT
-  eCameraMode : E_CameraMode;
+  eCameraMode  : E_CameraMode;   // used camera mode
+  fFeatureGrid : LREAL;         // deformation module update interval [Px]
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[// update mode
-fBImageDeformation.eMode := eCameraMode;
-]]></ST>
+fBImageDeformation.eCamMode := eCameraMode;
+fBImageDeformation.fFeatureGrid := fFeatureGrid;
+fBImageDeformation.eStep := E_DeformationStep.cameraStarted;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="StartDeformation" Id="{197196c8-f164-46d2-868e-8fff7b370e59}">
+    <Method Name="StartDeformation" Id="{9e341afe-e643-4f6d-8b0c-fa3d83df99bb}">
       <Declaration><![CDATA[METHOD StartDeformation
 VAR_INPUT
-  eDeformationStep : E_DeformationStep;
-  //nParam1 : UDINT;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF eDeformationStep = E_DeformationStep.nothing THEN
-  ; // do nothing
-ELSIF eDeformationStep = E_DeformationStep.createdScriptContainer THEN
-  ;
-ELSIF eDeformationStep = E_DeformationStep.cameraStarted THEN
-  fBImageDeformation.startCamera(
-    fStartDefPos:=DINT_TO_LREAL(THIS^.GetPos(nPosDomain:=E_PosDomain.pos_px))
-  );
-END_IF
-
-
-// update step if it is bigger
-IF fBImageDeformation.eStep < eDeformationStep THEN
-  fBImageDeformation.eStep := eDeformationStep;
-  LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('StartDeformation: step=', TO_STRING(eDeformationStep)));
-END_IF
-]]></ST>
+        <ST><![CDATA[fBImageDeformation.startDeformation(
+  fStartDefPos:=DINT_TO_LREAL(GetPos(nPosDomain:=E_PosDomain.pos_px))    // reference position at current position [Px]
+);]]></ST>
       </Implementation>
     </Method>
-    <Method Name="UpdateDeformation" Id="{cb380da5-bcaa-4509-a9f1-3ad6d51f2b1a}">
-      <Declaration><![CDATA[(*
-  Updates deformation module (max. in given interval)
-*)
-METHOD PUBLIC UpdateDeformation : BOOL
-VAR_INPUT
-  fUpdateInterval : LREAL;  // deformation module update interval [px]
-END_VAR
+    <Method Name="StartScript" Id="{b42a5bf2-aedf-44f3-9b19-80a8065b52ca}">
+      <Declaration><![CDATA[METHOD StartScript
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[fBImageDeformation.updateDeformation(
-  fPos:=THIS^.GetPos(nPosDomain:=E_PosDomain.pos_px), 
-  fUpdateInterval:=fUpdateInterval
-);]]></ST>
+        <ST><![CDATA[fBImageDeformation.eStep := E_DeformationStep.createdScriptContainer;]]></ST>
       </Implementation>
     </Method>
     <LineIds Name="FB_ContainerDefGrid">
@@ -281,23 +258,17 @@ END_VAR
     <LineIds Name="FB_ContainerDefGrid.sDefGridSettings.Set">
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_ContainerDefGrid.SetupDeformation">
-      <LineId Id="67" Count="0" />
-      <LineId Id="70" Count="0" />
-      <LineId Id="63" Count="0" />
+    <LineIds Name="FB_ContainerDefGrid.StartCamera">
+      <LineId Id="80" Count="1" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="86" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.StartDeformation">
-      <LineId Id="34" Count="5" />
-      <LineId Id="41" Count="5" />
-      <LineId Id="51" Count="0" />
-      <LineId Id="28" Count="0" />
-      <LineId Id="53" Count="0" />
-      <LineId Id="52" Count="0" />
-      <LineId Id="63" Count="0" />
+      <LineId Id="91" Count="1" />
+      <LineId Id="88" Count="0" />
     </LineIds>
-    <LineIds Name="FB_ContainerDefGrid.UpdateDeformation">
+    <LineIds Name="FB_ContainerDefGrid.StartScript">
       <LineId Id="5" Count="0" />
-      <LineId Id="14" Count="2" />
     </LineIds>
   </POU>
 </TcPlcObject>

@@ -55,7 +55,7 @@ IF SUPER^.Attach(iCT:=iCT) THEN
     // -- only create ct if a deformation is active
     IF CreateDefCt(iCT:=iCT) THEN
         // set state
-        _pAttachedCt^.StartDeformation(eDeformationStep:=E_DeformationStep.createdScriptContainer);
+        _pAttachedCt^.StartScript();
         // attached
         Attach := TRUE;
     END_IF
@@ -256,7 +256,8 @@ IF fbMsg_PythonNotRunning.bMsgAck THEN fbPythonInterface.ackError(); END_IF]]></
       <LineId Id="220" Count="0" />
       <LineId Id="248" Count="0" />
       <LineId Id="221" Count="0" />
-      <LineId Id="235" Count="4" />
+      <LineId Id="235" Count="3" />
+      <LineId Id="272" Count="0" />
       <LineId Id="244" Count="0" />
       <LineId Id="247" Count="0" />
       <LineId Id="234" Count="0" />

@@ -28,14 +28,7 @@ VAR
   
   // deformation status
   _eDeformStep                : E_DeformationStep;   // status deformation of ct
-  _bDeformationError          : BOOL;   // status deformation of ct
-  _bDeformationBusy           : BOOL;   // status deformation of ct
-  _bDeformationDone           : BOOL;   // status deformation of ct
-  _nDeformationErrorId        : UDINT;  // status deformation of ct
-  _tDeformationExecutionTime  : TIME;   // status deformation of ct
-  _nDeformationProcPoints     : UDINT;  // available grid points on ct
-  _nDeformationProcCols       : UDINT;  // number of already generated grid columns
-
+  
   // puc message
   fb_MsgQueue                  : FB_MSG_QUEUE;                        (*Message queue*)
   fb_MsgHandler                : FB_MSG_HANDLER;                      (*Message handler*)
@@ -472,6 +465,7 @@ END_IF]]></ST>
       <Declaration><![CDATA[METHOD  work
 VAR_INST
   rT_CamStarted : R_TRIG;
+  bReqToStartCamOnCt : BOOL;
 END_VAR
 VAR
   lCtr : UDINT;
@@ -499,43 +493,45 @@ ELSIF _iActiveCam <> 0 THEN                 // a camera is activated
                               bCamDone => _bCamDone);
   // -- worker position setup
   IF _pAttachedCt = 0 THEN     // Update only without attached container
-    // WorkerPosition = TriggerDistance<-SheetDetect
-    fPosition := _iActiveCam.fTriggerDistance;    //_pParamMediator^.fDetectToCamera;
+    // WorkerPosition = 
+    fPosition := _pParamMediator^.fDetectToCamera; //_iActiveCam.fTriggerDistance  + some small timeout for the CamTrigger to happen before Attach();
   END_IF
 ELSE
   _bCamValid := FALSE;                    // invalid camera
 END_IF
 rT_CamStarted(CLK:=_bCamStarted);
+IF rT_CamStarted.Q THEN bReqToStartCamOnCt := TRUE; END_IF
 
 
 
 // -----------------------------------------------------------
 // Work only with attached container
 IF _pAttachedCt <> 0 THEN
-  bError := _pAttachedCt^.getDeformationStatus(eDStep => _eDeformStep, 
-                          bBusy => _bDeformationBusy,
-                          bDone => _bDeformationDone,
-                          nErrorId => _nDeformationErrorId, 
-                          tExecutionTime => _tDeformationExecutionTime);
-_nDeformationProcPoints := _pAttachedCt^.nAvailableGridPoints;
-_nDeformationProcCols   := _pAttachedCt^.nAvailableGridCols;
+  bError := _pAttachedCt^.getDeformationStatus(eDStep => _eDeformStep);
   
-  IF _bCamReady AND _eDeformStep > E_DeformationStep.nothing AND NOT _bDeformationDone AND NOT bError AND _bTeachOk THEN      // start only if py started
-    IF rT_CamStarted.Q THEN
+  IF _eDeformStep > E_DeformationStep.nothing AND _bCamReady AND _bTeachOk THEN      // start only if py started
+    IF bReqToStartCamOnCt THEN
       // -- setup deformation with cam settings
-      _pAttachedCt^.SetupDeformation(eCameraMode:=_iActiveCam.eCameraMode);
-      _pAttachedCt^.StartDeformation(eDeformationStep:=E_DeformationStep.cameraStarted);
+      LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('CamStarted mode: ', TO_STRING(_iActiveCam.eCameraMode)));
+      _pAttachedCt^.StartCamera(eCameraMode:=_iActiveCam.eCameraMode, fFeatureGrid:=_fFeatureGrid);
+      bReqToStartCamOnCt := FALSE; // reset
 		END_IF
-    IF _eDeformStep >= E_DeformationStep.cameraStarted AND _nScannedPoints > 3 THEN   // TODO: handle this in py script / select local Grid generation or script
-      _pAttachedCt^.UpdateDeformation(fUpdateInterval:=_fFeatureGrid);         // update with cam feature grid  
+    IF _bCamDone THEN
+        LogLvl(Lvl:=E_LogSeverity.Debug, Msg:='CamDone');
+        Release(_pAttachedCt^);
+    END_IF
+      
+    (*IF _eDeformStep >= E_DeformationStep.cameraStarted AND _nScannedPoints > 3 THEN   // TODO: handle this in py script / select local Grid generation or script
+      _pAttachedCt^.UpdateDeformation();         // update with cam feature grid  
       IF _bCamDone THEN
-        _pAttachedCt^.StartDeformation(eDeformationStep:=E_DeformationStep.cameraDone);
         Release(_pAttachedCt^);
       END_IF
-    END_IF
+    END_IF*)
+    
+    
   ELSE
     IF _bCamStarted THEN
-      _pAttachedCt^.StartDeformation(eDeformationStep:=E_DeformationStep.cameraDone);
+      LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat6('CamDone step: ', TO_STRING(_eDeformStep), ' CamReady: ', TO_STRING(_bCamReady), ' TeachOk: ', TO_STRING(_bTeachOk)));
       Release(_pAttachedCt^);
     END_IF
   END_IF
@@ -734,42 +730,45 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="260" Count="0" />
       <LineId Id="249" Count="0" />
       <LineId Id="276" Count="0" />
-      <LineId Id="251" Count="2" />
-      <LineId Id="356" Count="0" />
-      <LineId Id="254" Count="4" />
-      <LineId Id="269" Count="0" />
+      <LineId Id="251" Count="1" />
+      <LineId Id="393" Count="7" />
       <LineId Id="353" Count="0" />
       <LineId Id="359" Count="2" />
       <LineId Id="357" Count="0" />
       <LineId Id="245" Count="0" />
       <LineId Id="122" Count="1" />
-      <LineId Id="293" Count="0" />
+      <LineId Id="404" Count="0" />
+      <LineId Id="406" Count="0" />
       <LineId Id="351" Count="0" />
       <LineId Id="346" Count="0" />
       <LineId Id="344" Count="0" />
       <LineId Id="343" Count="0" />
       <LineId Id="136" Count="0" />
-      <LineId Id="135" Count="0" />
-      <LineId Id="328" Count="5" />
+      <LineId Id="385" Count="0" />
       <LineId Id="327" Count="0" />
       <LineId Id="195" Count="0" />
       <LineId Id="182" Count="0" />
       <LineId Id="184" Count="0" />
-      <LineId Id="281" Count="0" />
+      <LineId Id="382" Count="1" />
       <LineId Id="279" Count="0" />
-      <LineId Id="283" Count="0" />
+      <LineId Id="407" Count="0" />
       <LineId Id="187" Count="0" />
+      <LineId Id="376" Count="0" />
+      <LineId Id="384" Count="0" />
+      <LineId Id="378" Count="0" />
+      <LineId Id="370" Count="0" />
+      <LineId Id="379" Count="0" />
       <LineId Id="151" Count="0" />
       <LineId Id="166" Count="0" />
-      <LineId Id="165" Count="0" />
-      <LineId Id="284" Count="0" />
-      <LineId Id="158" Count="0" />
+      <LineId Id="373" Count="1" />
       <LineId Id="167" Count="0" />
       <LineId Id="141" Count="0" />
+      <LineId Id="372" Count="0" />
+      <LineId Id="371" Count="0" />
       <LineId Id="153" Count="0" />
       <LineId Id="203" Count="0" />
+      <LineId Id="380" Count="0" />
       <LineId Id="285" Count="0" />
-      <LineId Id="154" Count="0" />
       <LineId Id="204" Count="0" />
       <LineId Id="152" Count="0" />
       <LineId Id="138" Count="0" />

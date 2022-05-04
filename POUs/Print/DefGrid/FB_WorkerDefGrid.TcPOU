@@ -76,7 +76,6 @@ VAR_INPUT
 END_VAR
 VAR
   _pNewCt   : POINTER TO FB_ContainerDefGrid;
-
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF iCT = 0 THEN
@@ -85,6 +84,7 @@ END_VAR]]></Declaration>
 ELSIF bEnable AND _pAttachedCt = 0 THEN           // enabled and free to attach
   IF getCtInst(iCT:=iCT, pCT=>_pNewCt) <> 0 THEN  // get specific container
     _pAttachedCt := _pNewCt;
+    LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('Attach CT: ', _pNewCt^.print(0)));
     Attach:=TRUE;                                 // attach new
   ELSE
     LogError(Msg:='attach failed');
@@ -242,7 +242,10 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF iCT <> 0 AND _pAttachedCt <> 0 THEN Release := TRUE; END_IF
+        <ST><![CDATA[IF iCT <> 0 AND _pAttachedCt <> 0 THEN 
+  LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('Release CT: ', _pAttachedCt^.print(0)));
+  Release := TRUE; 
+END_IF
 _pAttachedCt:=0;]]></ST>
       </Implementation>
     </Method>
@@ -318,6 +321,7 @@ END_IF
       <LineId Id="130" Count="0" />
       <LineId Id="112" Count="0" />
       <LineId Id="125" Count="0" />
+      <LineId Id="139" Count="0" />
       <LineId Id="114" Count="0" />
       <LineId Id="128" Count="1" />
       <LineId Id="113" Count="0" />
@@ -381,6 +385,8 @@ END_IF
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.Release">
       <LineId Id="3" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="12" Count="1" />
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.setName">
