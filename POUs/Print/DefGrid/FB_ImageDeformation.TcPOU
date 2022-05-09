@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
   <POU Name="FB_ImageDeformation" Id="{441e42f8-e2de-4298-af7d-148639a86403}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_ImageDeformation EXTENDS FB_PythonDeformation
 VAR_INPUT
@@ -474,8 +474,8 @@ fPosRel_GridCol    := fPosRel_Deform / _sDefGridSettings.nGridPitchX;
 
 // - check available cam points --> current feature
 IF _nCamPoints > 2 AND 
-   FLOOR(fPosRel_GridCol) > _nUpdatedGridCol        // by Grid Pitch  // AND _nUpdatedGridCol <= _sDefGridSettings.nGridSizeX
-   //FLOOR(fPosRel_CamFeature) > _nUpdatedFeature   // by CameraFeature pitch 2048
+   //FLOOR(fPosRel_GridCol) > _nUpdatedGridCol        // by Grid Pitch  // AND _nUpdatedGridCol <= _sDefGridSettings.nGridSizeX
+   FLOOR(fPosRel_CamFeature) > _nUpdatedFeature   // by CameraFeature pitch 2048
 THEN
   // debug info
   LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=

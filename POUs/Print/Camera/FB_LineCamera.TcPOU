@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
   <POU Name="FB_LineCamera" Id="{e6d6755d-f9bc-4501-9145-ca5769d0ea2d}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   QualiVision line camera system
@@ -1154,6 +1154,7 @@ IF NOT sCamPoint.valid THEN     // erase spurious corrections on invalid points
   saveAuswertungPoint.dy := 0;
 END_IF
 nNbMarksScanned := nNbMarksScanned + 1;
+bOK := TRUE;
 ]]></ST>
       </Implementation>
     </Method>
@@ -1755,6 +1756,7 @@ _bTeachOk       := TRUE;]]></ST>
       <LineId Id="135" Count="1" />
       <LineId Id="134" Count="0" />
       <LineId Id="155" Count="0" />
+      <LineId Id="188" Count="0" />
       <LineId Id="9" Count="0" />
     </LineIds>
     <LineIds Name="FB_LineCamera.saveTeachPoint">
