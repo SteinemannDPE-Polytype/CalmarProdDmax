@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
   <GlobalTextList Name="GlobalTextList" Id="{203f0000-e452-49ef-afd7-9a4cdbc0d524}">
     <XmlArchive>
       <Data>
@@ -138,6 +138,11 @@
             <o>
               <v n="TextID">"7315"</v>
               <v n="TextDefault">"%0.4f [m]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1072"</v>
+              <v n="TextDefault">"%0.5f"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -1172,6 +1177,21 @@ sdfsd"</v>
             <o>
               <v n="TextID">"8615"</v>
               <v n="TextDefault">"Position [SubPx]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1116"</v>
+              <v n="TextDefault">"Pre-StartOffset"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"566"</v>
+              <v n="TextDefault">"Pre-StartShiftFactor"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2951"</v>
+              <v n="TextDefault">"Pre-StartShiftOffset"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
