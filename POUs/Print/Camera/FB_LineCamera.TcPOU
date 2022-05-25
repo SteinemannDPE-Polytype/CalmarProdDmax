@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_LineCamera" Id="{e6d6755d-f9bc-4501-9145-ca5769d0ea2d}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   QualiVision line camera system
@@ -69,10 +69,10 @@ VAR
   _sTimeElapsed             : STRING;
   _tTimeTrigger             : T_DCTIME64;
   _nTimeFrameIdx_CamMsg     : UDINT := 1;
-  _tTimeFrames_CamMsg       : ARRAY[0..20] OF T_DCTIME64;   // TimeStamp of cam messages
-  _tTimeFramesMs_CamMsg     : ARRAY[0..20] OF LREAL;        // elapsed times of each frame since trigger
-  _tTimeFrames_TestMsg      : ARRAY[0..20] OF T_DCTIME64;  // TimeStamp of test messages
-  _tTimeFramesMs_TestMsg    : ARRAY[0..20] OF LREAL;       // elapsed time of each frame since trigger 
+  _tTimeFrames_CamMsg       : ARRAY[0..nC_MaxRxTimingEntries] OF T_DCTIME64;   // TimeStamp of cam messages
+  _tTimeFramesMs_CamMsg     : ARRAY[0..nC_MaxRxTimingEntries] OF LREAL;        // elapsed times of each frame since trigger
+  _tTimeFrames_TestMsg      : ARRAY[0..nC_MaxRxTimingEntries] OF T_DCTIME64;   // TimeStamp of test messages
+  _tTimeFramesMs_TestMsg    : ARRAY[0..nC_MaxRxTimingEntries] OF LREAL;        // elapsed time of each frame since trigger 
   // tcp camera simulation
   _nSimMode                 : UDINT := 0; // 0=generate points in plc, 1=use ext. cam simulation script, 2=send rx_callback messages directly
   _sSimCamPoints            : ARRAY [1..GVL_Camera.cMaxNbMarks] OF ST_DeformationPointAccurate;
@@ -112,6 +112,9 @@ VAR CONSTANT
   sQvTest_Header            : STRING := 'QT_'; // qualivision test telegram header
   sQvTest_CI                : STRING := 'CI_'; // input frame timing test
   sQvTest_Loop              : STRING := 'LP_'; // loop timing test
+  
+  // debug
+  nC_MaxRxTimingEntries     : UDINT := 40;
 END_VAR
 
 VAR PERSISTENT
@@ -331,6 +334,7 @@ END_VAR]]></Declaration>
         <ST><![CDATA[SUPER^.CamTrigger(bOk:=bOk, nPos:=nPos, nPosDeviation:=nPosDeviation);
 
 _tTimeTrigger := F_GetCurDcTaskTime64();    // save trigger time stamp (a little later than the real)
+IF _bVerbose THEN LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('CamTrigger at: ', TO_STRING(_tTimeTrigger))); END_IF
 nNbMarksScanned := 0;
 
 ]]></ST>
@@ -340,7 +344,7 @@ nNbMarksScanned := 0;
       <Declaration><![CDATA[METHOD CamTriggerDone]]></Declaration>
       <Implementation>
         <ST><![CDATA[SUPER^.CamTriggerDone();
-
+IF _bVerbose THEN LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('CamTriggerDone at: ', TO_STRING(_tTimeTrigger))); END_IF
 SimExit();]]></ST>
       </Implementation>
     </Method>
@@ -611,7 +615,7 @@ END_VAR
         <ST><![CDATA[// basic message handling
 SUPER^.rx_callback(sMessage := sMessage);
 // debug print
-IF _bVerbose THEN LogLvl(Lvl:=E_LogSeverity.Debug,Msg:=F_Concat4('Sz: ', TO_STRING(nLastMessageSz), ' Msg:', sLastMessage)); END_IF
+IF _bVerbose THEN LogLvl(Lvl:=E_LogSeverity.Debug,Msg:=F_Concat4('Rx Sz: ', TO_STRING(nLastMessageSz), ' Msg:', sLastMessage)); END_IF
 
 // check parameter (avoids crash)
 IF _fPrintUnitWidthTC = 0 THEN LogError('rx_callback: Invalid configuration, review persistences and config values!'); RETURN; END_IF
@@ -667,13 +671,23 @@ REPEAT
     IF nSector = TO_DINT(cIdxFirstSector) THEN  // erase campoint with first received sector
       MEMSET(destAddr:=ADR(sCameraPoints), fillByte:=0, n:=SIZEOF(sCameraPoints));  // erase cam points list
       IF _bVerbose THEN LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('received first A sector, erase cam points list.','')); END_IF
-
+      
       _nTimeFrameIdx_CamMsg := 1;
     END_IF
   
-    IF _nTimeFrameIdx_CamMsg <= 20 THEN  // save message timestamp for debugging
+    // debug timing rx A
+    IF _nTimeFrameIdx_CamMsg <= nC_MaxRxTimingEntries THEN  // save message timestamp for debugging
       _tTimeFrames_CamMsg[_nTimeFrameIdx_CamMsg] := F_GetCurDcTaskTime64();     // save cam frame rx timestamp
-      _tTimeFramesMs_CamMsg[_nTimeFrameIdx_CamMsg] := TO_LREAL((_tTimeFrames_CamMsg[_nTimeFrameIdx_CamMsg]-_tTimeTrigger)/EC_DCTIME_TICKSPERMSEC64);
+      _tTimeFramesMs_CamMsg[_nTimeFrameIdx_CamMsg] := TO_LREAL((_tTimeFrames_CamMsg[_nTimeFrameIdx_CamMsg]-_tTimeTrigger)/EC_DCTIME_TICKSPERMSEC64);  // delta to trigger in ms
+      IF _bVerbose THEN 
+        // dbg log rx frames
+        LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat4(
+            F_Concat2('A-Frame: ', TO_STRING(_nTimeFrameIdx_CamMsg)),
+            F_Concat2(' : ', TO_STRING(_nTimeFrameIdx_CamMsg)),
+            F_Concat2(' after trig: ', TO_STRING(_tTimeFramesMs_CamMsg[_nTimeFrameIdx_CamMsg])),
+            F_Concat2(' at: ', TO_STRING(_tTimeFrames_CamMsg[_nTimeFrameIdx_CamMsg]))
+        ));
+			END_IF
       _nTimeFrameIdx_CamMsg := _nTimeFrameIdx_CamMsg + 1;
     END_IF
     
@@ -1050,7 +1064,7 @@ IF nFIdx > 0 THEN
            , nPos       := 1);
     // frame number
     nFrmIdx := TO_UINT(sTestMsg);
-    IF nFrmIdx <= 20 THEN
+    IF nFrmIdx <= nC_MaxRxTimingEntries THEN
       _tTimeFrames_TestMsg[nFrmIdx] := F_GetCurDcTaskTime64();     // save test input frame timestamp
       _tTimeFramesMs_TestMsg[nFrmIdx] := TO_LREAL((_tTimeFrames_TestMsg[nFrmIdx]-_tTimeTrigger)/EC_DCTIME_TICKSPERMSEC64);
     END_IF
@@ -1561,12 +1575,14 @@ _bTeachOk       := TRUE;]]></ST>
       <LineId Id="20" Count="0" />
       <LineId Id="64" Count="0" />
       <LineId Id="32" Count="0" />
+      <LineId Id="79" Count="0" />
       <LineId Id="21" Count="0" />
       <LineId Id="59" Count="0" />
       <LineId Id="6" Count="0" />
     </LineIds>
     <LineIds Name="FB_LineCamera.CamTriggerDone">
-      <LineId Id="12" Count="1" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="14" Count="0" />
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_LineCamera.CreateSimCamPoints">
@@ -1655,7 +1671,20 @@ _bTeachOk       := TRUE;]]></ST>
       <LineId Id="2519" Count="43" />
       <LineId Id="2564" Count="6" />
       <LineId Id="2644" Count="0" />
-      <LineId Id="2571" Count="25" />
+      <LineId Id="2571" Count="6" />
+      <LineId Id="2726" Count="0" />
+      <LineId Id="2579" Count="2" />
+      <LineId Id="2727" Count="0" />
+      <LineId Id="2698" Count="2" />
+      <LineId Id="2585" Count="0" />
+      <LineId Id="2702" Count="0" />
+      <LineId Id="2704" Count="1" />
+      <LineId Id="2725" Count="0" />
+      <LineId Id="2707" Count="1" />
+      <LineId Id="2706" Count="0" />
+      <LineId Id="2703" Count="0" />
+      <LineId Id="2701" Count="0" />
+      <LineId Id="2586" Count="10" />
       <LineId Id="2679" Count="0" />
       <LineId Id="2681" Count="0" />
       <LineId Id="2680" Count="0" />

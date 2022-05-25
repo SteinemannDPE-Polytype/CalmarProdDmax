@@ -10,6 +10,9 @@
 Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 
 ---
+### changes `2.0.0.13` BRM
+* CHG: add some more verbose logs in LineCamera for rx frame timing debug
+
 ### changes `2.0.0.12` BRM
 * CHG: speed improvements
 * CHG: DefGrid_WorkerDeformation can have multiple CTs attached
