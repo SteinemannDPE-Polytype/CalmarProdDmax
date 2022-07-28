@@ -10,6 +10,9 @@
 Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 
 ---
+### changes `2.0.1.1` BRM
+* CHG: remove `nCorrection` Input from `FB_PH` to make it compatible with CompPrint >= `2.0.1.18`
+
 ## `2.0.1` 28.07.2022
 * release `2.0.1` created, tested on DMAX 305.704, DPST-1005
 

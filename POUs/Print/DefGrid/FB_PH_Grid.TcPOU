@@ -1,13 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_PH_Grid" Id="{7d84493e-c0db-481a-b913-ca603f9217d7}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   Specific printhead implementing the grid logic.
 *)
 FUNCTION_BLOCK FB_PH_Grid EXTENDS FB_PH IMPLEMENTS I_Correction_Grid
-VAR_OUTPUT
-  nCorrection       AT%Q* : ULINT := 0;   // correction interfaces
-END_VAR
 VAR
   // fifo queue
   fbFifo            : FB_GridPointFIFO;    // points fifo
