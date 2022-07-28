@@ -10,6 +10,9 @@
 Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 
 ---
+## `2.0.1` 28.07.2022
+* release `2.0.1` created, tested on DMAX 305.704, DPST-1005
+
 ### changes `2.0.0.13` BRM
 * CHG: add some more verbose logs in LineCamera for rx frame timing debug
 

@@ -17,7 +17,7 @@
     <Implicit_Jitter_Distribution>{16d81fa0-13c7-4d29-a136-833127f063f5}</Implicit_Jitter_Distribution>
     <LibraryReferences>{ba6a19c6-5744-48f5-a170-b3a0509f6030}</LibraryReferences>
     <Released>false</Released>
-    <ProjectVersion>2.0.0.13</ProjectVersion>
+    <ProjectVersion>2.0.1</ProjectVersion>
     <Company>WIFAG-Polytype</Company>
     <Title>CalmarProdDmax</Title>
     <Author>Wifag//Polytype</Author>
@@ -503,11 +503,6 @@ Fribourg/Switzerland (2021)</Description>
     </PlaceholderReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="DMAX.tmc">
-      <SubType>Content</SubType>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <PlaceholderResolution Include="CalmarCommons">
       <Resolution>CalmarCommons, 1.5.10 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
@@ -541,6 +536,26 @@ Fribourg/Switzerland (2021)</Description>
           <o xml:space="preserve" t="OptionKey">
       <v n="Name">"&lt;ProjectRoot&gt;"</v>
       <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
+        <v>{246001F4-279D-43AC-B241-948EB31120E1}</v>
+        <o>
+          <v n="Name">"{246001F4-279D-43AC-B241-948EB31120E1}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String">
+            <v>SymbolLibraryConfiguration</v>
+            <v>"VisuSymbols (System);False
+"</v>
+            <v>UnicodeStrings</v>
+            <v>false</v>
+            <v>GlobalTextListFilePath</v>
+            <v>""</v>
+            <v>ExtendedSettings</v>
+            <v>false</v>
+            <v>GlobalVisuImageFilePath</v>
+            <v>".\"</v>
+            <v>GeneralPropertySupport</v>
+            <v>false</v>
+          </d>
+        </o>
         <v>{8F99A816-E488-41E4-9FA3-846536012284}</v>
         <o>
           <v n="Name">"{8F99A816-E488-41E4-9FA3-846536012284}"</v>
@@ -551,6 +566,18 @@ Fribourg/Switzerland (2021)</Description>
         <o>
           <v n="Name">"{29BD8D0C-3586-4548-BB48-497B9A01693F}"</v>
           <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
+            <v>NamingConventions</v>
+            <o>
+              <v n="Name">"NamingConventions"</v>
+              <d n="SubKeys" t="Hashtable" />
+              <d n="Values" t="Hashtable" />
+            </o>
+            <v>Metrics</v>
+            <o>
+              <v n="Name">"Metrics"</v>
+              <d n="SubKeys" t="Hashtable" />
+              <d n="Values" t="Hashtable" />
+            </o>
             <v>Rules</v>
             <o>
               <v n="Name">"Rules"</v>
@@ -613,7 +640,10 @@ Fribourg/Switzerland (2021)</Description>
               <d n="Values" t="Hashtable" />
             </o>
           </d>
-          <d n="Values" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String" cvt="Boolean">
+            <v>PerformStaticAnalyse</v>
+            <v>False</v>
+          </d>
         </o>
         <v>{40450F57-0AA3-4216-96F3-5444ECB29763}</v>
         <o>
@@ -632,6 +662,26 @@ Fribourg/Switzerland (2021)</Description>
         <o>
           <v n="Name">"{192FAD59-8248-4824-A8DE-9177C94C195A}"</v>
           <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String" cvt="String">
+            <v>CurrentUmlCompilerVersion</v>
+            <v>4.0.2.1</v>
+          </d>
+        </o>
+        <v>{535658C0-5AF5-460d-99A4-BFFB984A829A}</v>
+        <o>
+          <v n="Name">"{535658C0-5AF5-460d-99A4-BFFB984A829A}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String">
+            <v>VersionConstraint</v>
+            <o t="NewestVersionConstraintToSave" />
+            <v>EnableBreakpointLogging</v>
+            <v>false</v>
+          </d>
+        </o>
+        <v>{F66C7017-BDD8-4114-926C-81D6D687E35F}</v>
+        <o>
+          <v n="Name">"{F66C7017-BDD8-4114-926C-81D6D687E35F}"</v>
+          <d n="SubKeys" t="Hashtable" />
           <d n="Values" t="Hashtable" />
         </o>
         <v>{E709B08B-B6E4-4966-8EED-D793A13114C6}</v>
@@ -643,32 +693,6 @@ Fribourg/Switzerland (2021)</Description>
             <v>False</v>
           </d>
         </o>
-        <v>{F66C7017-BDD8-4114-926C-81D6D687E35F}</v>
-        <o>
-          <v n="Name">"{F66C7017-BDD8-4114-926C-81D6D687E35F}"</v>
-          <d n="SubKeys" t="Hashtable" />
-          <d n="Values" t="Hashtable" />
-        </o>
-        <v>{246001F4-279D-43AC-B241-948EB31120E1}</v>
-        <o>
-          <v n="Name">"{246001F4-279D-43AC-B241-948EB31120E1}"</v>
-          <d n="SubKeys" t="Hashtable" />
-          <d n="Values" t="Hashtable" ckt="String">
-            <v>SymbolLibraryConfiguration</v>
-            <v>"VisuSymbols (System);False
-"</v>
-            <v>UnicodeStrings</v>
-            <v>false</v>
-            <v>GlobalTextListFilePath</v>
-            <v>""</v>
-            <v>ExtendedSettings</v>
-            <v>false</v>
-            <v>GlobalVisuImageFilePath</v>
-            <v>".\"</v>
-            <v>GeneralPropertySupport</v>
-            <v>false</v>
-          </d>
-        </o>
       </d>
       <d n="Values" t="Hashtable" />
     </o>
@@ -677,6 +701,7 @@ Fribourg/Switzerland (2021)</Description>
           <Type n="Boolean">System.Boolean</Type>
           <Type n="Hashtable">System.Collections.Hashtable</Type>
           <Type n="Int32">System.Int32</Type>
+          <Type n="NewestVersionConstraintToSave">{af9bafe2-ba31-4b15-a2b9-48a0f2cd09fb}</Type>
           <Type n="OptionKey">{54dd0eac-a6d8-46f2-8c27-2f43c7e49861}</Type>
           <Type n="String">System.String</Type>
         </TypeList>
