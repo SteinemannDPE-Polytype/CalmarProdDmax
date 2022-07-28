@@ -17,7 +17,7 @@
     <Implicit_Jitter_Distribution>{16d81fa0-13c7-4d29-a136-833127f063f5}</Implicit_Jitter_Distribution>
     <LibraryReferences>{ba6a19c6-5744-48f5-a170-b3a0509f6030}</LibraryReferences>
     <Released>false</Released>
-    <ProjectVersion>2.0.1.1</ProjectVersion>
+    <ProjectVersion>2.0.1.2</ProjectVersion>
     <Company>WIFAG-Polytype</Company>
     <Title>CalmarProdDmax</Title>
     <Author>Wifag//Polytype</Author>
@@ -412,6 +412,12 @@ Fribourg/Switzerland (2021)</Description>
     <PlaceholderReference Include="CalmarCompPrint">
       <DefaultResolution>CalmarCompPrint, * (WIFAG-Polytype)</DefaultResolution>
       <Namespace>CalmarCompPrint</Namespace>
+      <Parameters>
+        <Parameter ListName="GVL_PRINTDEF" xmlns="">
+          <Key>ICPR_MAX_NB_PASSES</Key>
+          <Value>5</Value>
+        </Parameter>
+      </Parameters>
     </PlaceholderReference>
     <PlaceholderReference Include="CalmarCompSystem">
       <DefaultResolution>CalmarCompSystem, * (WIFAG-Polytype)</DefaultResolution>
@@ -507,7 +513,7 @@ Fribourg/Switzerland (2021)</Description>
       <Resolution>CalmarCommons, 1.5.10 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompPrint">
-      <Resolution>CalmarCompPrint, 2.0.1.14 (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCompPrint, 2.0.1.26 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompSystem">
       <Resolution>CalmarCompSystem, 1.5.0 (WIFAG-Polytype)</Resolution>

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_StartPositionDummy" Id="{8c44436b-fdf6-4982-bb45-487571d5b646}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   A start position detection function block dummy.
@@ -141,6 +141,13 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
+    <Method Name="mJobPause" Id="{7eb46286-2488-433d-8cdd-400aef51086a}" FolderPath="I_PrintStatusClient\">
+      <Declaration><![CDATA[METHOD mJobPause
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="mJobStart" Id="{e393908f-23a1-4595-a465-2cf3c9f6001e}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mJobStart
 VAR_INPUT
@@ -258,6 +265,9 @@ _bSim := FALSE;]]></ST>
     </LineIds>
     <LineIds Name="FB_StartPositionDummy.bValid.Get">
       <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_StartPositionDummy.mJobPause">
+      <LineId Id="4" Count="0" />
     </LineIds>
     <LineIds Name="FB_StartPositionDummy.mJobStart">
       <LineId Id="8" Count="0" />

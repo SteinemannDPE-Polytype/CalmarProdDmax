@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_Pm_DMAX" Id="{ded3af19-1c0f-43ae-bbea-9b910b5389fa}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   Managing a production on a DigiRound machine.
@@ -43,6 +43,7 @@ END_VAR]]></Declaration>
 
 rfTrig_PmActive(CLK:=bPmActive);]]></ST>
     </Implementation>
+    <Folder Name="I_PrintStatusClient" Id="{01602ff5-4961-4770-a9e0-df788cccf137}" />
     <Method Name="abortJob" Id="{e7b0b8e7-bea6-476d-a854-929acdccc5fe}">
       <Declaration><![CDATA[(*
   Job was stopped. 
@@ -345,7 +346,14 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Method Name="mJobStart" Id="{c39754c8-8852-498e-914a-4153cd085596}">
+    <Method Name="mJobPause" Id="{6a44bd3a-ab99-45aa-ab8c-fcd698bd816f}" FolderPath="I_PrintStatusClient\">
+      <Declaration><![CDATA[METHOD mJobPause
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mJobStart" Id="{c39754c8-8852-498e-914a-4153cd085596}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mJobStart
 VAR_INPUT
 	sJobDef	: I_JobDefinition;
@@ -384,7 +392,7 @@ bPmActive := TRUE;
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStop" Id="{4e66d9c9-cbc8-4029-b2bc-ecfd2707f3e7}">
+    <Method Name="mJobStop" Id="{4e66d9c9-cbc8-4029-b2bc-ecfd2707f3e7}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mJobStop
 VAR_INPUT
 	sStatus	: I_JobStatus;
@@ -411,7 +419,7 @@ bPmActive := FALSE;
 lastCreatedCT := 0;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mProduced" Id="{6ef0a06c-a684-4fe5-a32d-bb8010ec7051}">
+    <Method Name="mProduced" Id="{6ef0a06c-a684-4fe5-a32d-bb8010ec7051}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mProduced
 VAR_INPUT
 	(* current progress*)
@@ -485,6 +493,9 @@ END_VAR
     </LineIds>
     <LineIds Name="FB_Pm_DMAX.lastCreated.Get">
       <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Pm_DMAX.mJobPause">
+      <LineId Id="4" Count="0" />
     </LineIds>
     <LineIds Name="FB_Pm_DMAX.mJobStart">
       <LineId Id="3" Count="8" />
