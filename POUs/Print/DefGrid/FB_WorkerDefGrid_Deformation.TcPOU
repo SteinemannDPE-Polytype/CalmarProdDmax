@@ -141,6 +141,7 @@ IF _pParamMediator = 0 THEN LogError('no parameter mediator'); RETURN; END_IF
 IF _sDeformationGridSettings.nGridPitchX = 0 THEN _sDeformationGridSettings.nGridPitchX:=GVL_Deformation.nC_GridPitch_X; LogError(F_Concat2('nGridPitchX not configured, set default=', TO_STRING(GVL_Deformation.nC_GridPitch_X))); END_IF
 IF _sDeformationGridSettings.nGridPitchY = 0 THEN _sDeformationGridSettings.nGridPitchY:=GVL_Deformation.nC_GridPitch_Y; LogError(F_Concat2('nGridPitchY not configured, set default=', TO_STRING(GVL_Deformation.nC_GridPitch_X))); END_IF
 IF _nPrintUnitWidth = 0 THEN LogError('_nPrintUnitWidth not configured'); END_IF
+IF fPosition = 0 THEN fPosition := _pParamMediator^.fDetectToCamera + 0.05; LogWarning('Initialized Worker position'); END_IF
 
 // configuration
 // calculate deformation  settings
@@ -382,6 +383,7 @@ END_FOR
       <LineId Id="49" Count="0" />
       <LineId Id="94" Count="0" />
       <LineId Id="60" Count="0" />
+      <LineId Id="98" Count="0" />
       <LineId Id="59" Count="0" />
       <LineId Id="27" Count="0" />
       <LineId Id="89" Count="0" />

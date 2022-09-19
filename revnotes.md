@@ -10,6 +10,10 @@
 Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 
 ---
+### changes `2.0.1.3` BRM
+* CHG: improve some VISUs (Better CamTrigger status, remove simulation from PrintOverview, show CT Details on request)
+* CHG: BugFixes
+
 ### changes `2.0.1.2` BRM
 * CHG: make it compatible with CompPrint >= `2.0.1.26` 
     * added `mJobPause` in `I_PrintStatusClient`

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <GlobalTextList Name="GlobalTextList" Id="{203f0000-e452-49ef-afd7-9a4cdbc0d524}">
     <XmlArchive>
       <Data>
@@ -608,6 +608,16 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"1339"</v>
+              <v n="TextDefault">"Automatic or ManualTeach"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2606"</v>
+              <v n="TextDefault">"AutomaticMode or ManualTeach"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"2111"</v>
               <v n="TextDefault">"Back"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -645,6 +655,11 @@
             <o>
               <v n="TextID">"6811"</v>
               <v n="TextDefault">"cam simulation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1299"</v>
+              <v n="TextDefault">"Cam valid"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -1040,6 +1055,11 @@ sdfsd"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"2960"</v>
+              <v n="TextDefault">"HwEnable"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"5854"</v>
               <v n="TextDefault">"ID"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -1062,6 +1082,16 @@ sdfsd"</v>
             <o>
               <v n="TextID">"425"</v>
               <v n="TextDefault">"Image Width"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1262"</v>
+              <v n="TextDefault">"Inhibit trigger"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"166"</v>
+              <v n="TextDefault">"Init ok"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -1102,6 +1132,11 @@ sdfsd"</v>
             <o>
               <v n="TextID">"2937"</v>
               <v n="TextDefault">"ly"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2076"</v>
+              <v n="TextDefault">"ManualTeach"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -1380,6 +1415,11 @@ sdfsd"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"1382"</v>
+              <v n="TextDefault">"SheetDetect"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"3305"</v>
               <v n="TextDefault">"SheetGap"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -1432,6 +1472,11 @@ sdfsd"</v>
             <o>
               <v n="TextID">"2330"</v>
               <v n="TextDefault">"Speed"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2930"</v>
+              <v n="TextDefault">"Speed valid"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -1562,6 +1607,11 @@ sdfsd"</v>
             <o>
               <v n="TextID">"5292"</v>
               <v n="TextDefault">"TrackPos"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"228"</v>
+              <v n="TextDefault">"Trigger Armed"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>

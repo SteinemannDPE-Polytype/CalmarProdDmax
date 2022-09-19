@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_CameraTcpIp" Id="{c88746fd-4ca5-43f1-8f99-b1b2f4ff3dbc}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   Base camera system with TcpIp communicatiom
@@ -16,7 +16,7 @@ VAR
   sState                    : STRING;               (*state change event as string*)
 
   sLastErrorMessage         : STRING(GVL_TcpIp.TCP_RXDATA_SIZE);          (*rx telegram error string*)
-
+  _bConnectionError         : BOOL;
   _pFbTcpIpClient           : POINTER TO FB_TcpClient;
 END_VAR
 ]]></Declaration>
@@ -50,9 +50,11 @@ END_VAR
         <Implementation>
           <ST><![CDATA[IF _pFbTcpIpClient = 0 THEN RETURN; END_IF
 
+_bConnectionError := FALSE;
 IF _bActivated THEN
   IF NOT _pFbTcpIpClient^.bConnected OR _pFbTcpIpClient^.bError THEN
     bConnectionErr := TRUE;
+    _bConnectionError := TRUE;
   END_IF 
 END_IF]]></ST>
         </Implementation>
@@ -149,10 +151,11 @@ END_VAR
     </LineIds>
     <LineIds Name="FB_CameraTcpIp.bConnectionErr.Get">
       <LineId Id="2" Count="0" />
-      <LineId Id="6" Count="0" />
+      <LineId Id="14" Count="1" />
       <LineId Id="5" Count="0" />
       <LineId Id="7" Count="0" />
       <LineId Id="10" Count="0" />
+      <LineId Id="13" Count="0" />
       <LineId Id="9" Count="0" />
       <LineId Id="8" Count="0" />
     </LineIds>

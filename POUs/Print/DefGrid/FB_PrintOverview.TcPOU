@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_PrintOverview" Id="{57a6df33-c5fc-4b78-b796-858abcecd4f4}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_PrintOverview
 VAR_INPUT
@@ -44,6 +44,8 @@ VAR
   // time
   sCurrentDateTime : STRING;
   
+  // view control
+  bShowCtDetails : BOOL;
 END_VAR
 VAR CONSTANT
   nC_MAX_WORKER_VIEWS : UINT := 10;
@@ -87,6 +89,9 @@ END_FOR
 
 // -- show positioning -----------------------
 fSpeed := _pPositioning^.getSpeed();
+IF LrealIsNaN(x:=fSpeed) THEN
+  fSpeed := 0;
+END_IF
 t := LREAL_TO_TIME(1000-fSpeed*900);
 fbBlink(bI_Enable:=SEL(fSpeed > 0, FALSE, TRUE), tI_Time:=t, bO_Out=>bMovingInd);
 
@@ -194,7 +199,9 @@ bInit := TRUE;]]></ST>
     </Method>
     <LineIds Name="FB_PrintOverview">
       <LineId Id="295" Count="0" />
-      <LineId Id="297" Count="36" />
+      <LineId Id="297" Count="35" />
+      <LineId Id="472" Count="2" />
+      <LineId Id="333" Count="0" />
       <LineId Id="250" Count="0" />
       <LineId Id="371" Count="0" />
       <LineId Id="370" Count="0" />
