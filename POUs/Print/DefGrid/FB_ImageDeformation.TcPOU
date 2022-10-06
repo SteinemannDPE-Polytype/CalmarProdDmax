@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_ImageDeformation" Id="{441e42f8-e2de-4298-af7d-148639a86403}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_ImageDeformation EXTENDS FB_PythonDeformation
 VAR_INPUT
@@ -99,6 +99,17 @@ IF addCamPoint THEN
 END_IF]]></ST>
       </Implementation>
     </Method>
+    <Property Name="bAbortRequestPy" Id="{83e61a74-d85b-4c49-8637-546b50faf2c3}">
+      <Declaration><![CDATA[PROPERTY bAbortRequestPy : BOOL]]></Declaration>
+      <Get Name="Get" Id="{ae456e92-162c-483d-a80a-32c06bf6bacb}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bAbortRequestPy := bPythonAbort;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
     <Property Name="bBusy" Id="{5d3d2a13-e08c-4e72-b575-f525aa8bfd05}">
       <Declaration><![CDATA[PROPERTY bBusy : BOOL]]></Declaration>
       <Get Name="Get" Id="{b939b996-039a-463e-9850-4e6c68257d06}">
@@ -568,6 +579,9 @@ _nLocalGridColsGenerated := _nLocalGridColsGenerated + ct;
       <LineId Id="55" Count="0" />
       <LineId Id="42" Count="2" />
       <LineId Id="13" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.bAbortRequestPy.Get">
+      <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.bBusy.Get">
       <LineId Id="2" Count="0" />

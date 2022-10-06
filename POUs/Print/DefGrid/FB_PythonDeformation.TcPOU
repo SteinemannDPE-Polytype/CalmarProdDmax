@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_PythonDeformation" Id="{8548472e-1429-4d1f-a86c-b17fd222dd73}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_PythonDeformation EXTENDS FB_BasePrint
 VAR
@@ -63,7 +63,9 @@ IF bPythonBusy THEN // Pending job
       LogError(F_Concat4('Error during bPythonBusy, ExecTime:', TO_STRING(_tExecutionTime), ' Err:', TO_STRING(nErrId)));
 		END_IF
 	END_IF
-
+ELSIF bPythonAbort THEN
+  //bPythonAbort := FALSE;
+	bPythonStartUpdate := FALSE;
 ELSE // Update/Job done	
   bPythonAbort := FALSE;
 	bPythonStartUpdate := FALSE;
@@ -135,7 +137,9 @@ END_IF]]></ST>
     <LineIds Name="FB_PythonDeformation.ExecPy">
       <LineId Id="7" Count="2" />
       <LineId Id="37" Count="0" />
-      <LineId Id="10" Count="18" />
+      <LineId Id="10" Count="17" />
+      <LineId Id="45" Count="1" />
+      <LineId Id="28" Count="0" />
       <LineId Id="32" Count="4" />
       <LineId Id="5" Count="0" />
     </LineIds>

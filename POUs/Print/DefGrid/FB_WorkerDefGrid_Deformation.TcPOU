@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_WorkerDefGrid_Deformation" Id="{8683d501-d2f8-4b2f-9f84-75930406cf79}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Deformation EXTENDS FB_WorkerDefGrid
 VAR_INPUT
@@ -28,6 +28,7 @@ VAR
   _bDeformationDone           : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF BOOL;   // status deformation of ct
   _nDeformationErrorId        : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF UDINT;  // status deformation of ct
   _tDeformationExecutionTime  : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF TIME;   // status deformation of ct
+  _bAbortRequestPy            : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF BOOL;   // status deformation of ct
 END_VAR
 
 VAR PERSISTENT
@@ -287,12 +288,15 @@ FOR i := nLowerIndexCTList TO nLowerIndexCTList + _nMultiAttachedCTs - 1 DO
                             bBusy => _bDeformationBusy[i],
                             bDone => _bDeformationDone[i],
                             nErrorId => _nDeformationErrorId[i], 
-                            tExecutionTime => _tDeformationExecutionTime[i]);
+                            tExecutionTime => _tDeformationExecutionTime[i],
+                            bAbortRequestPy => _bAbortRequestPy[i]);
   _nDeformationProcPoints[i] := pCt^.nAvailableGridPoints;
   _nDeformationProcCols[i]   := pCt^.nAvailableGridCols;
      
   //Release container when all points have been processed or error
-  IF _bDeformationDone[i] OR _bDeformationError[i] THEN
+  IF _bAbortRequestPy[i] THEN
+    pCt^.AbortDeformation(sReason:='Abort requested by Py', Src:=_pEcSrc^);
+  ELSIF _bDeformationDone[i] OR _bDeformationError[i] THEN
     // tag CT with error if deformation had an error
     IF _bDeformationError[i] THEN 
       pCt^.setError(ErrDef:=EC_DefGrid.ecDefGrid_DefGridError, Src:=_pEcSrc^); 
@@ -454,9 +458,14 @@ END_FOR
       <LineId Id="270" Count="1" />
       <LineId Id="264" Count="0" />
       <LineId Id="263" Count="0" />
-      <LineId Id="230" Count="5" />
+      <LineId Id="230" Count="4" />
+      <LineId Id="297" Count="0" />
+      <LineId Id="235" Count="0" />
       <LineId Id="253" Count="0" />
-      <LineId Id="244" Count="4" />
+      <LineId Id="244" Count="2" />
+      <LineId Id="299" Count="0" />
+      <LineId Id="298" Count="0" />
+      <LineId Id="247" Count="1" />
       <LineId Id="273" Count="1" />
       <LineId Id="291" Count="0" />
       <LineId Id="250" Count="1" />

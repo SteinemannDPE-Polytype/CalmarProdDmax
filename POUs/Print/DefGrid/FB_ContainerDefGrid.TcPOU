@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_ContainerDefGrid" Id="{2d8beb5a-7741-4f53-9b5d-5bba1cb243c4}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_ContainerDefGrid EXTENDS FB_ContainerBase
 VAR_INPUT
@@ -115,6 +115,7 @@ VAR_OUTPUT
   bBusy : BOOL;             // deformation is busy
   nErrorId : UDINT;         // error id in case of error
   tExecutionTime : TIME;    // script update execution time?
+  bAbortRequestPy : BOOL;   // abort request by inner py interface
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -125,6 +126,7 @@ bBusy := fBImageDeformation.bBusy;
 bDone := fBImageDeformation.bDone;
 nErrorId := fBImageDeformation.nErrorId;
 tExecutionTime := fBImageDeformation.tExecutionTime;
+bAbortRequestPy := fBImageDeformation.bAbortRequestPy;
 ]]></ST>
       </Implementation>
     </Method>
@@ -240,6 +242,7 @@ END_VAR]]></Declaration>
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.getDeformationStatus">
       <LineId Id="68" Count="6" />
+      <LineId Id="90" Count="0" />
       <LineId Id="13" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.nAvailableGridCols.Get">
