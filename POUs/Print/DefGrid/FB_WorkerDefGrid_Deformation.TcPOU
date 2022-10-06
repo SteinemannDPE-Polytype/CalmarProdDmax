@@ -294,15 +294,18 @@ FOR i := nLowerIndexCTList TO nLowerIndexCTList + _nMultiAttachedCTs - 1 DO
   _nDeformationProcCols[i]   := pCt^.nAvailableGridCols;
      
   //Release container when all points have been processed or error
-  IF _bAbortRequestPy[i] THEN
-    pCt^.AbortDeformation(sReason:='Abort requested by Py', Src:=_pEcSrc^);
-  ELSIF _bDeformationDone[i] OR _bDeformationError[i] THEN
+  IF _bDeformationDone[i] OR _bDeformationError[i] THEN
     // tag CT with error if deformation had an error
     IF _bDeformationError[i] THEN 
       pCt^.setError(ErrDef:=EC_DefGrid.ecDefGrid_DefGridError, Src:=_pEcSrc^); 
     END_IF
+    IF _bAbortRequestPy[i] THEN
+      pCt^.AbortDeformation(sReason:='Abort requested by Py', Src:=_pEcSrc^);
+    END_IF
     LogLvl(Lvl:=E_LogSeverity.Detail, Msg:=F_Concat4('Done with: CamP=',  TO_STRING(pCT^.nRegisteredCameraPoints), ' GridP=', TO_STRING(pCt^.nAvailableGridPoints)));
     Release(pCt^);
+  ELSIF _bAbortRequestPy[i] THEN
+    pCt^.AbortDeformation(sReason:='Abort requested by Py', Src:=_pEcSrc^);
 	END_IF
     // release CT (manually and security)
   IF _bForceRelease THEN
@@ -462,13 +465,15 @@ END_FOR
       <LineId Id="297" Count="0" />
       <LineId Id="235" Count="0" />
       <LineId Id="253" Count="0" />
-      <LineId Id="244" Count="2" />
-      <LineId Id="299" Count="0" />
+      <LineId Id="244" Count="1" />
       <LineId Id="298" Count="0" />
       <LineId Id="247" Count="1" />
       <LineId Id="273" Count="1" />
+      <LineId Id="307" Count="2" />
       <LineId Id="291" Count="0" />
-      <LineId Id="250" Count="1" />
+      <LineId Id="250" Count="0" />
+      <LineId Id="305" Count="1" />
+      <LineId Id="251" Count="0" />
       <LineId Id="276" Count="1" />
       <LineId Id="284" Count="0" />
       <LineId Id="279" Count="1" />
