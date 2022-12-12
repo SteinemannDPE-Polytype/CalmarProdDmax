@@ -330,7 +330,10 @@ END_VAR
 bPythonError := FALSE;
 fPythonPosition := 0.0; 
 bPythonDeformationDone := FALSE;
-
+bPythonAbort := FALSE;
+bPythonStartUpdate := FALSE;
+nPythonStatus := 0;
+_fbTimeout(IN:=FALSE);
 
 fbFifoCamPoints.Reset();
 fbFifoGridPoints.Reset();
@@ -658,7 +661,10 @@ _nLocalGridColsGenerated := _nLocalGridColsGenerated + ct;
       <LineId Id="9" Count="1" />
       <LineId Id="17" Count="0" />
       <LineId Id="13" Count="0" />
+      <LineId Id="87" Count="0" />
       <LineId Id="22" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="88" Count="0" />
       <LineId Id="15" Count="1" />
       <LineId Id="12" Count="0" />
       <LineId Id="52" Count="0" />
