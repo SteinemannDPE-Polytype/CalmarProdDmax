@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
   <POU Name="FB_PrintPositionDmax" Id="{726347b1-24f3-41dd-8d38-18de7bf18c3b}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_PrintPositionDmax EXTENDS FB_BasePrint IMPLEMENTS I_Simulation
 VAR_INPUT
@@ -9,7 +9,6 @@ END_VAR
 VAR_OUTPUT
   bStarted                  : BOOL;                 // position started moving
   bMoving                   : BOOL;                 // position is moving
-  bSpeedProduction          : BOOL;                 // production speed reached
 END_VAR
 // ----------------------------------
 // configuration
@@ -17,10 +16,7 @@ VAR
   // configuration (init)
   _fPrintResolution         : LREAL := 600;         // print(head) resolution in [dpi]
   _fSubPxResolution         : LREAL := 32;          // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
-  _fTaskCycleTime           : LREAL := 0.002;       // Task cycle time in [s]
-  _fProdSpeedMpMin          : LREAL;                // Machine minimal production speed [m/min]
-  
-  fSpeedMpMin               : LREAL;                // speed in [m/min]
+  _fTaskCycleTime           : LREAL := 0.002;        // Task cycle time in [s]
 END_VAR
 VAR PERSISTENT
   // config values changable during runtime (recipe, visu, property)
@@ -72,13 +68,10 @@ END_IF
 
 // calc position / speed
 fbPositionMaster(fResolutionInput:=fEncoderReso, lPosReference:=IlEncoderPulse);
-// position status
+// postion status
 bMoving := ABS(fbPositionMaster.fMasterSpeed) >= fC_MinSpeed; 
-fSpeedMpMin := fbPositionMaster.fMasterSpeed * 60;
-bSpeedProduction := fSpeedMpMin > _fProdSpeedMpMin;
 rTrigMoving(CLK:=bMoving);   // create started trigger output
-bStarted := rTrigMoving.Q OR fbPositionMaster.bSyncReq;
-]]></ST>
+bStarted := rTrigMoving.Q OR fbPositionMaster.bSyncReq;]]></ST>
     </Implementation>
     <Folder Name="I_Simulation" Id="{bd8ec4af-70d9-4e9b-8cdc-91b3cc2e54db}" />
     <Property Name="bSimEnable" Id="{30fe551a-b50f-4bf8-9016-a91da26e946e}" FolderPath="I_Simulation\">
@@ -121,16 +114,11 @@ fPosition_um := fbPositionMaster.fMasterPosition;]]></ST>
     </Method>
     <Method Name="getSpeed" Id="{89c2b88d-36bc-48c9-87d7-952cfd236342}">
       <Declaration><![CDATA[(*
-  Get "default" speed [m/s].
-  :returns: current speed in [m/s]
+  Get "default" speed.
 *)
-METHOD getSpeed : LREAL
-VAR_OUTPUT
-  fSpeedMpMin : LREAL;  // speed in [m/min]
-END_VAR]]></Declaration>
+METHOD getSpeed : LREAL]]></Declaration>
       <Implementation>
-        <ST><![CDATA[getSpeed    := fbPositionMaster.fMasterSpeed;
-fSpeedMpMin := fSpeedMpMin;]]></ST>
+        <ST><![CDATA[getSpeed := fbPositionMaster.fMasterSpeed;]]></ST>
       </Implementation>
     </Method>
     <Method Name="Init" Id="{0edf7ce9-df28-43fb-8910-213c45b50fdb}">
@@ -138,8 +126,7 @@ fSpeedMpMin := fSpeedMpMin;]]></ST>
 VAR_INPUT
   fPrintResolution    : LREAL := 600;         // print(head) resolution in [dpi]
   fSubPxResolution    : LREAL := 32;          // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
-  fTaskCycleTime      : LREAL;                // Task cycle time in [s]
-  fProdSpeedMpMin     : LREAL;                // Machine minimal production speed [m/min]
+  fTaskCycleTime      : LREAL;                 // Task cycle time in [s]
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -147,7 +134,6 @@ END_VAR
 _fPrintResolution := fPrintResolution;
 _fSubPxResolution := fSubPxResolution;
 _fTaskCycleTime   := fTaskCycleTime;
-_fProdSpeedMpMin  := fProdSpeedMpMin;
 
 // init fbs
 // - position master
@@ -212,11 +198,8 @@ fbPositionMaster.bSim := FALSE;]]></ST>
       <LineId Id="9" Count="0" />
       <LineId Id="192" Count="0" />
       <LineId Id="187" Count="0" />
-      <LineId Id="246" Count="0" />
-      <LineId Id="245" Count="0" />
       <LineId Id="186" Count="0" />
       <LineId Id="191" Count="0" />
-      <LineId Id="244" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintPositionDmax.bSimEnable.Get">
       <LineId Id="2" Count="0" />
@@ -231,14 +214,12 @@ fbPositionMaster.bSim := FALSE;]]></ST>
     </LineIds>
     <LineIds Name="FB_PrintPositionDmax.getSpeed">
       <LineId Id="5" Count="0" />
-      <LineId Id="13" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintPositionDmax.Init">
       <LineId Id="39" Count="0" />
       <LineId Id="34" Count="0" />
       <LineId Id="36" Count="0" />
       <LineId Id="61" Count="0" />
-      <LineId Id="69" Count="0" />
       <LineId Id="38" Count="0" />
       <LineId Id="37" Count="0" />
       <LineId Id="46" Count="0" />
