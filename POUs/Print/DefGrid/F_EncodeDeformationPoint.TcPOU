@@ -1,23 +1,20 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="F_EncodeDeformationPoint" Id="{7f708707-8a1e-4cbb-87f4-7b0e9de48e25}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION F_EncodeDeformationPoint : ST_DeformationPoint
 VAR_INPUT
   sPoint      : ST_DeformationPointAccurate;  // point
   nResolution : UDINT;                // resolution scale (factor)
-END_VAR
-VAR
-  nErrCtr : UDINT;
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[F_EncodeDeformationPoint.index := sPoint.index;
 F_EncodeDeformationPoint.col   := sPoint.col;
 F_EncodeDeformationPoint.row   := sPoint.row;
                                   // NOTE: LREAL_TO_DINT does already proper rounding (Round half away from zero)
-F_EncodeDeformationPoint.x_ref := FC_LREAL_TO_DINT(sPoint.x_ref * nResolution, pI_ConversionErr:=ADR(nErrCtr));
-F_EncodeDeformationPoint.y_ref := FC_LREAL_TO_DINT(sPoint.y_ref * nResolution, pI_ConversionErr:=ADR(nErrCtr));
-F_EncodeDeformationPoint.dx    := FC_LREAL_TO_DINT(sPoint.dx * nResolution, pI_ConversionErr:=ADR(nErrCtr));
-F_EncodeDeformationPoint.dy    := FC_LREAL_TO_DINT(sPoint.dy * nResolution, pI_ConversionErr:=ADR(nErrCtr));
+F_EncodeDeformationPoint.x_ref := FC_LREAL_TO_DINT(sPoint.x_ref * nResolution);
+F_EncodeDeformationPoint.y_ref := FC_LREAL_TO_DINT(sPoint.y_ref * nResolution);
+F_EncodeDeformationPoint.dx    := FC_LREAL_TO_DINT(sPoint.dx * nResolution);
+F_EncodeDeformationPoint.dy    := FC_LREAL_TO_DINT(sPoint.dy * nResolution);
 F_EncodeDeformationPoint.valid := SEL(sPoint.valid, 0, 1);
 ]]></ST>
     </Implementation>

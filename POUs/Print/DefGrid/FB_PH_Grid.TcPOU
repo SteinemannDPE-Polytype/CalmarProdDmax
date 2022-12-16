@@ -184,7 +184,6 @@ VAR_INST
 END_VAR
 VAR
   random_val  : LREAL;
-  nConvErr    : UDINT;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF NOT _bGridSet THEN setGrid(sGrid:=sGridCfg); END_IF
@@ -193,9 +192,9 @@ END_VAR]]></Declaration>
 tWrPoint(IN:=NOT tWrPoint.Q);
 IF tWrPoint.Q THEN
   RandomNumber(Seed:=12, Num=>random_val);
-  sNewPoint.dx := DINT_TO_UINT(FC_LREAL_TO_DINT((random_val * 100) - 50, ADR(nConvErr)));
+  sNewPoint.dx := DINT_TO_UINT(FC_LREAL_TO_DINT((random_val * 100) - 50));
   RandomNumber(Seed:=12, Num=>random_val);
-  sNewPoint.dy := DINT_TO_UINT(FC_LREAL_TO_DINT((random_val * 60) - 30, ADR(nConvErr)));
+  sNewPoint.dy := DINT_TO_UINT(FC_LREAL_TO_DINT((random_val * 60) - 30));
   sNewPoint.col := sNewPoint.index / _nRows;
   sNewPoint.row := sNewPoint.index MOD _nRows + _nRowLowerBound;
   sNewPoint.index := (sNewPoint.index + 1) MOD 20;  // just 20 points

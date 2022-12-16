@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <GlobalTextList Name="GlobalTextList" Id="{203f0000-e452-49ef-afd7-9a4cdbc0d524}">
     <XmlArchive>
       <Data>
@@ -1190,6 +1190,16 @@ sdfsd"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"2652"</v>
+              <v n="TextDefault">"PM Pos mech. to current Master"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2540"</v>
+              <v n="TextDefault">"PM Pos mech. to current Master PU"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"5363"</v>
               <v n="TextDefault">"Points"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -1650,6 +1660,11 @@ sdfsd"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"2158"</v>
+              <v n="TextDefault">"vbn"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"12744"</v>
               <v n="TextDefault">"Verbose"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -1667,6 +1682,21 @@ sdfsd"</v>
             <o>
               <v n="TextID">"11590"</v>
               <v n="TextDefault">"WorkerDelete"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2580"</v>
+              <v n="TextDefault">"WorkerOffset"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"670"</v>
+              <v n="TextDefault">"WorkerOffset (PU/PM/PG)"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1622"</v>
+              <v n="TextDefault">"WorkerPos (Attach)"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -1707,6 +1737,11 @@ sdfsd"</v>
             <o>
               <v n="TextID">"12401"</v>
               <v n="TextDefault">"x [px 4800dpi]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"194"</v>
+              <v n="TextDefault">"XS (+offset + Corrections X)"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>

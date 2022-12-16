@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_WorkerDefGrid_Camera" Id="{6056a89a-8aeb-47d0-8a92-08f600f3d0b4}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Camera EXTENDS FB_WorkerDefGrid IMPLEMENTS I_CameraSink
 VAR
@@ -54,6 +54,7 @@ END_VAR
     <Implementation>
       <ST><![CDATA[]]></ST>
     </Implementation>
+    <Folder Name="I_PrintStatusClient" Id="{1c674285-cbe4-4e1b-ab1f-c86c3f21aeed}" />
     <Method Name="ActivateCamera" Id="{99a01e14-fa02-42f4-a663-cfcdcb61b4bd}">
       <Declaration><![CDATA[METHOD PRIVATE ActivateCamera : BOOL
 VAR_INPUT
@@ -231,7 +232,7 @@ END_IF]]></ST>
       <Declaration><![CDATA[METHOD Init
 VAR_INPUT
   pCtManager : POINTER TO FB_CTManagerDefGrid;   // CTManager
-  pParamMediator : POINTER TO FB_DefGridParamMediator;
+  pParamMediator : I_ParamMediator;
   pMsgConfig : POINTER TO ST_MSG_CONFIG;         // message config
   fPrintResolution : LREAL := 1;                 // print(head) resolution in [dpi]
   fSubPxResolution : LREAL := 1;                 // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
@@ -287,7 +288,7 @@ END_VAR
         <ST><![CDATA[is_linecam := SEL(FIND(F_ToLCase(sCamName), 'linecam') > 0, FALSE, TRUE);  // is it a LineCamera?]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStart" Id="{333f8056-01ee-443a-9254-a4a08a486903}">
+    <Method Name="mJobStart" Id="{333f8056-01ee-443a-9254-a4a08a486903}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD   mJobStart
 VAR_INPUT
 	sJobDef	: CalmarCompPrint.I_JobDefinition;
@@ -332,7 +333,7 @@ END_IF
 _bJobActive := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStop" Id="{113ca763-e1d2-471f-992c-fa941c7af403}">
+    <Method Name="mJobStop" Id="{113ca763-e1d2-471f-992c-fa941c7af403}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD  mJobStop
 VAR_INPUT
 	sStatus	: CalmarCompPrint.I_JobStatus;
@@ -471,7 +472,7 @@ VAR
   lCtr : UDINT;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF _pParamMediator = 0 THEN RETURN; END_IF
+        <ST><![CDATA[IF iParamMediator = 0 THEN RETURN; END_IF
 
 SUPER^.work();
 
@@ -493,8 +494,8 @@ ELSIF _iActiveCam <> 0 THEN                 // a camera is activated
                               bCamDone => _bCamDone);
   // -- worker position setup
   IF _pAttachedCt = 0 THEN     // Update only without attached container
-    // WorkerPosition = 
-    fPosition := _pParamMediator^.fDetectToCamera; //_iActiveCam.fTriggerDistance  + some small timeout for the CamTrigger to happen before Attach();
+    // WorkerPosition 
+    fPosition := fDetectToCamOffset;
   END_IF
 ELSE
   _bCamValid := FALSE;                    // invalid camera
@@ -733,7 +734,9 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="251" Count="1" />
       <LineId Id="393" Count="7" />
       <LineId Id="353" Count="0" />
-      <LineId Id="359" Count="2" />
+      <LineId Id="359" Count="0" />
+      <LineId Id="415" Count="0" />
+      <LineId Id="361" Count="0" />
       <LineId Id="357" Count="0" />
       <LineId Id="245" Count="0" />
       <LineId Id="122" Count="1" />

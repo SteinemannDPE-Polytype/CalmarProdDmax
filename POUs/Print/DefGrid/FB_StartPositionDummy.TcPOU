@@ -1,11 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
-  <POU Name="FB_StartPositionDummy" Id="{8c44436b-fdf6-4982-bb45-487571d5b646}" SpecialFunc="None">
+  <POU Name="FB_StartPositionDummy" Id="{6d5938fa-188c-46a3-9614-4d24c87650aa}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   A start position detection function block dummy.
   A dummy implementation to simulate start triggers at desired positions.
+  
+  NOTE: SubstrateLength can be configured via Job (register I_PrintStatusClien) or directly by property
 *)
-FUNCTION_BLOCK FB_StartPositionDummy EXTENDS FB_BasePrint IMPLEMENTS I_StartPosDetect, I_PrintStatusClient, I_Simulation
+FUNCTION_BLOCK FB_StartPositionDummy EXTENDS FB_BasePrint IMPLEMENTS I_StartPosDetect, I_PrintStatusClient
 VAR_INPUT
   bTrigger                    : BOOL;       // manual trigger
   lPosition                   : DINT;       // current position [SubPx]
@@ -16,130 +18,175 @@ END_VAR
 VAR
   // properties
   _bSim               : BOOL;       // simulatio mode active (PROPERTY)
-  _bCreateTrigger     : BOOL;       // create new CT trigger (PROPERTY)
+  _bStartTrig         : BOOL;       // create new CT trigger (PROPERTY)
+  _bValid             : BOOL:=TRUE; // (PROPERTY)
   _nStartPosX0        : DINT;       // create position for CT (absolut) [SubPx] (PROPERTY)
-  _bAutoTrigger       : BOOL;       // automatic sheet triggers
-  
-  // config
-  iJobDefinition      : CalmarCompPrint.I_JobDefinition;
-  
+    
   // local helper
-  rfNewCT             : RF_TRIG;    // trigger new ct
+  iJobDefinition      : CalmarCompPrint.I_JobDefinition;
+  rfEnable            : RF_TRIG;    // enable edge detection
+  rfNewCT             : RF_TRIG;    // start trigger generation
   nSheetLength        : DINT;       // sheet length in [SubPx]
   nSheetGap           : DINT;       // sheet gap in [SubPx]
   nSheetEndPosition   : DINT;       // sheet end position [SubPx]
   nNextSheetPosition  : DINT;       // next trigger location
   fSheetPerHour       : LREAL;      // sheets per hour
   fSheetSpeed         : LREAL;      // [m/min] speed meter per minute
-  tCheckTrigger       : TON;
-  
-  tCurrentTimeStamp   : T_DCTIME64; // get current timestamp
-  fCurrentTimeStamp   : LREAL;      // current timestamp
-  fSensorTimeStamp    : LREAL;      // sensor timestamp
-  fDeltaDistance      : LREAL;      // distance that the substrate moved between the detection and the treatment of the information [m]
 END_VAR
-
 VAR PERSISTENT
   // simulation configuration
-  fSheetLength   : LREAL := 0.5;    // [m] sheet length (local or per job given)
-  fSheetGap      : LREAL := 0.12;   // [m] gap between two sheets
+  _fSheetLength  : LREAL := 0.5;    // [m] sheet length (local or per job given)
+  _fSheetGap     : LREAL := 0.12;   // [m] gap between two sheets
+  _bAutoTrigger  : BOOL;            // automatic re-occuring sheet triggers after start
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[// checks and fixes
 IF iJobDefinition = 0 THEN RETURN; END_IF
 IF NOT _bSim THEN RETURN; END_IF
 IF fSpeed = 0 THEN RETURN; END_IF
-IF fSheetLength = 0 THEN fSheetLength := 1; END_IF
+IF _fSheetLength = 0 THEN _fSheetLength := 1; END_IF
 IF fResolution = 0 THEN fResolution := 600*32; END_IF
 
 // calculations
 fSheetSpeed := fSpeed * 60;  // [m/s] -> [m/min]
-nSheetGap := F_MeterToSubPixel(fPosMeter := fSheetGap, fResoSubPx := fResolution);  // [m] -> [SubPx]
-fSheetPerHour := (60*60)/((fSheetLength+fSheetGap)/fSpeed);
-nSheetLength := F_MeterToSubPixel(fPosMeter := fSheetLength, fResoSubPx := fResolution);  // [mm] -> [SubPx]
-nNextSheetPosition := _nStartPosX0 + nSheetLength + nSheetGap; 
-tCheckTrigger(PT:=TO_TIME(((fSheetLength+fSheetGap)/fSpeed)*1000));
+nSheetGap := F_MeterToSubPixel(fPosMeter := _fSheetGap, fResoSubPx := fResolution);  // [m] -> [SubPx]
+fSheetPerHour := (60*60)/((_fSheetLength+_fSheetGap)/fSpeed);
+nSheetLength := F_MeterToSubPixel(fPosMeter := _fSheetLength, fResoSubPx := fResolution);  // [m] -> [SubPx]
+
+rfEnable(CLK:=_bSim);  // initial start at simulation start
+IF rfEnable.RT THEN    // start simulation, sample current pos as first X0
+  _nStartPosX0 := lPosition;
+END_IF
+
+nSheetEndPosition := _nStartPosX0 + nSheetLength;
+nNextSheetPosition := nSheetEndPosition + nSheetGap;
 
 // internal trigger creation
 IF (lPosition - nNextSheetPosition) > 0 AND _bAutoTrigger THEN
   bTrigger := TRUE;
-  tCheckTrigger(IN:=FALSE);
-  tCheckTrigger(IN:=TRUE);
 END_IF
 
 // on trigger
-rfNewCT(CLK := bTrigger, RT => _bCreateTrigger);
-IF _bCreateTrigger THEN   // new ct created
+rfNewCT(CLK := bTrigger, RT => _bStartTrig);
+IF _bStartTrig THEN
   bTrigger := FALSE;  // reset trigger
   
-  (* Calculate the current and sensor time stamp (keep old code not really necessary because we use current timestamp)*)
-  tCurrentTimeStamp := F_GetCurDcTaskTime64();
-  fCurrentTimeStamp := (ULINT_TO_LREAL(tCurrentTimeStamp )) / 1_000_000.0; (*in ms*)
-  fSensorTimeStamp  := fCurrentTimeStamp;
-  fDeltaDistance := (fCurrentTimeStamp - fSensorTimeStamp) * 0.001 * fSpeed;  (*Distance that the substrate moved between the detection and the treatment of the information [m]*)
-  
-  // sheet start and sheet end pos in [SubPx]
-  _nStartPosX0     := lPosition - F_MeterToSubPixel(fPosMeter := fDeltaDistance, fResoSubPx := fResolution);
-  nSheetEndPosition := _nStartPosX0 + nSheetLength;
+  _nStartPosX0 := nNextSheetPosition;  // next sheet start position
 END_IF
 
 
 
 ]]></ST>
     </Implementation>
-    <Folder Name="I_PrintStatusClient" Id="{0f059572-48fa-432b-b785-512422fd1dfe}" />
-    <Folder Name="I_Simulation" Id="{7d61ad54-78ed-4583-824e-3b28cb4bdfce}" />
-    <Folder Name="I_StartPosDetect" Id="{42dcb401-5898-4788-a131-7c35bf2d9f5b}" />
-    <Property Name="bSimEnable" Id="{9ad55ae0-9c7f-42e0-b227-356775d240a7}" FolderPath="I_Simulation\">
-      <Declaration><![CDATA[PROPERTY bSimEnable : BOOL
-]]></Declaration>
-      <Get Name="Get" Id="{9bd88754-a865-4550-9123-bca0f19be00e}">
+    <Folder Name="I_PrintStatusClient" Id="{1804c86a-7655-4221-b4c5-5f9975e3ba8b}" />
+    <Folder Name="I_StartPosDetect" Id="{eddb7439-ab58-404f-bfbc-e338b9da7e5a}" />
+    <Property Name="bAutoTrigger" Id="{fe12c643-0b3e-4989-9e8c-c675bc16d5fd}">
+      <Declaration><![CDATA[PROPERTY bAutoTrigger : BOOL]]></Declaration>
+      <Get Name="Get" Id="{8e637280-0dc3-488c-bb1e-b0c1579aa93c}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[bSimEnable := _bSim;]]></ST>
+          <ST><![CDATA[bAutoTrigger := _bAutoTrigger;]]></ST>
         </Implementation>
       </Get>
-      <Set Name="Set" Id="{b66c4a74-41e4-4373-95c4-8e6dd06c2d09}">
+      <Set Name="Set" Id="{0ca21739-f57e-4019-9857-30d56382c705}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[_bSim := bSimEnable;]]></ST>
+          <ST><![CDATA[_bAutoTrigger := bAutoTrigger;]]></ST>
         </Implementation>
       </Set>
     </Property>
-    <Property Name="bStartTrig" Id="{3a919c9a-ce16-49c6-b57e-75dcd07db7d1}" FolderPath="I_StartPosDetect\">
+    <Property Name="bEnable" Id="{1f412ac1-39c7-4b8e-897a-166f2be0bd7d}">
+      <Declaration><![CDATA[PROPERTY bEnable : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{416c9832-37e4-47b9-96b6-19e94cac1c2f}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bEnable := _bSim;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{62a47877-b97c-4288-8caa-d237e4485668}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bSim := bEnable;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="bStartTrig" Id="{ca550c13-f593-4f69-83b3-1db335a17f95}" FolderPath="I_StartPosDetect\">
       <Declaration><![CDATA[(*
   A new container detected.
   NOTE: a pulse only
 *)
 PROPERTY bStartTrig : BOOL
 ]]></Declaration>
-      <Get Name="Get" Id="{0a392f0b-d23a-4374-a637-12c72e002d9f}">
+      <Get Name="Get" Id="{3d2e4960-ef7b-41e0-ad73-fa3dd64cb60e}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[bStartTrig := _bCreateTrigger;]]></ST>
+          <ST><![CDATA[bStartTrig := _bStartTrig;]]></ST>
         </Implementation>
       </Get>
     </Property>
-    <Property Name="bValid" Id="{dd397979-b437-4cd6-bdee-6dad5733a67f}" FolderPath="I_StartPosDetect\">
+    <Property Name="bValid" Id="{f9e082ac-9840-4356-b3d4-c6c0e5832b11}" FolderPath="I_StartPosDetect\">
       <Declaration><![CDATA[(*
   A valid container detected.
 *)
 PROPERTY bValid : BOOL
 ]]></Declaration>
-      <Get Name="Get" Id="{7761d967-0a1f-4e88-ad34-4ad5ce416735}">
+      <Get Name="Get" Id="{aa86999d-498b-40de-89f4-bdde7f2dd977}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[bValid := TRUE;]]></ST>
+          <ST><![CDATA[bValid := _bValid;]]></ST>
         </Implementation>
       </Get>
+    </Property>
+    <Property Name="fSheetGap" Id="{31fece21-1170-47f6-b566-eb33e541f020}">
+      <Declaration><![CDATA[PROPERTY fSheetGap : LREAL]]></Declaration>
+      <Get Name="Get" Id="{e77c6794-b290-4497-8b68-d5e90be2b334}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fSheetGap := _fSheetGap;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{d2fd9aa2-d25f-4013-bcc8-f27461474c0c}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fSheetGap := fSheetGap;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="fSubstrateLength" Id="{9ca7c39c-2447-4adf-a5db-af2dacbe6d4c}">
+      <Declaration><![CDATA[PROPERTY fSubstrateLength : LREAL]]></Declaration>
+      <Get Name="Get" Id="{3ec6aa6f-8875-4f42-b41a-86ee963b8526}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fSubstrateLength := _fSheetLength;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{217d62d5-41a6-42e8-a311-44935054e137}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fSheetLength := fSubstrateLength;]]></ST>
+        </Implementation>
+      </Set>
     </Property>
     <Method Name="mJobPause" Id="{7eb46286-2488-433d-8cdd-400aef51086a}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mJobPause
@@ -148,7 +195,7 @@ END_VAR
         <ST><![CDATA[]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStart" Id="{e393908f-23a1-4595-a465-2cf3c9f6001e}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mJobStart" Id="{2e251a78-74c8-4bb3-b07e-90212fae1941}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mJobStart
 VAR_INPUT
 	sJobDef	: CalmarCompPrint.I_JobDefinition;
@@ -158,11 +205,11 @@ END_VAR
         <ST><![CDATA[IF sJobDef = 0 THEN LogError('JobStart: no sJobDef given'); RETURN; END_IF
 
 iJobDefinition := sJobDef;    // current job definition
-fSheetLength := iJobDefinition.fSubstrateDepth;
+_fSheetLength := iJobDefinition.fSubstrateDepth;
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStop" Id="{d8356075-2335-4b08-acc5-155ab282c68f}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mJobStop" Id="{f5a16969-656a-4350-9777-971b8c8d7ca7}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mJobStop
 VAR_INPUT
 	sStatus	: CalmarCompPrint.I_JobStatus;
@@ -172,7 +219,7 @@ END_VAR
         <ST><![CDATA[iJobDefinition := 0;    // delete job definition]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mProduced" Id="{fe7716e6-798e-41d7-838b-f7b407401b42}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mProduced" Id="{3f03414d-4a1b-4196-a0f6-7c1a726aa09c}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mProduced
 VAR_INPUT
 	(* current progress*)
@@ -183,13 +230,13 @@ END_VAR
         <ST><![CDATA[; // nothing to do]]></ST>
       </Implementation>
     </Method>
-    <Property Name="nStartPositionX0" Id="{6b27a535-635b-4868-a381-d2f4a2a26ba0}" FolderPath="I_StartPosDetect\">
+    <Property Name="nStartPositionX0" Id="{e2effe83-ef6c-4a3b-86b8-29a14d846434}" FolderPath="I_StartPosDetect\">
       <Declaration><![CDATA[(*
   Detected start position X0 (absolute) in [SubPx].
 *)
 PROPERTY nStartPositionX0 : DINT
 ]]></Declaration>
-      <Get Name="Get" Id="{1b86c0b7-703e-4025-917d-2f98f1c0050d}">
+      <Get Name="Get" Id="{5e8f9341-de59-4c4a-8866-59b0baf4f592}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -198,72 +245,38 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Method Name="SimEnter" Id="{5f3afcf0-45e7-43f3-b7fa-173569233158}" FolderPath="I_Simulation\">
-      <Declaration><![CDATA[METHOD SimEnter : BOOL
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[LogInfo('Enter start position creator simulation');
-_bSim := TRUE;
-
-_nStartPosX0 := lPosition;
-nSheetEndPosition := lPosition;
-nNextSheetPosition := lPosition;
-]]></ST>
-      </Implementation>
-    </Method>
-    <Method Name="SimExit" Id="{48b25644-8173-4c12-af95-8aee36151a4f}" FolderPath="I_Simulation\">
-      <Declaration><![CDATA[METHOD SimExit : BOOL
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[LogInfo('Exit start position creator simulation');
-_bSim := FALSE;]]></ST>
-      </Implementation>
-    </Method>
-    <Method Name="SimUpdate" Id="{8e513948-d863-4b3f-8f45-576ad340d53b}" FolderPath="I_Simulation\">
-      <Declaration><![CDATA[METHOD SimUpdate : BOOL
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[; // nothing to do]]></ST>
-      </Implementation>
-    </Method>
     <LineIds Name="FB_StartPositionDummy">
-      <LineId Id="709" Count="1" />
-      <LineId Id="797" Count="0" />
-      <LineId Id="818" Count="0" />
-      <LineId Id="711" Count="0" />
-      <LineId Id="783" Count="0" />
-      <LineId Id="809" Count="0" />
-      <LineId Id="756" Count="0" />
-      <LineId Id="716" Count="0" />
-      <LineId Id="807" Count="0" />
-      <LineId Id="817" Count="0" />
-      <LineId Id="762" Count="0" />
-      <LineId Id="758" Count="0" />
-      <LineId Id="812" Count="0" />
-      <LineId Id="810" Count="0" />
-      <LineId Id="764" Count="0" />
-      <LineId Id="757" Count="0" />
-      <LineId Id="766" Count="0" />
-      <LineId Id="820" Count="1" />
-      <LineId Id="765" Count="0" />
-      <LineId Id="730" Count="3" />
-      <LineId Id="808" Count="0" />
-      <LineId Id="806" Count="0" />
-      <LineId Id="734" Count="8" />
-      <LineId Id="745" Count="2" />
-      <LineId Id="751" Count="0" />
+      <LineId Id="1150" Count="35" />
       <LineId Id="39" Count="0" />
     </LineIds>
-    <LineIds Name="FB_StartPositionDummy.bSimEnable.Get">
+    <LineIds Name="FB_StartPositionDummy.bAutoTrigger.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_StartPositionDummy.bSimEnable.Set">
+    <LineIds Name="FB_StartPositionDummy.bAutoTrigger.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_StartPositionDummy.bEnable.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_StartPositionDummy.bEnable.Set">
       <LineId Id="6" Count="0" />
     </LineIds>
     <LineIds Name="FB_StartPositionDummy.bStartTrig.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_StartPositionDummy.bValid.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_StartPositionDummy.fSheetGap.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_StartPositionDummy.fSheetGap.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_StartPositionDummy.fSubstrateLength.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_StartPositionDummy.fSubstrateLength.Set">
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_StartPositionDummy.mJobPause">
@@ -284,20 +297,6 @@ _bSim := FALSE;]]></ST>
     </LineIds>
     <LineIds Name="FB_StartPositionDummy.nStartPositionX0.Get">
       <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_StartPositionDummy.SimEnter">
-      <LineId Id="4" Count="1" />
-      <LineId Id="10" Count="0" />
-      <LineId Id="8" Count="0" />
-      <LineId Id="7" Count="0" />
-      <LineId Id="11" Count="0" />
-      <LineId Id="9" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_StartPositionDummy.SimExit">
-      <LineId Id="4" Count="1" />
-    </LineIds>
-    <LineIds Name="FB_StartPositionDummy.SimUpdate">
-      <LineId Id="4" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

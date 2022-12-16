@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_WorkerDefGrid_Delete" Id="{7527e8ae-b298-40c4-9d5c-225c5c9f33be}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Delete EXTENDS FB_WorkerDefGrid
 VAR PERSISTENT
@@ -20,38 +20,17 @@ END_VAR
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Property Name="fWorkerToPu" Id="{89984a29-c49f-4fef-962c-903196b3c502}">
-      <Declaration><![CDATA[PROPERTY fWorkerToPu : LREAL]]></Declaration>
+    <Property Name="fWorkerToMasterRef" Id="{89984a29-c49f-4fef-962c-903196b3c502}">
+      <Declaration><![CDATA[PROPERTY fWorkerToMasterRef : LREAL]]></Declaration>
       <Get Name="Get" Id="{69475d99-e2f1-4a28-885b-7624fa90c9a3}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[fWorkerToPu := _fWorkerToPu;]]></ST>
+          <ST><![CDATA[fWorkerToMasterRef := _fWorkerToPu;]]></ST>
         </Implementation>
       </Get>
     </Property>
-    <Method Name="mJobStart" Id="{35dee294-0abe-481b-9d05-6c256fb62d03}">
-      <Declaration><![CDATA[METHOD   mJobStart
-VAR_INPUT
-	sJobDef	: CalmarCompPrint.I_JobDefinition;
-END_VAR
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[
-_bJobActive := TRUE;]]></ST>
-      </Implementation>
-    </Method>
-    <Method Name="mJobStop" Id="{78e31b74-c4ab-4dcf-9c3a-eb2545757f78}">
-      <Declaration><![CDATA[METHOD  mJobStop
-VAR_INPUT
-	sStatus	: CalmarCompPrint.I_JobStatus;
-END_VAR
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[_bJobActive := FALSE;]]></ST>
-      </Implementation>
-    </Method>
     <Method Name="Release" Id="{7ef7389d-1596-4a7c-82f8-404606f272e5}">
       <Declaration><![CDATA[METHOD Release : BOOL
 VAR_INPUT
@@ -76,9 +55,9 @@ END_IF]]></ST>
         <ST><![CDATA[SUPER^.work();
 
 //Worker position update
-IF _pParamMediator <> 0 AND _pAttachedCt = 0 THEN     // Update only without attached container
+IF iParamMediator <> 0 AND _pAttachedCt = 0 THEN     // Update only without attached container
   // WorkerPosition =  Worker<-PU<-CAM<-SheetDetect
-  fPosition := _fWorkerToPu + _pParamMediator^.fCameraToPrintOffset + _pParamMediator^.fDetectToCamera;
+  fPosition := _fWorkerToPu + iParamMediator.fMasterDetectToRefPos;
 END_IF
 
 IF _pAttachedCt <> 0 THEN
@@ -94,15 +73,8 @@ END_IF]]></ST>
       <LineId Id="18" Count="0" />
       <LineId Id="8" Count="0" />
     </LineIds>
-    <LineIds Name="FB_WorkerDefGrid_Delete.fWorkerToPu.Get">
+    <LineIds Name="FB_WorkerDefGrid_Delete.fWorkerToMasterRef.Get">
       <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_WorkerDefGrid_Delete.mJobStart">
-      <LineId Id="19" Count="0" />
-      <LineId Id="11" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_WorkerDefGrid_Delete.mJobStop">
-      <LineId Id="6" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Delete.Release">
       <LineId Id="6" Count="0" />

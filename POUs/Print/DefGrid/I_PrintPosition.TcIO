@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <Itf Name="I_PrintPosition" Id="{634f7314-a7e5-4c65-89de-e92a4b8fe620}">
+    <Declaration><![CDATA[INTERFACE I_PrintPosition EXTENDS I_Sim
+]]></Declaration>
+    <Property Name="bMoving" Id="{23dd2e65-f1a5-4211-b225-8283cec79b43}">
+      <Declaration><![CDATA[(*
+  Position is moving.
+*)
+PROPERTY bMoving : BOOL]]></Declaration>
+      <Get Name="Get" Id="{7405729b-163f-4012-8a7c-0f1a7e5873df}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="bStarted" Id="{397073a9-b498-47ba-b8d0-499c99ae3f4e}">
+      <Declaration><![CDATA[(*
+  Started moving event.
+*)
+PROPERTY bStarted : BOOL]]></Declaration>
+      <Get Name="Get" Id="{4c3b56fc-10ba-4585-9abe-1f255048f249}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="fEnoderResolution" Id="{d157e05c-25c9-44f0-9067-3a2e0b5920c0}">
+      <Declaration><![CDATA[(*
+  Read / Write Encoder resolution.
+*)
+PROPERTY fEnoderResolution : LREAL]]></Declaration>
+      <Get Name="Get" Id="{8f328c0c-9746-47cf-8499-b3484d3e3786}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{ebce961f-eb6b-4d92-ad4b-5ec64f0dbcec}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Method Name="getPosition" Id="{2906e58a-3a62-4903-bd4b-cc5e72ee6637}">
+      <Declaration><![CDATA[(*
+  Get current "default" position.
+  [SubPx] as return value and [um] as output
+  :return: position in [SubPx] resolution
+*)
+METHOD getPosition : DINT
+VAR_OUTPUT
+  nPosition_px       : DINT;                 // Master position in [px]
+  fPosition_um       : LREAL;                // Master position in [um]
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="getSpeed" Id="{34a8ce6f-8552-48b1-a105-ddfa7bc8fd49}">
+      <Declaration><![CDATA[(*
+  Get "default" speed [m/s].
+  :returns: current speed in [m/s]
+*)
+METHOD getSpeed : LREAL
+VAR_OUTPUT
+  fSpeedMpMin : LREAL;  // speed in [m/min]
+END_VAR]]></Declaration>
+    </Method>
+  </Itf>
+</TcPlcObject>

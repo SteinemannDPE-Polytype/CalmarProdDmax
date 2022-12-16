@@ -28,7 +28,7 @@ VAR
   _bDeformationDone           : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF BOOL;   // status deformation of ct
   _nDeformationErrorId        : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF UDINT;  // status deformation of ct
   _tDeformationExecutionTime  : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF TIME;   // status deformation of ct
-  _bAbortRequestPy            : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF BOOL;   // status deformation of ct
+  _bAbortRequestDeformation   : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF BOOL;   // status deformation of ct
 END_VAR
 
 VAR PERSISTENT
@@ -44,6 +44,7 @@ END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[]]></ST>
     </Implementation>
+    <Folder Name="I_PrintStatusClient" Id="{2fd27e90-0be9-4341-a65c-36fe67a15b6f}" />
     <Method Name="Attach" Id="{a936541d-6851-4f2e-b80f-a82721b46cf9}">
       <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
 VAR_INPUT
@@ -131,18 +132,18 @@ END_VAR
 _nPrintUnitWidth := nPrintUnitWidth;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStart" Id="{e676fb94-806c-46a7-b5f1-6dd04c7a3400}">
+    <Method Name="mJobStart" Id="{e676fb94-806c-46a7-b5f1-6dd04c7a3400}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mJobStart
 VAR_INPUT
 	sJobDef	: CalmarCompPrint.I_JobDefinition;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[// check and init invalid settings
-IF _pParamMediator = 0 THEN LogError('no parameter mediator'); RETURN; END_IF
+IF iParamMediator = 0 THEN LogError('no parameter mediator'); RETURN; END_IF
 IF _sDeformationGridSettings.nGridPitchX = 0 THEN _sDeformationGridSettings.nGridPitchX:=GVL_Deformation.nC_GridPitch_X; LogError(F_Concat2('nGridPitchX not configured, set default=', TO_STRING(GVL_Deformation.nC_GridPitch_X))); END_IF
 IF _sDeformationGridSettings.nGridPitchY = 0 THEN _sDeformationGridSettings.nGridPitchY:=GVL_Deformation.nC_GridPitch_Y; LogError(F_Concat2('nGridPitchY not configured, set default=', TO_STRING(GVL_Deformation.nC_GridPitch_X))); END_IF
 IF _nPrintUnitWidth = 0 THEN LogError('_nPrintUnitWidth not configured'); END_IF
-IF fPosition = 0 THEN fPosition := _pParamMediator^.fDetectToCamera + 0.05; LogWarning('Initialized Worker position'); END_IF
+IF fPosition = 0 THEN LogError('No valid Worker position: set it to WorkerCamera.fCameraToPrintOffset + 0.05; '); END_IF
 
 // configuration
 // calculate deformation  settings
@@ -166,7 +167,7 @@ _sDeformationGridSettings.nGridPoints :=  _sDeformationGridSettings.nGridSizeX *
 _bJobActive := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStop" Id="{b219a4fc-0309-4cdc-a5da-ab1269df4177}">
+    <Method Name="mJobStop" Id="{b219a4fc-0309-4cdc-a5da-ab1269df4177}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD  mJobStop
 VAR_INPUT
 	sStatus	: CalmarCompPrint.I_JobStatus;
@@ -203,10 +204,10 @@ pCT := getCtInst(iCT:=iCT);
 IF pCT = 0 THEN RETURN; END_IF
 
 // release from deformation module
-IF _pParamMediator <> 0 THEN
+IF iParamMediator <> 0 THEN
   pCt^.getDeformationStatus(eDStep => estep);
   IF estep >= E_DeformationStep.createdScriptContainer THEN
-    _pParamMediator^.ReleaseDeformationCT(iCT:=iCT);
+    iParamMediator.ClearCachedCT(iCT:=iCT);
   END_IF
 END_IF
 // find if ct is in attached list
@@ -258,12 +259,12 @@ END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[// OVERRIDES SUPER^.work() completely
 
-IF _pParamMediator = 0 THEN RETURN; END_IF
+IF iParamMediator = 0 THEN RETURN; END_IF
 
 //-----------------------------------------------------------
 //- automatic worker setup & control
 //-- update camera and grid settings from current camera
-sCamSettings := _pParamMediator^.sCameraGridSettings;
+sCamSettings := iParamMediator.sCameraGridSettings;
 //-- enable / disable worker based on mode
 IF sCamSettings.eCameraMode > E_CameraMode.NoCorrection THEN  
   bEnable := TRUE;    // enable this worker
@@ -289,7 +290,7 @@ FOR i := nLowerIndexCTList TO nLowerIndexCTList + _nMultiAttachedCTs - 1 DO
                             bDone => _bDeformationDone[i],
                             nErrorId => _nDeformationErrorId[i], 
                             tExecutionTime => _tDeformationExecutionTime[i],
-                            bAbortRequestPy => _bAbortRequestPy[i]);
+                            bAbortRequestDeformation => _bAbortRequestDeformation[i]);
   _nDeformationProcPoints[i] := pCt^.nAvailableGridPoints;
   _nDeformationProcCols[i]   := pCt^.nAvailableGridCols;
      
@@ -299,12 +300,12 @@ FOR i := nLowerIndexCTList TO nLowerIndexCTList + _nMultiAttachedCTs - 1 DO
     IF _bDeformationError[i] THEN 
       pCt^.setError(ErrDef:=EC_DefGrid.ecDefGrid_DefGridError, Src:=_pEcSrc^); 
     END_IF
-    IF _bAbortRequestPy[i] THEN
+    IF _bAbortRequestDeformation[i] THEN
       pCt^.AbortDeformation(sReason:='Abort requested by Py', Src:=_pEcSrc^);
     END_IF
     LogLvl(Lvl:=E_LogSeverity.Detail, Msg:=F_Concat4('Done with: CamP=',  TO_STRING(pCT^.nRegisteredCameraPoints), ' GridP=', TO_STRING(pCt^.nAvailableGridPoints)));
     Release(pCt^);
-  ELSIF _bAbortRequestPy[i] THEN
+  ELSIF _bAbortRequestDeformation[i] THEN
     pCt^.AbortDeformation(sReason:='Abort requested by Py', Src:=_pEcSrc^);
 	END_IF
     // release CT (manually and security)

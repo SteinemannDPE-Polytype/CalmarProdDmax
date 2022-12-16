@@ -228,7 +228,6 @@ METHOD PRIVATE calcTeachPoints
 VAR
   nCounter  : UDINT;
   nCurrSect : DINT;
-  nErrCtr   : UDINT;
   x_ref_abs : LREAL;
   y_ref_abs : LREAL;
   sTP       : ST_TeachPoint;
@@ -297,7 +296,7 @@ FOR nCounter := 1 TO nNbMarksTeach DO
   END_IF
   
   IF _fFrameLength <> 0 THEN
-    nCurrSect := FC_LREAL_TO_DINT(x_ref_abs / _fFrameLength, pI_ConversionErr:=ADR(nErrCtr)) + 1;
+    nCurrSect := FC_LREAL_TO_DINT(x_ref_abs / _fFrameLength) + 1;
     nNumPointsPerSectorT[nCurrSect] := nNumPointsPerSectorT[nCurrSect] + 1;
   END_IF
   
@@ -1486,13 +1485,13 @@ END_IF]]></ST>
 *)
 METHOD verifyTeachPoints : BOOL
 VAR
-  lCtr, lErrCtr : UDINT;
+  lCtr : UDINT;
 END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[
 IF _fFrameLength <> 0 THEN
-  nNumFrames := LIMIT(1, TO_UDINT(FC_LREAL_TO_DINT((fImageLength / _fFrameLength) + 1, ADR(lErrCtr))), GVL_Camera.cMaxNbSectors); 
+  nNumFrames := LIMIT(1, TO_UDINT(FC_LREAL_TO_DINT((fImageLength / _fFrameLength) + 1)), GVL_Camera.cMaxNbSectors); 
 END_IF
 bNotAllFramesContainTeachPoints := FALSE;
 FOR lCtr := 1 TO nNumFrames DO

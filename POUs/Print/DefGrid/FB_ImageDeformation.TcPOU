@@ -99,14 +99,14 @@ IF addCamPoint THEN
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Property Name="bAbortRequestPy" Id="{83e61a74-d85b-4c49-8637-546b50faf2c3}">
-      <Declaration><![CDATA[PROPERTY bAbortRequestPy : BOOL]]></Declaration>
+    <Property Name="bAbortRequestDeformation" Id="{83e61a74-d85b-4c49-8637-546b50faf2c3}">
+      <Declaration><![CDATA[PROPERTY bAbortRequestDeformation : BOOL]]></Declaration>
       <Get Name="Get" Id="{ae456e92-162c-483d-a80a-32c06bf6bacb}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[bAbortRequestPy := bPythonAbort;]]></ST>
+          <ST><![CDATA[bAbortRequestDeformation := bPythonAbort;]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -583,7 +583,7 @@ _nLocalGridColsGenerated := _nLocalGridColsGenerated + ct;
       <LineId Id="42" Count="2" />
       <LineId Id="13" Count="0" />
     </LineIds>
-    <LineIds Name="FB_ImageDeformation.bAbortRequestPy.Get">
+    <LineIds Name="FB_ImageDeformation.bAbortRequestDeformation.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.bBusy.Get">

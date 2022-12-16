@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="F_EncoderSpeedComp" Id="{64c688c5-e9c6-4c97-8800-0d843acdc51d}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   Encoder speed compensation.
@@ -18,7 +18,6 @@ VAR_INPUT
 END_VAR
 VAR
   fL_Compensation               : LREAL := 0.0;
-  nErrCt                        : UDINT;            (*temporary conversion error counter*)
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -26,7 +25,7 @@ END_VAR
   
   (*Calculate compensation*)
   fL_Compensation := (fMasterSpeed - fSpeedCompRefSpeed) * fSpeedCompFactor;
-  fL_Compensation := DINT_TO_LREAL(FC_LREAL_TO_DINT(fL_Compensation * 10_000, ADR(nErrCt))) / 10_000;	(*Rounding to prevent small changes oscillation*)
+  fL_Compensation := DINT_TO_LREAL(FC_LREAL_TO_DINT(fL_Compensation * 10_000)) / 10_000;	(*Rounding to prevent small changes oscillation*)
   
   F_EncoderSpeedComp := fResolution * (1 + fL_Compensation);
 ELSE

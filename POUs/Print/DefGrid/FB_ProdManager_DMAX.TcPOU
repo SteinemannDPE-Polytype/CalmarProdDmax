@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
-  <POU Name="FB_Pm_DMAX" Id="{ded3af19-1c0f-43ae-bbea-9b910b5389fa}" SpecialFunc="None">
+  <POU Name="FB_ProdManager_DMAX" Id="{6b328657-811b-4dd9-b1f4-d06c9d97af12}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   Managing a production on a DigiRound machine.
 *)
-FUNCTION_BLOCK FB_Pm_DMAX EXTENDS FB_BasePrint IMPLEMENTS I_PrintStatusClient
+FUNCTION_BLOCK FB_ProdManager_DMAX EXTENDS FB_BasePrint IMPLEMENTS I_PrintStatusClient, I_ProdManager
 VAR
  //references
   _pPU                : POINTER TO FB_PU;               (*PU reference*)
@@ -44,7 +44,8 @@ END_VAR]]></Declaration>
 rfTrig_PmActive(CLK:=bPmActive);]]></ST>
     </Implementation>
     <Folder Name="I_PrintStatusClient" Id="{01602ff5-4961-4770-a9e0-df788cccf137}" />
-    <Method Name="abortJob" Id="{e7b0b8e7-bea6-476d-a854-929acdccc5fe}">
+    <Folder Name="I_ProdManager" Id="{098fb917-a473-45be-aa26-2a7289011cb1}" />
+    <Method Name="abortJob" Id="{0b86ce5b-6645-4e9f-88e0-e4df53c97f50}">
       <Declaration><![CDATA[(*
   Job was stopped. 
   :return: TRUE if some elements were aborted in machine.
@@ -61,9 +62,9 @@ END_VAR
 ]]></ST>
       </Implementation>
     </Method>
-    <Property Name="bReady" Id="{e0a03d95-7c5f-4756-a4c7-db6451047a28}">
+    <Property Name="bReady" Id="{33904276-4cf8-4fbb-8168-623dee2f352a}">
       <Declaration><![CDATA[PROPERTY bReady : BOOL]]></Declaration>
-      <Get Name="Get" Id="{1a307eee-0ea6-4ec5-9039-0ef8b0e6ef3d}">
+      <Get Name="Get" Id="{af74f0be-4916-4823-851b-eec52ffc9c35}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -72,9 +73,9 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Property Name="bStarted" Id="{7c0fae33-4bef-4ecf-8dec-a79b7a926ba8}">
+    <Property Name="bStarted" Id="{003fc039-2ae1-47e7-939b-8b964c2b0215}">
       <Declaration><![CDATA[PROPERTY bStarted : BOOL]]></Declaration>
-      <Get Name="Get" Id="{c0c7f381-648e-40d1-9b20-25a61a936d71}">
+      <Get Name="Get" Id="{77fefb97-cf9a-4c80-ad83-797fc7c7e415}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -83,9 +84,9 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Property Name="bStopped" Id="{5264bbe5-2277-4b4d-8240-49acf02f844c}">
+    <Property Name="bStopped" Id="{c4f65a10-a22d-442c-b452-0ef8920e8a23}">
       <Declaration><![CDATA[PROPERTY bStopped : BOOL]]></Declaration>
-      <Get Name="Get" Id="{f9659215-4887-4f54-a8d2-5ced01c25589}">
+      <Get Name="Get" Id="{4ab745ce-3e15-428d-bfcf-e8babe4e4e7a}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -94,7 +95,7 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Method Name="CT_Create" Id="{cfae3726-f5fa-4e02-87b3-782df27cdfaa}">
+    <Method Name="CT_Create" Id="{db8229d9-012f-45ec-9895-5d9df89c144e}">
       <Declaration><![CDATA[(*
 Create/Build a new container (CT) with next page to be printed.
 *)
@@ -142,7 +143,7 @@ LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=CONCAT('create CT: ', sCT.print(0)));
 CT_Create := _created;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="CT_Finish" Id="{48660110-43aa-4a28-ada8-4734591eb4a3}">
+    <Method Name="CT_Finish" Id="{7fbbcc1d-cc92-478b-8cc6-a0a3756f5d60}">
       <Declaration><![CDATA[METHOD CT_Finish : BOOL
 VAR_INPUT
   sCT            : I_CT;               // container to produce
@@ -186,7 +187,7 @@ END_IF
 CT_Finish := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="CT_Produce" Id="{79170766-8f0d-492b-9bd5-31d495803a1a}">
+    <Method Name="CT_Produce" Id="{9e3a46dc-7f8e-4f60-8028-450ec410f1c3}">
       <Declaration><![CDATA[(*
   Finalize/Produce a CT. Now we shouldhave all necessary information for configuring the CT.
 *)
@@ -225,9 +226,9 @@ IF bPresent THEN LogLvl(Lvl:=E_LogSeverity.Detail,  Msg:=CONCAT('produceCT: ', s
 CT_Produce := _produced; ]]></ST>
       </Implementation>
     </Method>
-    <Property Name="defaultPrData" Id="{d4ff3b2c-d300-4dce-9194-b58268f6b2c8}">
+    <Property Name="defaultPrData" Id="{0f30a3d3-bbde-49dd-b640-35e97b7021cb}">
       <Declaration><![CDATA[PROPERTY defaultPrData : ST_PRINT_SETTING]]></Declaration>
-      <Get Name="Get" Id="{2b1bfc3b-d8a9-4f2e-90bd-d918b2718f36}">
+      <Get Name="Get" Id="{6d19f315-df2f-4d12-8181-34118b946600}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -236,7 +237,7 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Method Name="dynAddPage" Id="{de2d8972-ac34-45f3-bf1d-8e972539df15}">
+    <Method Name="dynAddPage" Id="{4e3f409c-045d-46ae-bef1-54a6c3ec3f52}">
       <Declaration><![CDATA[METHOD PRIVATE dynAddPage : BOOL
 VAR_INPUT
   lType     : EN_PrintPageType; 
@@ -252,7 +253,7 @@ END_IF
 _pPU^.addPage(lMaintPageNr:=lPageNr);]]></ST>
       </Implementation>
     </Method>
-    <Method Name="getNext" Id="{c716673d-cf8a-48fe-999c-d5d79147e5fe}">
+    <Method Name="getNext" Id="{5d75c39d-9fb1-4ff9-a5b0-edf19030c563}">
       <Declaration><![CDATA[(*
   get next page to be printed.
   :return:    TRUE if success.
@@ -283,7 +284,7 @@ END_IF
 getNext := NOT bErr;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="init" Id="{4fd111ef-fb9a-40a3-94de-9cee9fd4eb05}">
+    <Method Name="init" Id="{d77ef565-b96f-4032-8974-a22386a23d45}">
       <Declaration><![CDATA[METHOD init : BOOL
 VAR_INPUT
   pPU     : POINTER TO FB_PU;
@@ -321,7 +322,7 @@ bInitialized := TRUE;
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="JobFinished" Id="{44e5f435-dba6-4bd8-af19-495cef403d0e}">
+    <Method Name="JobFinished" Id="{f266638a-b068-4c56-b67c-8fc6bd6c2d2b}">
       <Declaration><![CDATA[METHOD JobFinished : BOOL
 VAR_INPUT
   aSeparatorId   : STRING;
@@ -335,9 +336,9 @@ END_VAR]]></Declaration>
 // NOTE: nothing implemented for now]]></ST>
       </Implementation>
     </Method>
-    <Property Name="lastCreated" Id="{a3ab9eb1-04ba-45d9-a64e-2637ea8a4415}">
+    <Property Name="lastCreated" Id="{0d8dadff-1b2d-4f94-a1be-d8278fcd8c5e}">
       <Declaration><![CDATA[PROPERTY lastCreated : I_CT]]></Declaration>
-      <Get Name="Get" Id="{5aaf8360-3116-4008-9715-6093f500b8c9}">
+      <Get Name="Get" Id="{3da8089e-1cda-4562-8078-aa66d5961270}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -353,7 +354,7 @@ END_VAR
         <ST><![CDATA[]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStart" Id="{c39754c8-8852-498e-914a-4153cd085596}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mJobStart" Id="{c9bb6b9d-7a22-4528-839b-20c5010c2a55}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mJobStart
 VAR_INPUT
 	sJobDef	: I_JobDefinition;
@@ -392,7 +393,7 @@ bPmActive := TRUE;
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStop" Id="{4e66d9c9-cbc8-4029-b2bc-ecfd2707f3e7}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mJobStop" Id="{21a0faba-df46-4fc9-95e9-89fdc44492f2}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mJobStop
 VAR_INPUT
 	sStatus	: I_JobStatus;
@@ -419,7 +420,7 @@ bPmActive := FALSE;
 lastCreatedCT := 0;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mProduced" Id="{6ef0a06c-a684-4fe5-a32d-bb8010ec7051}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mProduced" Id="{db99b749-d6ca-4154-97fa-adccf70dbc59}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mProduced
 VAR_INPUT
 	(* current progress*)
@@ -431,52 +432,52 @@ END_VAR
 ]]></ST>
       </Implementation>
     </Method>
-    <LineIds Name="FB_Pm_DMAX">
+    <LineIds Name="FB_ProdManager_DMAX">
       <LineId Id="3" Count="2" />
     </LineIds>
-    <LineIds Name="FB_Pm_DMAX.abortJob">
+    <LineIds Name="FB_ProdManager_DMAX.abortJob">
       <LineId Id="3" Count="0" />
       <LineId Id="60" Count="1" />
       <LineId Id="44" Count="0" />
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Pm_DMAX.bReady.Get">
+    <LineIds Name="FB_ProdManager_DMAX.bReady.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Pm_DMAX.bStarted.Get">
+    <LineIds Name="FB_ProdManager_DMAX.bStarted.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Pm_DMAX.bStopped.Get">
+    <LineIds Name="FB_ProdManager_DMAX.bStopped.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Pm_DMAX.CT_Create">
+    <LineIds Name="FB_ProdManager_DMAX.CT_Create">
       <LineId Id="3" Count="10" />
       <LineId Id="15" Count="1" />
       <LineId Id="45" Count="0" />
       <LineId Id="17" Count="16" />
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Pm_DMAX.CT_Finish">
+    <LineIds Name="FB_ProdManager_DMAX.CT_Finish">
       <LineId Id="3" Count="30" />
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Pm_DMAX.CT_Produce">
+    <LineIds Name="FB_ProdManager_DMAX.CT_Produce">
       <LineId Id="3" Count="20" />
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Pm_DMAX.defaultPrData.Get">
+    <LineIds Name="FB_ProdManager_DMAX.defaultPrData.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Pm_DMAX.dynAddPage">
+    <LineIds Name="FB_ProdManager_DMAX.dynAddPage">
       <LineId Id="3" Count="4" />
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Pm_DMAX.getNext">
+    <LineIds Name="FB_ProdManager_DMAX.getNext">
       <LineId Id="3" Count="9" />
       <LineId Id="36" Count="0" />
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Pm_DMAX.init">
+    <LineIds Name="FB_ProdManager_DMAX.init">
       <LineId Id="3" Count="8" />
       <LineId Id="16" Count="3" />
       <LineId Id="37" Count="5" />
@@ -486,30 +487,30 @@ END_VAR
       <LineId Id="28" Count="2" />
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Pm_DMAX.JobFinished">
+    <LineIds Name="FB_ProdManager_DMAX.JobFinished">
       <LineId Id="3" Count="0" />
       <LineId Id="27" Count="0" />
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Pm_DMAX.lastCreated.Get">
+    <LineIds Name="FB_ProdManager_DMAX.lastCreated.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Pm_DMAX.mJobPause">
+    <LineIds Name="FB_ProdManager_DMAX.mJobPause">
       <LineId Id="4" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Pm_DMAX.mJobStart">
+    <LineIds Name="FB_ProdManager_DMAX.mJobStart">
       <LineId Id="3" Count="8" />
       <LineId Id="16" Count="5" />
       <LineId Id="49" Count="4" />
       <LineId Id="36" Count="4" />
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Pm_DMAX.mJobStop">
+    <LineIds Name="FB_ProdManager_DMAX.mJobStop">
       <LineId Id="3" Count="12" />
       <LineId Id="28" Count="1" />
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Pm_DMAX.mProduced">
+    <LineIds Name="FB_ProdManager_DMAX.mProduced">
       <LineId Id="3" Count="0" />
       <LineId Id="2" Count="0" />
     </LineIds>

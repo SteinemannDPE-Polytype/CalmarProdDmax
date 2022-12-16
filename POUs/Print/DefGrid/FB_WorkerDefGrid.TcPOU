@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
-  <POU Name="FB_WorkerDefGrid" Id="{3650ee95-10b0-4788-8cb9-9677368dce0d}" SpecialFunc="None">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_WorkerDefGrid" Id="{ec3f04b6-f22a-4a73-9fd6-d551c3304c16}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK ABSTRACT FB_WorkerDefGrid EXTENDS FB_Worker
 VAR_OUTPUT
   bError        : BOOL;       // an error is active
@@ -9,7 +9,7 @@ END_VAR
 VAR
   // config
   _pCtManager       : POINTER TO FB_CTManagerDefGrid;  // CT Manager reference
-  _pParamMediator   : POINTER TO FB_DefGridParamMediator;
+  iParamMediator    : I_ParamMediator;
   _pMsgConfigExt    : POINTER TO ST_MSG_CONFIG;        // external message config (puc message interface)
   _nTrackPosDomain  : E_PosDomain;    // Tracking position domain 
   _fPrintResolution : LREAL := 1;     // print(head) resolution in [dpi]
@@ -27,10 +27,6 @@ VAR
 END_VAR
 VAR_STAT
   // static variables, same for all Workers
-  _aJobName         : T_MaxString;
-  _aJobGuid         : T_MaxString;
-  _fImageWidthM     : LREAL;          // image width in [m]
-  _fImageDepthM     : LREAL;          // image depth in [m]
   _fCtSecurityReleasePos : LREAL := 0;     // [SubPx] position where to release current ct at last (security release)
 END_VAR
 VAR PERSISTENT
@@ -43,7 +39,8 @@ END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[]]></ST>
     </Implementation>
-    <Method Name="Abort" Id="{ce16643b-cda2-4181-95e0-0beb74e4ff08}">
+    <Folder Name="I_PrintStatusClient" Id="{522437a3-298d-4e2e-9ebe-709d3e172129}" />
+    <Method Name="Abort" Id="{f8718905-c76d-49a9-949e-6da2bac3e031}">
       <Declaration><![CDATA[(*
   Generic abort implementation of DefGrid CT.
 *)
@@ -69,7 +66,7 @@ END_VAR]]></Declaration>
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="Attach" Id="{ff11ad4e-4599-4f27-9b16-1afbb01604bb}">
+    <Method Name="Attach" Id="{6e998c00-d198-4ad0-b5d5-92dbb9b30114}">
       <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
 VAR_INPUT
   iCT       : I_CT;            (*container at triggered event position*)
@@ -106,7 +103,7 @@ ELSE      // unspecified (error)case just log it
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Property Name="bAttached" Id="{d663ef8d-4de3-4339-bb43-068fdf551e47}">
+    <Property Name="bAttached" Id="{2e8c8130-f685-40b1-adbf-abe31d58117b}">
       <Declaration><![CDATA[{attribute 'monitoring':='call'}
 PROPERTY bAttached : BOOL]]></Declaration>
       <Get Name="Get" Id="{02ef1e0c-6e3d-4b78-a33e-9b7da2b704a6}">
@@ -120,7 +117,7 @@ END_IF]]></ST>
         </Implementation>
       </Get>
     </Property>
-    <Property Name="fPosition" Id="{72aed42f-b4ca-40a5-97ba-45c8273c2d69}">
+    <Property Name="fPosition" Id="{9e6d5cd4-bcef-45e7-9eee-8ae16a558520}">
       <Declaration><![CDATA[{attribute 'monitoring':='call'}
 PROPERTY fPosition : LREAL]]></Declaration>
       <Get Name="Get" Id="{1b62f39a-72fb-46df-8d2d-82b64e6e95db}">
@@ -141,7 +138,7 @@ setupPosition();]]></ST>
         </Implementation>
       </Set>
     </Property>
-    <Method Name="getCtInst" Id="{5f5eb595-b978-4be3-8880-cabf095f9d48}">
+    <Method Name="getCtInst" Id="{97cf106b-4be9-4376-a613-0f240f49b306}">
       <Declaration><![CDATA[(*
   Get specific container from interface.
   Returns specific container in return value and output parameter.
@@ -167,11 +164,11 @@ ELSE
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="Init" Id="{d856b57f-d00a-4db7-9b79-38cb4ce2b8d2}">
+    <Method Name="Init" Id="{9892d34e-806e-432a-b876-226a7f31ec11}">
       <Declaration><![CDATA[METHOD Init
 VAR_INPUT
   pCtManager : POINTER TO FB_CTManagerDefGrid;   // CTManager
-  pParamMediator : POINTER TO FB_DefGridParamMediator;
+  pParamMediator : I_ParamMediator;
   pMsgConfig : POINTER TO ST_MSG_CONFIG;         // message config
   fPrintResolution : LREAL := 1;                 // print(head) resolution in [dpi]
   fSubPxResolution : LREAL := 1;                 // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
@@ -187,7 +184,7 @@ END_IF
 
 // save config
 _pCtManager := pCtManager; 
-_pParamMediator := pParamMediator;
+iParamMediator := pParamMediator;
 _pMsgConfigExt := pMsgConfig;
 _fPrintResolution := fPrintResolution;
 _fSubPxResolution := fSubPxResolution;
@@ -211,27 +208,27 @@ IF _pEcSrc = 0 THEN LogError('could not register error source'); END_IF
 bInitialized := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStart" Id="{c627219d-988f-43f2-9b2d-62671e653543}">
-      <Declaration><![CDATA[METHOD  ABSTRACT mJobStart
+    <Method Name="mJobStart" Id="{2edcddcb-d5cc-4bb1-81a9-c6fb86b8259f}" FolderPath="I_PrintStatusClient\">
+      <Declaration><![CDATA[METHOD mJobStart
 VAR_INPUT
 	sJobDef	: CalmarCompPrint.I_JobDefinition;
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[]]></ST>
+        <ST><![CDATA[_bJobActive := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStop" Id="{d1727830-648d-4092-ac5b-0913487c823b}">
-      <Declaration><![CDATA[METHOD ABSTRACT mJobStop
+    <Method Name="mJobStop" Id="{440aa514-bfaa-418c-8033-255390b9e116}" FolderPath="I_PrintStatusClient\">
+      <Declaration><![CDATA[METHOD mJobStop
 VAR_INPUT
 	sStatus	: CalmarCompPrint.I_JobStatus;
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[]]></ST>
+        <ST><![CDATA[_bJobActive := FALSE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="Release" Id="{93d9817b-e0fc-453a-98a3-5fa1fab9a696}">
+    <Method Name="Release" Id="{0d710157-0566-4311-84ad-ccf34b31ce11}">
       <Declaration><![CDATA[(*
   Release CT from Worker.
   :return: TRUE if CT was released, FALSE if no CT was registered 
@@ -249,7 +246,7 @@ END_IF
 _pAttachedCt:=0;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="setName" Id="{f4399b02-f69d-4f1d-8a54-2e3c9b492253}">
+    <Method Name="setName" Id="{66618658-df51-457a-bb97-2f422320d543}">
       <Declaration><![CDATA[METHOD PRIVATE setName : BOOL
 VAR_INPUT
   sName : STRING;
@@ -275,7 +272,7 @@ END_IF
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="setupPosition" Id="{6e3bb9fc-2b58-4b26-9d9f-a6a1876a11c6}">
+    <Method Name="setupPosition" Id="{9ff8ca00-2108-4d66-ac77-a2dd30739e0e}">
       <Declaration><![CDATA[METHOD PROTECTED setupPosition
 ]]></Declaration>
       <Implementation>
@@ -283,7 +280,7 @@ END_IF
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="work" Id="{39f716aa-387e-47c7-bab0-59397ba81c1f}">
+    <Method Name="work" Id="{3d2d038f-b3d5-4af3-8623-edc2cf824dd4}">
       <Declaration><![CDATA[METHOD  work]]></Declaration>
       <Implementation>
         <ST><![CDATA[//Work only with attached container

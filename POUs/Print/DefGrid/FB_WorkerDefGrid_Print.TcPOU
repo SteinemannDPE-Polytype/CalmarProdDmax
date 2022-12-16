@@ -1,15 +1,16 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
-  <POU Name="FB_WorkerDefGrid_Print" Id="{a3c0fca9-0a63-49f3-a9fd-25e7fe09223b}" SpecialFunc="None">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_WorkerDefGrid_Print" Id="{5c870379-68b9-432c-b249-d1d8463ffca6}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Print EXTENDS FB_WorkerDefGrid
 VAR_INPUT
   nEncoderPos           : DINT;   // Absolute virtual encoder
   bHardwareSync         : BOOL;
   bHardwareHold         : BOOL;
-  fPrintStartOffset     : LREAL;  //PU->PG/PA offset
-  fPrintYOffset         : LREAL;  //Y-Shift in ram memory
-  fMasterSpeed          : LREAL;  //Speed [m/s]
-  fPUElevation          : LREAL;  //PU distance from substrate [m]
+  fPrintStartOffset     : LREAL;  // Offset from Module reference (configurative PU/PM/PG/PA ADS offset)
+  fDetectOffset         : LREAL;  // StartDetect to Modoule reference
+  fPrintYOffset         : LREAL;  // Y-Shift in ram memory
+  fMasterSpeed          : LREAL;  // Speed [m/s]
+  fPUElevation          : LREAL;  // PU distance from substrate [m]
   fPUPlate1_Temperature : LREAL;  // PU Plate1 temperature
   fPUPlate2_Temperature : LREAL;  // PU Plate2 temperature
 END_VAR
@@ -79,7 +80,7 @@ VAR CONSTANT
   fC_START_SHIFT_OFFSET    : LREAL := -1.0E-2;
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[IF _pParamMediator = 0 THEN RETURN; F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); END_IF
+      <ST><![CDATA[IF iParamMediator = 0 THEN RETURN; F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); END_IF
 
 //TODO Add error/warnings
 bError := FALSE;
@@ -88,9 +89,9 @@ nError := 0;
 fbDropSpeedComp(fMasterSpeed:=fMasterSpeed, fDropTravelDistance:=fPUElevation);
 
 //Start offset update
-IF _fPrintStartOffset <> (fPrintStartOffset + _pParamMediator^.fCameraToPrintOffset + _pParamMediator^.fDetectToCamera) THEN //Worker position changed
+IF _fPrintStartOffset <> (fPrintStartOffset + iParamMediator.fMasterDetectToRefPos) THEN //Worker position changed
   IF _pAttachedCt = 0 THEN //Update only without attached container
-    _fPrintStartOffset :=fPrintStartOffset + _pParamMediator^.fCameraToPrintOffset + _pParamMediator^.fDetectToCamera;
+    _fPrintStartOffset :=fPrintStartOffset + iParamMediator.fMasterDetectToRefPos;
 	END_IF
 END_IF
 
@@ -113,7 +114,7 @@ END_IF
 ]]></ST>
     </Implementation>
     <Folder Name="I_PrintStatusClient" Id="{adecc86c-91cf-457b-8558-66ae01f4fccc}" />
-    <Property Name="aPaState" Id="{eb46f66a-52cc-4aca-b9e2-7eab452224bc}">
+    <Property Name="aPaState" Id="{d33311ae-cbcc-4c92-8b46-ba9298176777}">
       <Declaration><![CDATA[PROPERTY aPaState : STRING]]></Declaration>
       <Get Name="Get" Id="{bd1c86fe-132b-41d1-bebb-2a87f1fec851}">
         <Declaration><![CDATA[VAR
@@ -124,14 +125,10 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Method Name="Attach" Id="{0707666f-371d-4dbd-816b-7dc7310c7f8c}">
+    <Method Name="Attach" Id="{8d19d44d-634a-4078-b01d-60684b943ab6}">
       <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
 VAR_INPUT
   iCT              : I_CT;                         (*container at triggered event position*)
-END_VAR
-
-VAR
-  nConvErr        : UDINT;
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -173,11 +170,11 @@ IF SUPER^.Attach(iCT:=iCT) THEN
   // Set X print position
   _nPosX0 :=    _pAttachedCt^.getPosX0(nPosDomain:=E_PosDomain.master_pos)
               //- General Shift
-              - F_MeterToSubPixel(fbDropSpeedComp.fDropPlacementError,_fPrintResolution*_fSubPxResolution); // - drop compensation*)
-  _nPosXDelta := F_MeterToSubPixel(_fPrintStartOffset,_fPrintResolution*_fSubPxResolution); // + PG/PA Shift (additional PG offset 0 for firstLine)
-
+              - F_MeterToSubPixel(fbDropSpeedComp.fDropPlacementError, _fPrintResolution*_fSubPxResolution); // - drop compensation*)
+  _nPosXDelta := F_MeterToSubPixel(_fPrintStartOffset, _fPrintResolution*_fSubPxResolution); // + PG/PA Shift (additional PG offset 0 for firstLine)
+  
   IF GVL_Deformation.bC_UseGlobalGridShift THEN
-    _nPosXDelta := _nPosXDelta + FC_LREAL_TO_DINT(_fDxGlobalShift, ADR(nConvErr));                  // + global shift from grid points
+    _nPosXDelta := _nPosXDelta + FC_LREAL_TO_DINT(_fDxGlobalShift);                  // + global shift from grid points
   END_IF
 
   _nPosXS := _nPosX0 + _nPosXDelta;
@@ -188,7 +185,7 @@ IF SUPER^.Attach(iCT:=iCT) THEN
   IF GVL_Deformation.bC_UseGlobalGridShift THEN
     _fPosY := _fPosY + _fDyGlobalShift;    // + global shift from grid points
   END_IF
-  fB_PcAdapter.setPrintYShift(nYShift:=FC_LREAL_TO_DINT(_fPosY, ADR(nConvErr)));
+  fB_PcAdapter.setPrintYShift(nYShift:=FC_LREAL_TO_DINT(_fPosY));
 
   // check
   IF _nPosXS < nEncoderPos THEN
@@ -461,7 +458,7 @@ END_FOR
 _bMsgInitialized := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="InitWorkerPrint" Id="{9e11bfb6-2c3b-4cf3-ab44-81a61cbfe170}">
+    <Method Name="InitWorkerPrint" Id="{4fecd085-052c-4b8b-bc2f-cc4dcd5f16f0}">
       <Declaration><![CDATA[METHOD InitWorkerPrint : BOOL
 VAR_INPUT
   pAdsIfCam         : POINTER TO ST_ADS_CAMERA;   // provide camera access
@@ -489,7 +486,7 @@ fbFineAlignement.init(pAdsCam := _pAdsCam, fPxReso := _fPrintResolution, fPuWidt
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStart" Id="{e6930aa0-f0d8-458e-9de3-18f675c41155}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mJobStart" Id="{87c1a70f-33c9-456b-bf45-a59792f723a3}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD   mJobStart
 VAR_INPUT
 	sJobDef	: CalmarCompPrint.I_JobDefinition;
@@ -515,7 +512,7 @@ _pAdsCam^.sI_CorrectionPointIndication[4].posy := LREAL_TO_REAL((((_fPrintUnitWi
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStop" Id="{8177ad7c-6de2-4f33-9116-3de9fb737ab6}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mJobStop" Id="{7b748773-8ffd-405a-8e86-372ca4bcfe2a}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD  mJobStop
 VAR_INPUT
 	sStatus	: CalmarCompPrint.I_JobStatus;
@@ -526,7 +523,7 @@ END_VAR
 _bJobActive := FALSE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="registerPc" Id="{3c39032f-7920-436e-9283-1f58258455df}">
+    <Method Name="registerPc" Id="{d97e5338-e71f-481e-a982-44f26169e2b1}">
       <Declaration><![CDATA[METHOD registerPc : BOOL
 VAR_INPUT
   iNewPC : I_PC;
@@ -536,7 +533,7 @@ END_VAR
         <ST><![CDATA[registerPc := fB_PcAdapter.registerPc(iNewPC := iNewPC);]]></ST>
       </Implementation>
     </Method>
-    <Method Name="registerPh" Id="{a62d8de9-9fbf-4ff4-bfce-d2ac72d680d3}">
+    <Method Name="registerPh" Id="{51416313-f5aa-4fc6-85d2-7d7463e97995}">
       <Declaration><![CDATA[METHOD registerPh : BOOL
 VAR_INPUT
     iPH : I_PH;
@@ -551,7 +548,7 @@ END_IF
 ]]></ST>
       </Implementation>
     </Method>
-    <Property Name="sPcFlags" Id="{fa3ef9be-bfc1-497c-bb3e-5711955c8dd7}">
+    <Property Name="sPcFlags" Id="{d2e3a5fd-216b-48f5-b618-16b7666b6bd2}">
       <Declaration><![CDATA[PROPERTY sPcFlags : CalmarCompPrint.ST_PC_FLAGS]]></Declaration>
       <Get Name="Get" Id="{31b278ad-9123-44bc-826c-af82c44e3e58}">
         <Declaration><![CDATA[VAR
@@ -563,7 +560,7 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Property Name="sPcState" Id="{f1d03b4e-3371-40d0-92fe-ec59b44e18d0}">
+    <Property Name="sPcState" Id="{e5bf6c6e-6254-48d6-9ec8-abc51d6292d9}">
       <Declaration><![CDATA[PROPERTY sPcState :  CalmarCompPrint.ST_PG_STATUS]]></Declaration>
       <Get Name="Get" Id="{1766068c-03e2-40da-beb8-caa32f985382}">
         <Declaration><![CDATA[VAR
@@ -591,7 +588,7 @@ sPcState.sJobStatus       := sJobStatus;   // obsolete ???
         </Implementation>
       </Get>
     </Property>
-    <Method Name="work" Id="{cfb4a899-7ea9-4389-855e-b56f1970d69a}">
+    <Method Name="work" Id="{aa5cbb36-3d1e-4fa3-85a0-b1eb06f332d2}">
       <Declaration><![CDATA[METHOD  work
 VAR
   bDeformErr : BOOL;
@@ -602,9 +599,9 @@ END_VAR
         <ST><![CDATA[SUPER^.work();
 
 (*new job attached*)
-IF _pParamMediator <> 0 AND _bNewJob THEN
+IF iParamMediator <> 0 AND _bNewJob THEN
   _bNewJob := FALSE;
-  sDefGridSettings := _pParamMediator^.sDeformationGridSetttings;
+  sDefGridSettings := iParamMediator.sDeformationGridSetttings;
   // fix some potential errors
   IF sDefGridSettings.nGridPitchX = 0 THEN sDefGridSettings.nGridPitchX :=1024; LogError(F_concat2('grid not configured, set default nGridPitchX=',TO_STRING(sDefGridSettings.nGridPitchX))); END_IF
   IF sDefGridSettings.nGridPitchY = 0 THEN sDefGridSettings.nGridPitchY :=1024; LogError(F_concat2('grid not configured, set default nGridPitchY=',TO_STRING(sDefGridSettings.nGridPitchY))); END_IF
@@ -742,7 +739,8 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="221" Count="0" />
       <LineId Id="286" Count="0" />
       <LineId Id="284" Count="0" />
-      <LineId Id="116" Count="1" />
+      <LineId Id="116" Count="0" />
+      <LineId Id="295" Count="0" />
       <LineId Id="224" Count="1" />
       <LineId Id="222" Count="0" />
       <LineId Id="254" Count="0" />

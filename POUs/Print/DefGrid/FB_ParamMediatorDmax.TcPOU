@@ -1,11 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
-  <POU Name="FB_DefGridParamMediator" Id="{9642270e-d441-4770-907b-3f0d0f5dc2e9}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK FB_DefGridParamMediator
-VAR_INPUT
-END_VAR
-VAR_OUTPUT
-END_VAR
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_ParamMediatorDmax" Id="{9642270e-d441-4770-907b-3f0d0f5dc2e9}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ParamMediatorDmax IMPLEMENTS I_ParamMediator
 VAR
   _pCreateWorker : POINTER TO FB_WorkerDefGrid_Python;
   _pCamWorker : POINTER TO FB_WorkerDefGrid_Camera;
@@ -16,7 +12,24 @@ END_VAR
     <Implementation>
       <ST><![CDATA[]]></ST>
     </Implementation>
-    <Property Name="fCameraToPrintOffset" Id="{43edb161-94bb-440e-a146-2ecc3ab0b15d}">
+    <Folder Name="I_ParamMediator" Id="{39f9222d-d28f-4df1-8ed1-e2b3d113f34f}" />
+    <Method Name="ClearCachedCT" Id="{d54eef11-94fc-4211-8079-b54bc203d3ec}" FolderPath="I_ParamMediator\">
+      <Declaration><![CDATA[(*
+  Release deformation ct
+  TODO: find another way to do inter worker communication for generic methods.
+*)
+METHOD ClearCachedCT
+VAR_INPUT
+  iCT              : I_CT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF bInitOk THEN
+  _pCreateWorker^.DeleteDefCt(iCT:=iCT);
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="fCameraToPrintOffset" Id="{43edb161-94bb-440e-a146-2ecc3ab0b15d}" FolderPath="I_ParamMediator\">
       <Declaration><![CDATA[{attribute 'monitoring':='call'}
 PROPERTY fCameraToPrintOffset : LREAL]]></Declaration>
       <Get Name="Get" Id="{687dfcbd-6ad8-4ffb-a3c4-66b35289f9de}">
@@ -30,7 +43,7 @@ END_IF]]></ST>
         </Implementation>
       </Get>
     </Property>
-    <Property Name="fDetectToCamera" Id="{0268497d-c5b0-4639-a734-da6955c88aff}">
+    <Property Name="fDetectToCamera" Id="{0268497d-c5b0-4639-a734-da6955c88aff}" FolderPath="I_ParamMediator\">
       <Declaration><![CDATA[{attribute 'monitoring':='call'}
 PROPERTY fDetectToCamera : LREAL]]></Declaration>
       <Get Name="Get" Id="{038181c1-f283-429a-835f-ddc555554d78}">
@@ -42,7 +55,24 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Method Name="init" Id="{9cdfcac0-144a-4d88-8e7f-21c6ce0c82c3}">
+    <Property Name="fMasterDetectToRefPos" Id="{eee430db-38d9-467a-a866-93af7f37bbbb}" FolderPath="I_ParamMediator\">
+      <Declaration><![CDATA[(*
+  Distance (Offset) from Master-Trigger to Master Reference Position.
+  NOTE: This is normally the distance between the first (MASTER) StartPosDetection to first print Module (Printing Unit) 
+*)
+PROPERTY fMasterDetectToRefPos : LREAL]]></Declaration>
+      <Get Name="Get" Id="{706a4f09-3937-46b5-9660-12df944552bc}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IF bInitOk THEN
+  fMasterDetectToRefPos := _pCamWorker^.fDetectToCamOffset + _pCamWorker^.fCameraToPrintOffset;
+END_IF]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="init" Id="{9cdfcac0-144a-4d88-8e7f-21c6ce0c82c3}" FolderPath="I_ParamMediator\">
       <Declaration><![CDATA[METHOD init
 VAR_INPUT
   pCreateWorker : POINTER TO FB_WorkerDefGrid_Python;
@@ -59,23 +89,7 @@ END_VAR
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="ReleaseDeformationCT" Id="{d54eef11-94fc-4211-8079-b54bc203d3ec}">
-      <Declaration><![CDATA[(*
-  Release deformation ct
-  TODO: find another way to do inter worker communication for generic methods.
-*)
-METHOD ReleaseDeformationCT
-VAR_INPUT
-  iCT              : I_CT;
-END_VAR
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[IF bInitOk THEN
-  _pCreateWorker^.DeleteDefCt(iCT:=iCT);
-END_IF]]></ST>
-      </Implementation>
-    </Method>
-    <Property Name="sCameraGridSettings" Id="{686354aa-821c-4c68-8c9d-dafadf8ef6fd}">
+    <Property Name="sCameraGridSettings" Id="{686354aa-821c-4c68-8c9d-dafadf8ef6fd}" FolderPath="I_ParamMediator\">
       <Declaration><![CDATA[PROPERTY sCameraGridSettings : ST_CameraGridSettings]]></Declaration>
       <Get Name="Get" Id="{7a8afb02-f662-4c02-aebf-6b3bd22fae1a}">
         <Declaration><![CDATA[VAR
@@ -88,7 +102,7 @@ END_IF]]></ST>
         </Implementation>
       </Get>
     </Property>
-    <Property Name="sDeformationGridSetttings" Id="{9cf3f096-207d-452b-ace7-3769f0678220}">
+    <Property Name="sDeformationGridSetttings" Id="{9cf3f096-207d-452b-ace7-3769f0678220}" FolderPath="I_ParamMediator\">
       <Declaration><![CDATA[PROPERTY sDeformationGridSetttings : ST_DefGridSettings]]></Declaration>
       <Get Name="Get" Id="{f92cba8c-0a7c-4567-a017-f6ac55645e3a}">
         <Declaration><![CDATA[VAR
@@ -101,17 +115,25 @@ END_IF]]></ST>
         </Implementation>
       </Get>
     </Property>
-    <LineIds Name="FB_DefGridParamMediator">
+    <LineIds Name="FB_ParamMediatorDmax">
       <LineId Id="9" Count="0" />
     </LineIds>
-    <LineIds Name="FB_DefGridParamMediator.fCameraToPrintOffset.Get">
+    <LineIds Name="FB_ParamMediatorDmax.ClearCachedCT">
+      <LineId Id="5" Count="2" />
+    </LineIds>
+    <LineIds Name="FB_ParamMediatorDmax.fCameraToPrintOffset.Get">
       <LineId Id="5" Count="1" />
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_DefGridParamMediator.fDetectToCamera.Get">
+    <LineIds Name="FB_ParamMediatorDmax.fDetectToCamera.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_DefGridParamMediator.init">
+    <LineIds Name="FB_ParamMediatorDmax.fMasterDetectToRefPos.Get">
+      <LineId Id="5" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ParamMediatorDmax.init">
       <LineId Id="9" Count="0" />
       <LineId Id="18" Count="0" />
       <LineId Id="8" Count="0" />
@@ -119,15 +141,12 @@ END_IF]]></ST>
       <LineId Id="11" Count="0" />
       <LineId Id="10" Count="0" />
     </LineIds>
-    <LineIds Name="FB_DefGridParamMediator.ReleaseDeformationCT">
-      <LineId Id="5" Count="2" />
-    </LineIds>
-    <LineIds Name="FB_DefGridParamMediator.sCameraGridSettings.Get">
+    <LineIds Name="FB_ParamMediatorDmax.sCameraGridSettings.Get">
       <LineId Id="2" Count="0" />
       <LineId Id="7" Count="0" />
       <LineId Id="6" Count="0" />
     </LineIds>
-    <LineIds Name="FB_DefGridParamMediator.sDeformationGridSetttings.Get">
+    <LineIds Name="FB_ParamMediatorDmax.sDeformationGridSetttings.Get">
       <LineId Id="9" Count="1" />
       <LineId Id="2" Count="0" />
     </LineIds>

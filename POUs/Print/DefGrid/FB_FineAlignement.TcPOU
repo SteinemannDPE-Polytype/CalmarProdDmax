@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_FineAlignement" Id="{b0fdbfcd-2a71-4ede-b938-0e28dbf7b80d}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   This fb handles mechanical print unit corrections.
@@ -427,12 +427,11 @@ END_VAR
 VAR
   x_pos, dx_corr, dx_tmp : LREAL; // [m]
   y_pos, dy_corr, dy_tmp : LREAL; // [m]
-  lErrCtr : UDINT;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[// grid point position
-x_pos := F_SubPixelToMeter(lPosSubPx:=FC_LREAL_TO_DINT(pPoint^.x_ref, ADR(lErrCtr)), fResSubPx:=_fPxResolution);  // [px -> m] 
-y_pos := F_SubPixelToMeter(lPosSubPx:=FC_LREAL_TO_DINT(pPoint^.y_ref, ADR(lErrCtr)), fResSubPx:=_fPxResolution);  // [px -> m]
+x_pos := F_SubPixelToMeter(lPosSubPx:=FC_LREAL_TO_DINT(pPoint^.x_ref), fResSubPx:=_fPxResolution);  // [px -> m] 
+y_pos := F_SubPixelToMeter(lPosSubPx:=FC_LREAL_TO_DINT(pPoint^.y_ref), fResSubPx:=_fPxResolution);  // [px -> m]
 dx_corr := 0;
 dy_corr := 0;
 

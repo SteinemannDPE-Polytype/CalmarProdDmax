@@ -103,6 +103,15 @@ END_VAR
         <ST><![CDATA[PushDeformationPoint:= fbFifoCamPoints.Push(sPoint);]]></ST>
       </Implementation>
     </Method>
+    <Method Name="Reset" Id="{bc06fc21-3063-4605-b022-95bfbd3afa5e}">
+      <Declaration><![CDATA[METHOD Reset
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="UpdatePy" Id="{ab911814-1669-4a11-8a8e-0853452f33a9}">
       <Declaration><![CDATA[METHOD UpdatePy : BOOL
 VAR_INPUT
@@ -151,6 +160,9 @@ END_IF]]></ST>
       <LineId Id="9" Count="0" />
     </LineIds>
     <LineIds Name="FB_PythonDeformation.PushDeformationPoint">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonDeformation.Reset">
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_PythonDeformation.UpdatePy">
