@@ -7,25 +7,26 @@ VAR
   // ------------------------------------------
   //FIFO Buffers
   fbFifoCamPoints : FB_DeformationPointFIFO; // Input FIFO, do not use Pop()
-	fbFifoGridPoints : FB_DeformationPointFIFO; // Output FIFO, do not use Push()
+  fbFifoGridPoints : FB_DeformationPointFIFO; // Output FIFO, do not use Push()
 
-	//Handshake variables
-	fPythonPosition : LREAL := 0.0; (* Current position to process - should be kept constant while Python script is executing *)
-	nPythonId : DINT := 0;   (* ct id for unique trace of ct in script *)
+  //Handshake variables
+  fPythonPosition : LREAL := 0.0; (* Current position to process - should be kept constant while Python script is executing *)
+  nPythonId : DINT := 0;   (* ct id for unique trace of ct in script *)
   
-	bPythonStartUpdate : BOOL := FALSE; (* Tell the script to start its execution *)
-	bPythonAbort : BOOL := FALSE; (* Abort any pending operation - NOT IMPLEMENTED *)
+  bPythonStartUpdate : BOOL := FALSE; (* Tell the script to start its execution *)
+  bPythonAbort : BOOL := FALSE; (* Abort any pending operation - NOT IMPLEMENTED *)
   
-	bPythonBusy : BOOL := FALSE;
-	bPythonUpdateDone : BOOL := FALSE; (* Set by the script when it's done or if error occurs *)
-	bPythonError : BOOL := FALSE; (* Set by the script if any error occures during execution, cleared with abort - NOT IMPLEMENTED*)
+  bPythonBusy : BOOL := FALSE;
+  bPythonUpdateDone : BOOL := FALSE; (* Set by the script when it's done or if error occurs *)
+  bPythonError : BOOL := FALSE; (* Set by the script if any error occures during execution, cleared with abort - NOT IMPLEMENTED*)
   nPythonStatus : UDINT := 0; (*Set by the script status of deformation - NOT IMPLEMENTED*)
-	bPythonDeformationDone : BOOL := FALSE; (* Set by the script when deformation if finished *)
+  bPythonDeformationDone : BOOL := FALSE; (* Set by the script when deformation if finished *)
   // ------------------------------------------
   
   // internal control
   _fbTimeout : TON; (* Counter with timeout *)
-	_tExecutionTime : TIME := T#0S;   (*exection time local for scoping*)
+  _tExecutionTime : TIME := T#0S;   (*exection time local for scoping*)
+  _bAborted : BOOL;
   
 END_VAR]]></Declaration>
     <Implementation>
@@ -48,28 +49,33 @@ fbFifoGridPoints();
 
 // work with script
 IF bPythonBusy THEN // Pending job
-	IF _fbTimeout.Q THEN // Timeout occurs
-		_tExecutionTime := _fbTimeout.ET;
-		bPythonAbort := TRUE;
-		bPythonError := TRUE;   // set internal error
-		nErrId := 1;
-		bPythonBusy := FALSE;
+  IF _fbTimeout.Q THEN // Timeout occurs
+    _tExecutionTime := _fbTimeout.ET;
+    bPythonAbort := TRUE;
+    bPythonError := TRUE;   // set internal error
+    nErrId := 1;
+    bPythonBusy := FALSE;
     LogError(F_Concat4('Timeout during bPythonBusy, ExecTime:', TO_STRING(_tExecutionTime), ' Err:', TO_STRING(nErrId)));
-	ELSIF bPythonUpdateDone THEN //Script done
-		_tExecutionTime := _fbTimeout.ET;
-		bPythonBusy := FALSE;
-		IF bPythonError THEN
-			nErrId := 2;
+  ELSIF bPythonUpdateDone THEN //Script done
+    _tExecutionTime := _fbTimeout.ET;
+    bPythonBusy := FALSE;
+    IF bPythonError THEN
+      nErrId := 2;
       LogError(F_Concat4('Error during bPythonBusy, ExecTime:', TO_STRING(_tExecutionTime), ' Err:', TO_STRING(nErrId)));
-		END_IF
-	END_IF
+    END_IF
+  ELSIF _bAborted THEN      // abort if abort request set on ct
+    bPythonAbort := TRUE;
+    bPythonBusy := FALSE;
+     bPythonError := TRUE;   // set internal error
+    nErrId := 3;
+  END_IF
 ELSIF bPythonAbort THEN
   //bPythonAbort := FALSE;
-	bPythonStartUpdate := FALSE;
-ELSE // Update/Job done	
+  bPythonStartUpdate := FALSE;
+ELSE // Update/Job done  
   bPythonAbort := FALSE;
-	bPythonStartUpdate := FALSE;
-	bPythonUpdateDone := FALSE;
+  bPythonStartUpdate := FALSE;
+  bPythonUpdateDone := FALSE;
 END_IF
 
 _fbTimeout(IN := bPythonBusy);]]></ST>
@@ -103,6 +109,29 @@ END_VAR
         <ST><![CDATA[PushDeformationPoint:= fbFifoCamPoints.Push(sPoint);]]></ST>
       </Implementation>
     </Method>
+    <Method Name="Reset" Id="{28d5afb1-0630-4975-beb0-bcd4287f56a3}">
+      <Declaration><![CDATA[METHOD Reset
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fPythonPosition := 0.0;
+//nPythonId := ;
+bPythonStartUpdate := FALSE;
+bPythonAbort := FALSE;
+bPythonBusy := FALSE;
+bPythonUpdateDone := FALSE;
+bPythonError := FALSE;
+nPythonStatus := 0;
+bPythonDeformationDone := FALSE;
+
+_fbTimeout(IN:=FALSE);
+_bAborted := FALSE;
+
+fbFifoCamPoints.Reset();
+fbFifoGridPoints.Reset();]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="UpdatePy" Id="{ab911814-1669-4a11-8a8e-0853452f33a9}">
       <Declaration><![CDATA[METHOD UpdatePy : BOOL
 VAR_INPUT
@@ -116,14 +145,14 @@ END_VAR
   
 ELSE // Job done
     
-  IF NOT bPythonDeformationDone THEN // Sample input
+  IF NOT bPythonDeformationDone AND NOT bPythonAbort THEN // Sample input
     // start a update
     fPythonPosition := fPosition * GVL_Deformation.nC_GridSubReso;
     bPythonBusy := TRUE;
     bPythonError := FALSE;
     
     // Start script
-    bPythonStartUpdate := TRUE;      
+    bPythonStartUpdate := TRUE;
   END_IF
   
   UpdatePy:=TRUE;
@@ -135,12 +164,7 @@ END_IF]]></ST>
       <LineId Id="53" Count="0" />
     </LineIds>
     <LineIds Name="FB_PythonDeformation.ExecPy">
-      <LineId Id="7" Count="2" />
-      <LineId Id="37" Count="0" />
-      <LineId Id="10" Count="17" />
-      <LineId Id="45" Count="1" />
-      <LineId Id="28" Count="0" />
-      <LineId Id="32" Count="4" />
+      <LineId Id="59" Count="34" />
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_PythonDeformation.PopDeformationPoint">
@@ -152,6 +176,18 @@ END_IF]]></ST>
     </LineIds>
     <LineIds Name="FB_PythonDeformation.PushDeformationPoint">
       <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PythonDeformation.Reset">
+      <LineId Id="8" Count="0" />
+      <LineId Id="17" Count="3" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="10" Count="1" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="12" Count="0" />
     </LineIds>
     <LineIds Name="FB_PythonDeformation.UpdatePy">
       <LineId Id="7" Count="10" />

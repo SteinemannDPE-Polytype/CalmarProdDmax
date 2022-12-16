@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_WorkerDefGrid_Python" Id="{da715aa5-d637-40ab-8d33-e404e3b6a6f1}" SpecialFunc="None">
     <Declaration><![CDATA[{attribute 'reflection'} 
-FUNCTION_BLOCK FB_WorkerDefGrid_Python EXTENDS FB_WorkerDefGrid
+FUNCTION_BLOCK FB_WorkerDefGrid_Python EXTENDS FB_WorkerDefGrid IMPLEMENTS I_DeformationHandler
 VAR_INPUT
 END_VAR
 VAR_OUTPUT
@@ -27,6 +27,7 @@ END_VAR
     <Implementation>
       <ST><![CDATA[]]></ST>
     </Implementation>
+    <Folder Name="I_DeformationHandler" Id="{ceaf56cc-d085-4a2b-a063-c0fa29cdf9f9}" />
     <Folder Name="I_PrintStatusClient" Id="{f883ee39-a8eb-4a93-9829-26e2a724ffe3}" />
     <Method Name="Attach" Id="{42eaf325-ff4e-48df-be91-9b20bce3da44}">
       <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
@@ -55,7 +56,7 @@ IF SUPER^.Attach(iCT:=iCT) THEN
     // -- only create ct if a deformation is active
     IF CreateDefCt(iCT:=iCT) THEN
         // set state
-        _pAttachedCt^.StartScript();
+        _pAttachedCt^.StartScript(iDeformationHandler:=THIS^);
         // attached
         Attach := TRUE;
     END_IF
@@ -89,6 +90,16 @@ IF _CamGridSettings.eCameraMode >= E_CameraMode.Live THEN
 ELSE
   CreateDefCt := TRUE;
 END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="DeleteCachedCt" Id="{0747863f-1393-4933-afe3-0c0b74eb26c2}" FolderPath="I_DeformationHandler\">
+      <Declaration><![CDATA[METHOD DeleteCachedCt : BOOL
+VAR_INPUT
+	iCT	: I_CT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[DeleteDefCt(iCT:=iCT);]]></ST>
       </Implementation>
     </Method>
     <Method Name="DeleteDefCt" Id="{1250acd3-857f-4045-a296-4dd4aaa257e9}">
@@ -277,6 +288,9 @@ IF fbMsg_PythonNotRunning.bMsgAck THEN fbPythonInterface.ackError(); END_IF]]></
       <LineId Id="5" Count="0" />
       <LineId Id="47" Count="1" />
       <LineId Id="38" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Python.DeleteCachedCt">
+      <LineId Id="7" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Python.DeleteDefCt">
       <LineId Id="5" Count="0" />

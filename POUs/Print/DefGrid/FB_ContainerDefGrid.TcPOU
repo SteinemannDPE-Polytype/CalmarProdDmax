@@ -24,7 +24,8 @@ END_VAR
       <Implementation>
         <ST><![CDATA[LogWarning(F_Concat2('Abort deformation: ', sReason));  // log reason
 setError(ErrDef:=EC_DefGrid.ecDefGrid_DefGridAbort, Src:=Src); // tag ct as error
-fBImageDeformation.abort();  // abort deformation]]></ST>
+fBImageDeformation.abort();  // abort deformation
+StopScript(iCT:=THIS^);]]></ST>
       </Implementation>
     </Method>
     <Method Name="AddCamPoint" Id="{c9a7845c-22a0-4577-acbe-8954df2e199f}">
@@ -208,9 +209,25 @@ END_VAR]]></Declaration>
     </Method>
     <Method Name="StartScript" Id="{b42a5bf2-aedf-44f3-9b19-80a8065b52ca}">
       <Declaration><![CDATA[METHOD StartScript
+VAR_INPUT
+  iDeformationHandler : I_DeformationHandler;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fBImageDeformation.eStep := E_DeformationStep.createdScriptContainer;
+fBImageDeformation.iDeformationHandler := iDeformationHandler;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="StopScript" Id="{eb4b604b-26be-4db7-b553-a71f9287a6bd}">
+      <Declaration><![CDATA[METHOD StopScript : BOOL
+VAR_INPUT
+  iCT : I_CT;
+END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[fBImageDeformation.eStep := E_DeformationStep.createdScriptContainer;]]></ST>
+        <ST><![CDATA[IF fBImageDeformation.iDeformationHandler <> 0 THEN
+  fBImageDeformation.iDeformationHandler.DeleteCachedCt(iCT:=iCT);
+  fBImageDeformation.iDeformationHandler := 0; // remove handler after stopping (prevent further calls on same CT)
+END_IF]]></ST>
       </Implementation>
     </Method>
     <LineIds Name="FB_ContainerDefGrid">
@@ -221,6 +238,7 @@ END_VAR]]></Declaration>
       <LineId Id="7" Count="0" />
       <LineId Id="12" Count="0" />
       <LineId Id="5" Count="0" />
+      <LineId Id="18" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.AddCamPoint">
       <LineId Id="5" Count="0" />
@@ -272,6 +290,12 @@ END_VAR]]></Declaration>
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.StartScript">
       <LineId Id="5" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ContainerDefGrid.StopScript">
+      <LineId Id="5" Count="1" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="7" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

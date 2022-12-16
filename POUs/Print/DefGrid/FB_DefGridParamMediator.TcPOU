@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_DefGridParamMediator" Id="{9642270e-d441-4770-907b-3f0d0f5dc2e9}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_DefGridParamMediator
 VAR_INPUT
@@ -120,7 +120,8 @@ END_IF]]></ST>
       <LineId Id="10" Count="0" />
     </LineIds>
     <LineIds Name="FB_DefGridParamMediator.ReleaseDeformationCT">
-      <LineId Id="5" Count="2" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="6" Count="1" />
     </LineIds>
     <LineIds Name="FB_DefGridParamMediator.sCameraGridSettings.Get">
       <LineId Id="2" Count="0" />

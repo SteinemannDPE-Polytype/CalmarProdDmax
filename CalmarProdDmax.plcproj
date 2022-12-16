@@ -17,7 +17,7 @@
     <Implicit_Jitter_Distribution>{16d81fa0-13c7-4d29-a136-833127f063f5}</Implicit_Jitter_Distribution>
     <LibraryReferences>{ba6a19c6-5744-48f5-a170-b3a0509f6030}</LibraryReferences>
     <Released>false</Released>
-    <ProjectVersion>2.0.1.5</ProjectVersion>
+    <ProjectVersion>2.0.1.6</ProjectVersion>
     <Company>WIFAG-Polytype</Company>
     <Title>CalmarProdDmax</Title>
     <Author>Wifag//Polytype</Author>
@@ -293,6 +293,9 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
+    <Compile Include="POUs\Print\DefGrid\I_DeformationHandler.TcIO">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="POUs\Print\DefGrid\ST_CameraGridSettings.TcDUT">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
@@ -508,7 +511,7 @@ Fribourg/Switzerland (2021)</Description>
   </ItemGroup>
   <ItemGroup>
     <PlaceholderResolution Include="CalmarCommons">
-      <Resolution>CalmarCommons, 1.5.13.1 (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCommons, 1.5.13.3 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompPrint">
       <Resolution>CalmarCompPrint, 2.0.2.23 (WIFAG-Polytype)</Resolution>
@@ -529,6 +532,11 @@ Fribourg/Switzerland (2021)</Description>
     <Content Include="revnotes.md">
       <SubType>Content</SubType>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <SubObject Include="FB_DefGridParamMediator.ReleaseDeformationCT">
+      <ExcludeFromBuild>true</ExcludeFromBuild>
+    </SubObject>
   </ItemGroup>
   <ProjectExtensions>
     <PlcProjectOptions>

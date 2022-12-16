@@ -109,7 +109,7 @@ ELSIF pCt^.pJob = 0 OR NOT _bJobActive THEN
 // - OK attach
 ELSE
   IF eDeformStep < E_DeformationStep.cameraStarted THEN LogWarning('Sub-optimal timing, camera did not yet start'); END_IF
-   LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat4('Attach CT[', TO_STRING(_nMultiAttachedCTs), '] ', pCt^.print(0)));
+  LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat4('Attach CT[', TO_STRING(_nMultiAttachedCTs), '] ', pCt^.print(0)));
   pCt^.sDefGridSettings := _sDeformationGridSettings;   // apply settings on container
   pCt^.StartDeformation();
   Attach := TRUE;
@@ -206,7 +206,8 @@ IF pCT = 0 THEN RETURN; END_IF
 IF _pParamMediator <> 0 THEN
   pCt^.getDeformationStatus(eDStep => estep);
   IF estep >= E_DeformationStep.createdScriptContainer THEN
-    _pParamMediator^.ReleaseDeformationCT(iCT:=iCT);
+    pCt^.StopScript(iCT:=iCT);
+    //_pParamMediator^.ReleaseDeformationCT(iCT:=iCT);
   END_IF
 END_IF
 // find if ct is in attached list
@@ -424,7 +425,9 @@ END_FOR
       <LineId Id="99" Count="0" />
       <LineId Id="94" Count="1" />
       <LineId Id="101" Count="0" />
-      <LineId Id="96" Count="2" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="135" Count="0" />
+      <LineId Id="97" Count="1" />
       <LineId Id="92" Count="0" />
       <LineId Id="91" Count="0" />
       <LineId Id="81" Count="0" />
