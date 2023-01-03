@@ -5,7 +5,7 @@
   QualiVision line camera system
   Provides callback function (rx_callback) for received TcpIp messages.   
 *)
-FUNCTION_BLOCK FB_LineCamera EXTENDS FB_CameraTcpIp IMPLEMENTS I_Simulation
+FUNCTION_BLOCK FB_LineCamera EXTENDS FB_CameraTcpIp IMPLEMENTS I_Sim
 
 VAR_INPUT
   InTempActValueScanner   AT%I* : INT;    (*Actual value temperature camera [0.1 C]*)
@@ -78,6 +78,7 @@ VAR
   _sSimCamPoints            : ARRAY [1..GVL_Camera.cMaxNbMarks] OF ST_DeformationPointAccurate;
   _nSimCamFrameDepth        : UDINT := 2048;   // distance of cam frames (point pitch in x in [px])
   _nSimCamMarksPerFrame     : UDINT := 6;  
+  _bSimCamPointValid        : BOOL := TRUE;
   _aCamSimScriptPath        : T_MaxString;
   fbScriptCamSim            : FB_ScriptLauncher;    // external cam simulation script
   _rfTrigSim                : RF_TRIG;
@@ -164,7 +165,7 @@ SimUpdate();
 *)
 ]]></ST>
     </Implementation>
-    <Folder Name="I_Simulation" Id="{c9ac893d-3196-4f97-b905-933fa9169f85}" />
+    <Folder Name="I_Sim" Id="{c9ac893d-3196-4f97-b905-933fa9169f85}" />
     <Method Name="binarySearch" Id="{ec9741bc-2bbe-4c20-8c7d-1086ec7b5bc3}">
       <Declaration><![CDATA[METHOD PRIVATE binarySearch : DINT
 VAR_INPUT
@@ -200,7 +201,7 @@ END_IF
 binarySearch:= THIS^.binarySearch(nLow, (mid - 1), nKey);]]></ST>
       </Implementation>
     </Method>
-    <Property Name="bSimEnable" Id="{b6a9c427-c4f2-4033-a2ee-2748b17341ab}" FolderPath="I_Simulation\">
+    <Property Name="bSimEnable" Id="{b6a9c427-c4f2-4033-a2ee-2748b17341ab}" FolderPath="I_Sim\">
       <Declaration><![CDATA[PROPERTY bSimEnable : BOOL
 ]]></Declaration>
       <Get Name="Get" Id="{7354722b-5fee-4faf-9fd2-4a1db0d19f3f}">
@@ -348,7 +349,7 @@ IF _bVerbose THEN LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('CamTriggerDon
 SimExit();]]></ST>
       </Implementation>
     </Method>
-    <Method Name="CreateSimCamPoints" Id="{497de848-0bbb-4608-8fd6-c3ae48b03141}" FolderPath="I_Simulation\">
+    <Method Name="CreateSimCamPoints" Id="{497de848-0bbb-4608-8fd6-c3ae48b03141}" FolderPath="I_Sim\">
       <Declaration><![CDATA[(*
   Simulate camera points.
 *)
@@ -515,7 +516,7 @@ nIndex := TO_UDINT(nResultIdx);
 getPointIndex := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="getSimCamPoint" Id="{eeb86648-0655-4273-a437-ce3be5ec2c20}" FolderPath="I_Simulation\">
+    <Method Name="getSimCamPoint" Id="{eeb86648-0655-4273-a437-ce3be5ec2c20}" FolderPath="I_Sim\">
       <Declaration><![CDATA[METHOD INTERNAL getSimCamPoint : ST_DeformationPointAccurate
 VAR_INPUT
   fXMin : LREAL := 0.0;
@@ -543,7 +544,7 @@ sO_CamPoint.dx := (fOffsetMin + (fOffsetMax - fOffsetMin) * fbRand.Num);
 fbRand();
 sO_CamPoint.dy := (fOffsetMin + (fOffsetMax - fOffsetMin) * fbRand.Num);
 
-sO_CamPoint.valid := TRUE;
+sO_CamPoint.valid := _bSimCamPointValid;
 getSimCamPoint := sO_CamPoint;]]></ST>
       </Implementation>
     </Method>
@@ -574,7 +575,7 @@ SUPER^.Init( nPrintUnitResolution:=nPrintUnitResolution
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="InitSimulation" Id="{ff9ac191-b4f4-4074-8866-7bea76fbb955}" FolderPath="I_Simulation\">
+    <Method Name="InitSimulation" Id="{ff9ac191-b4f4-4074-8866-7bea76fbb955}" FolderPath="I_Sim\">
       <Declaration><![CDATA[METHOD InitSimulation : BOOL
 VAR_INPUT
   aCamSimScriptPath : T_MaxString;
@@ -1016,7 +1017,7 @@ END_IF;
 rx_ParsePoint := sCamResult.valid;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="rx_TestMsg" Id="{47666657-5910-41e1-8bbf-f2d5f50d0ccf}" FolderPath="I_Simulation\">
+    <Method Name="rx_TestMsg" Id="{47666657-5910-41e1-8bbf-f2d5f50d0ccf}" FolderPath="I_Sim\">
       <Declaration><![CDATA[(*
   Parse rx test telegrams.
   :return: TRUE if it was a known test telegram, FALSE if other.
@@ -1216,7 +1217,7 @@ ELSE
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="SimEnter" Id="{eab99473-fa8e-4b10-9b13-1e9a04f3b2f2}" FolderPath="I_Simulation\">
+    <Method Name="SimEnter" Id="{eab99473-fa8e-4b10-9b13-1e9a04f3b2f2}" FolderPath="I_Sim\">
       <Declaration><![CDATA[METHOD SimEnter : BOOL
 VAR_INST
   sSimMsg         : CalmarCompTcpIp.ST_TcpMsg;
@@ -1246,7 +1247,7 @@ ELSIF _nSimMode = 2 THEN
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="SimExit" Id="{c590e3ca-ebac-4c15-8972-ce647131e202}" FolderPath="I_Simulation\">
+    <Method Name="SimExit" Id="{c590e3ca-ebac-4c15-8972-ce647131e202}" FolderPath="I_Sim\">
       <Declaration><![CDATA[METHOD SimExit : BOOL
 ]]></Declaration>
       <Implementation>
@@ -1261,7 +1262,7 @@ ELSIF _nSimMode = 2 THEN
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="SimulateCamera" Id="{9e193b63-6811-4202-849e-bbfcb100f725}" FolderPath="I_Simulation\">
+    <Method Name="SimulateCamera" Id="{9e193b63-6811-4202-849e-bbfcb100f725}" FolderPath="I_Sim\">
       <Declaration><![CDATA[(*
   External camera simulation script. 
   Simulates the line camera. Opens a TcpIp server where the the linecam plc client can conect to...
@@ -1329,7 +1330,7 @@ IF _bCamTriggerStarted THEN
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="SimUpdate" Id="{9dd7039c-acb3-4c79-a1d4-b41a588914a2}" FolderPath="I_Simulation\">
+    <Method Name="SimUpdate" Id="{9dd7039c-acb3-4c79-a1d4-b41a588914a2}" FolderPath="I_Sim\">
       <Declaration><![CDATA[METHOD SimUpdate : BOOL
 VAR_INST
   rfTrigCamTrigger : RF_TRIG;
@@ -1414,7 +1415,7 @@ END_FOR
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="StreamSimCamPoint" Id="{20dc3674-5dbd-4a43-8d8a-47b81547dfd3}" FolderPath="I_Simulation\">
+    <Method Name="StreamSimCamPoint" Id="{20dc3674-5dbd-4a43-8d8a-47b81547dfd3}" FolderPath="I_Sim\">
       <Declaration><![CDATA[METHOD PRIVATE StreamSimCamPoint : BOOL
 VAR_INPUT
 END_VAR
@@ -1460,7 +1461,7 @@ END_WHILE
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="tx_test" Id="{810b87b8-cc78-4799-aab9-b76d18a6e434}" FolderPath="I_Simulation\">
+    <Method Name="tx_test" Id="{810b87b8-cc78-4799-aab9-b76d18a6e434}" FolderPath="I_Sim\">
       <Declaration><![CDATA[METHOD PRIVATE tx_test : BOOL
 VAR_INPUT
 END_VAR

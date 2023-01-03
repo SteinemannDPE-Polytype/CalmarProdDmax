@@ -5,7 +5,7 @@
   A start position detection function block dummy.
   A dummy implementation to simulate start triggers at desired positions.
 *)
-FUNCTION_BLOCK FB_StartPositionDummy EXTENDS FB_BasePrint IMPLEMENTS I_StartPosDetect, I_PrintStatusClient, I_Simulation
+FUNCTION_BLOCK FB_StartPositionDummy EXTENDS FB_BasePrint IMPLEMENTS I_StartPosDetect, I_PrintStatusClient, I_Sim
 VAR_INPUT
   bTrigger                    : BOOL;       // manual trigger
   lPosition                   : DINT;       // current position [SubPx]
@@ -37,6 +37,8 @@ VAR
   fCurrentTimeStamp   : LREAL;      // current timestamp
   fSensorTimeStamp    : LREAL;      // sensor timestamp
   fDeltaDistance      : LREAL;      // distance that the substrate moved between the detection and the treatment of the information [m]
+  
+  rfTrig_Sim          : RF_TRIG;
 END_VAR
 
 VAR PERSISTENT
@@ -47,10 +49,14 @@ END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[// checks and fixes
 IF iJobDefinition = 0 THEN RETURN; END_IF
-IF NOT _bSim THEN RETURN; END_IF
 IF fSpeed = 0 THEN RETURN; END_IF
 IF fSheetLength = 0 THEN fSheetLength := 1; END_IF
 IF fResolution = 0 THEN fResolution := 600*32; END_IF
+rfTrig_Sim(CLK:=_bSim);
+IF    rfTrig_Sim.RT THEN SimEnter(); 
+ELSIF rfTrig_Sim.FT THEN SimExit(); END_IF
+
+IF NOT _bSim THEN RETURN; END_IF
 
 // calculations
 fSheetSpeed := fSpeed * 60;  // [m/s] -> [m/min]
@@ -88,9 +94,9 @@ END_IF
 ]]></ST>
     </Implementation>
     <Folder Name="I_PrintStatusClient" Id="{0f059572-48fa-432b-b785-512422fd1dfe}" />
-    <Folder Name="I_Simulation" Id="{7d61ad54-78ed-4583-824e-3b28cb4bdfce}" />
+    <Folder Name="I_Sim" Id="{7d61ad54-78ed-4583-824e-3b28cb4bdfce}" />
     <Folder Name="I_StartPosDetect" Id="{42dcb401-5898-4788-a131-7c35bf2d9f5b}" />
-    <Property Name="bSimEnable" Id="{9ad55ae0-9c7f-42e0-b227-356775d240a7}" FolderPath="I_Simulation\">
+    <Property Name="bSimEnable" Id="{9ad55ae0-9c7f-42e0-b227-356775d240a7}" FolderPath="I_Sim\">
       <Declaration><![CDATA[PROPERTY bSimEnable : BOOL
 ]]></Declaration>
       <Get Name="Get" Id="{9bd88754-a865-4550-9123-bca0f19be00e}">
@@ -198,7 +204,7 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Method Name="SimEnter" Id="{5f3afcf0-45e7-43f3-b7fa-173569233158}" FolderPath="I_Simulation\">
+    <Method Name="SimEnter" Id="{5f3afcf0-45e7-43f3-b7fa-173569233158}" FolderPath="I_Sim\">
       <Declaration><![CDATA[METHOD SimEnter : BOOL
 ]]></Declaration>
       <Implementation>
@@ -211,7 +217,7 @@ nNextSheetPosition := lPosition;
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="SimExit" Id="{48b25644-8173-4c12-af95-8aee36151a4f}" FolderPath="I_Simulation\">
+    <Method Name="SimExit" Id="{48b25644-8173-4c12-af95-8aee36151a4f}" FolderPath="I_Sim\">
       <Declaration><![CDATA[METHOD SimExit : BOOL
 ]]></Declaration>
       <Implementation>
@@ -219,19 +225,15 @@ nNextSheetPosition := lPosition;
 _bSim := FALSE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="SimUpdate" Id="{8e513948-d863-4b3f-8f45-576ad340d53b}" FolderPath="I_Simulation\">
-      <Declaration><![CDATA[METHOD SimUpdate : BOOL
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[; // nothing to do]]></ST>
-      </Implementation>
-    </Method>
     <LineIds Name="FB_StartPositionDummy">
       <LineId Id="709" Count="1" />
-      <LineId Id="797" Count="0" />
       <LineId Id="818" Count="0" />
       <LineId Id="711" Count="0" />
       <LineId Id="783" Count="0" />
+      <LineId Id="869" Count="0" />
+      <LineId Id="871" Count="0" />
+      <LineId Id="874" Count="0" />
+      <LineId Id="872" Count="1" />
       <LineId Id="809" Count="0" />
       <LineId Id="756" Count="0" />
       <LineId Id="716" Count="0" />
@@ -295,9 +297,6 @@ _bSim := FALSE;]]></ST>
     </LineIds>
     <LineIds Name="FB_StartPositionDummy.SimExit">
       <LineId Id="4" Count="1" />
-    </LineIds>
-    <LineIds Name="FB_StartPositionDummy.SimUpdate">
-      <LineId Id="4" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

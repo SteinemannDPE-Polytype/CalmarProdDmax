@@ -116,7 +116,7 @@ VAR_OUTPUT
   bBusy : BOOL;             // deformation is busy
   nErrorId : UDINT;         // error id in case of error
   tExecutionTime : TIME;    // script update execution time?
-  bAbortRequestPy : BOOL;   // abort request by inner py interface
+  bAborted : BOOL;          // deformation is aborted/error
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -127,7 +127,7 @@ bBusy := fBImageDeformation.bBusy;
 bDone := fBImageDeformation.bDone;
 nErrorId := fBImageDeformation.nErrorId;
 tExecutionTime := fBImageDeformation.tExecutionTime;
-bAbortRequestPy := fBImageDeformation.bAbortRequestPy;
+bAborted := fBImageDeformation.bAborted;
 ]]></ST>
       </Implementation>
     </Method>
@@ -259,8 +259,7 @@ END_IF]]></ST>
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.getDeformationStatus">
-      <LineId Id="68" Count="6" />
-      <LineId Id="90" Count="0" />
+      <LineId Id="106" Count="7" />
       <LineId Id="13" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.nAvailableGridCols.Get">

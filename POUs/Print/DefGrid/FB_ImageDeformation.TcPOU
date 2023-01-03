@@ -99,14 +99,14 @@ IF addCamPoint THEN
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Property Name="bAbortRequestPy" Id="{83e61a74-d85b-4c49-8637-546b50faf2c3}">
-      <Declaration><![CDATA[PROPERTY bAbortRequestPy : BOOL]]></Declaration>
+    <Property Name="bAborted" Id="{83e61a74-d85b-4c49-8637-546b50faf2c3}">
+      <Declaration><![CDATA[PROPERTY bAborted : BOOL]]></Declaration>
       <Get Name="Get" Id="{ae456e92-162c-483d-a80a-32c06bf6bacb}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[bAbortRequestPy := bPythonAbort;]]></ST>
+          <ST><![CDATA[bAborted := _bAborted;]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -502,7 +502,7 @@ THEN
   // debug info
   LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=
     F_Concat5(
-        F_Concat2('update at:', TO_STRING(fPosRel_Deform)),
+        F_Concat2('update at: ', TO_STRING(fPosRel_Deform)),
         F_Concat2(' CamP: ', TO_STRING(_nCamPoints)),
         F_Concat2(' maxX: ', TO_STRING(_nCamPoint_MaxRefX)),
         F_Concat2(' GridP: ', TO_STRING(_nGridPoints)),
@@ -591,7 +591,7 @@ _nLocalGridColsGenerated := _nLocalGridColsGenerated + ct;
       <LineId Id="42" Count="2" />
       <LineId Id="13" Count="0" />
     </LineIds>
-    <LineIds Name="FB_ImageDeformation.bAbortRequestPy.Get">
+    <LineIds Name="FB_ImageDeformation.bAborted.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.bBusy.Get">

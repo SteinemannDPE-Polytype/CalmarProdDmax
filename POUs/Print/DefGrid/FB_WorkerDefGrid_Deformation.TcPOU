@@ -28,7 +28,7 @@ VAR
   _bDeformationDone           : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF BOOL;   // status deformation of ct
   _nDeformationErrorId        : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF UDINT;  // status deformation of ct
   _tDeformationExecutionTime  : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF TIME;   // status deformation of ct
-  _bAbortRequestPy            : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF BOOL;   // status deformation of ct
+  _bAborted            : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF BOOL;   // status deformation of ct
 END_VAR
 
 VAR PERSISTENT
@@ -290,23 +290,22 @@ FOR i := nLowerIndexCTList TO nLowerIndexCTList + _nMultiAttachedCTs - 1 DO
                             bDone => _bDeformationDone[i],
                             nErrorId => _nDeformationErrorId[i], 
                             tExecutionTime => _tDeformationExecutionTime[i],
-                            bAbortRequestPy => _bAbortRequestPy[i]);
+                            bAborted => _bAborted[i]);
   _nDeformationProcPoints[i] := pCt^.nAvailableGridPoints;
   _nDeformationProcCols[i]   := pCt^.nAvailableGridCols;
      
-  //Release container when all points have been processed or error
+  // Release container when all points have been processed or error
   IF _bDeformationDone[i] OR _bDeformationError[i] THEN
     // tag CT with error if deformation had an error
     IF _bDeformationError[i] THEN 
-      pCt^.setError(ErrDef:=EC_DefGrid.ecDefGrid_DefGridError, Src:=_pEcSrc^); 
-    END_IF
-    IF _bAbortRequestPy[i] THEN
-      pCt^.AbortDeformation(sReason:='Abort requested by Py', Src:=_pEcSrc^);
+      IF NOT _bAborted[i] THEN
+        pCt^.AbortDeformation(sReason:=F_Concat2('WorkerDeformation: ',EC_DefGrid.ecDefGrid_DefGridError.Desc), Src:=_pEcSrc^);
+      //not needed ELSE
+      //  pCt^.setError(ErrDef:=EC_DefGrid.ecDefGrid_DefGridError, Src:=_pEcSrc^);
+      END_IF 
     END_IF
     LogLvl(Lvl:=E_LogSeverity.Detail, Msg:=F_Concat4('Done with: CamP=',  TO_STRING(pCT^.nRegisteredCameraPoints), ' GridP=', TO_STRING(pCt^.nAvailableGridPoints)));
     Release(pCt^);
-  ELSIF _bAbortRequestPy[i] THEN
-    pCt^.AbortDeformation(sReason:='Abort requested by Py', Src:=_pEcSrc^);
 	END_IF
     // release CT (manually and security)
   IF _bForceRelease THEN
@@ -471,12 +470,12 @@ END_FOR
       <LineId Id="244" Count="1" />
       <LineId Id="298" Count="0" />
       <LineId Id="247" Count="1" />
-      <LineId Id="273" Count="1" />
-      <LineId Id="307" Count="2" />
+      <LineId Id="273" Count="0" />
+      <LineId Id="318" Count="2" />
+      <LineId Id="315" Count="0" />
+      <LineId Id="309" Count="0" />
       <LineId Id="291" Count="0" />
-      <LineId Id="250" Count="0" />
-      <LineId Id="305" Count="1" />
-      <LineId Id="251" Count="0" />
+      <LineId Id="250" Count="1" />
       <LineId Id="276" Count="1" />
       <LineId Id="284" Count="0" />
       <LineId Id="279" Count="1" />

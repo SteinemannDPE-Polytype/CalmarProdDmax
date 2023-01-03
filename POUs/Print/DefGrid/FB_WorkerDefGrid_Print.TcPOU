@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_WorkerDefGrid_Print" Id="{a3c0fca9-0a63-49f3-a9fd-25e7fe09223b}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Print EXTENDS FB_WorkerDefGrid
 VAR_INPUT
@@ -641,7 +641,7 @@ IF _pAttachedCt <> 0 AND bEnable THEN // Work only with attached container
   bDeformErr := _pAttachedCt^.getDeformationStatus(eDStep=>nDeformStep);
   IF NOT bDeformErr AND nDeformStep >= E_DeformationStep.gridStarted AND NOT _bForceDefGridOff THEN 
     IF NOT gridUpdate(bEnableDeformation:=TRUE) THEN
-      _pAttachedCt^.AbortDeformation(sReason:='deformation point update failed', Src:=_pEcSrc^);
+      _pAttachedCt^.AbortDeformation(sReason:='WorkerPrint: deformation point update failed', Src:=_pEcSrc^);
     END_IF
   ELSE
     // not started or error already --> erase deformation points

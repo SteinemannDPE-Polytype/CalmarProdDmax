@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_PrintPositionDmax" Id="{726347b1-24f3-41dd-8d38-18de7bf18c3b}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK FB_PrintPositionDmax EXTENDS FB_BasePrint IMPLEMENTS I_Simulation
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_PrintPositionDmax EXTENDS FB_BasePrint IMPLEMENTS I_Sim
 VAR_INPUT
   IlEncoderPulse      AT%I* : UDINT;                // Encoder counter intput
   IbEncoderWcState    AT%I* : BOOL;                 // Encoder EL5101 WcState
@@ -39,7 +39,6 @@ VAR
   rTrigMoving               : R_TRIG;
   // simulation
   _bSim                     : BOOL;
-  rfTrig_Sim                : RF_TRIG;
     
   // test functions
   (*bEnTestVsOld              : BOOL;    
@@ -48,12 +47,7 @@ VAR
   *)
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[rfTrig_Sim(CLK:=_bSim);
-IF rfTrig_Sim.RT THEN SimEnter(); END_IF
-IF rfTrig_Sim.FT THEN SimExit(); END_IF
-IF _bSim THEN SimUpdate(); END_IF
-
-// set internal used resolution
+      <ST><![CDATA[// set internal used resolution
 fEncoderReso := _fEncoderResolution;  
 
 // compensate resolution (if enabled)
@@ -73,8 +67,8 @@ bMoving := ABS(fbPositionMaster.fMasterSpeed) >= fC_MinSpeed;
 rTrigMoving(CLK:=bMoving);   // create started trigger output
 bStarted := rTrigMoving.Q OR fbPositionMaster.bSyncReq;]]></ST>
     </Implementation>
-    <Folder Name="I_Simulation" Id="{bd8ec4af-70d9-4e9b-8cdc-91b3cc2e54db}" />
-    <Property Name="bSimEnable" Id="{30fe551a-b50f-4bf8-9016-a91da26e946e}" FolderPath="I_Simulation\">
+    <Folder Name="I_Sim" Id="{bd8ec4af-70d9-4e9b-8cdc-91b3cc2e54db}" />
+    <Property Name="bSimEnable" Id="{30fe551a-b50f-4bf8-9016-a91da26e946e}" FolderPath="I_Sim\">
       <Declaration><![CDATA[PROPERTY bSimEnable : BOOL
 ]]></Declaration>
       <Get Name="Get" Id="{ba61aeca-91e8-4a46-b50a-3f72adba58be}">
@@ -90,7 +84,8 @@ END_VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[_bSim := bSimEnable;]]></ST>
+          <ST><![CDATA[_bSim := bSimEnable;
+fbPositionMaster.bSim := _bSim;]]></ST>
         </Implementation>
       </Set>
     </Property>
@@ -156,33 +151,7 @@ END_VAR
 fbPositionMaster.reset();]]></ST>
       </Implementation>
     </Method>
-    <Method Name="SimEnter" Id="{18dac86d-19ba-4d47-91ad-308f9520a467}" FolderPath="I_Simulation\">
-      <Declaration><![CDATA[METHOD SimEnter : BOOL
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[_bSim := TRUE;
-fbPositionMaster.bSim := TRUE;]]></ST>
-      </Implementation>
-    </Method>
-    <Method Name="SimExit" Id="{82b36d9c-34f8-4e76-b748-6f9668c98474}" FolderPath="I_Simulation\">
-      <Declaration><![CDATA[METHOD SimExit : BOOL
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[_bSim := FALSE;
-fbPositionMaster.bSim := FALSE;]]></ST>
-      </Implementation>
-    </Method>
-    <Method Name="SimUpdate" Id="{fde6f37f-ac02-4cf3-9a0e-3488a85e6ee5}" FolderPath="I_Simulation\">
-      <Declaration><![CDATA[METHOD SimUpdate : BOOL]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[//test_OldPhMaster(bEn:=bEnTestVsOld);]]></ST>
-      </Implementation>
-    </Method>
     <LineIds Name="FB_PrintPositionDmax">
-      <LineId Id="101" Count="1" />
-      <LineId Id="100" Count="0" />
-      <LineId Id="99" Count="0" />
-      <LineId Id="62" Count="0" />
       <LineId Id="58" Count="0" />
       <LineId Id="45" Count="0" />
       <LineId Id="61" Count="0" />
@@ -206,6 +175,7 @@ fbPositionMaster.bSim := FALSE;]]></ST>
     </LineIds>
     <LineIds Name="FB_PrintPositionDmax.bSimEnable.Set">
       <LineId Id="2" Count="0" />
+      <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintPositionDmax.getPosition">
       <LineId Id="5" Count="0" />
@@ -229,15 +199,6 @@ fbPositionMaster.bSim := FALSE;]]></ST>
     </LineIds>
     <LineIds Name="FB_PrintPositionDmax.reset">
       <LineId Id="5" Count="1" />
-    </LineIds>
-    <LineIds Name="FB_PrintPositionDmax.SimEnter">
-      <LineId Id="4" Count="1" />
-    </LineIds>
-    <LineIds Name="FB_PrintPositionDmax.SimExit">
-      <LineId Id="4" Count="1" />
-    </LineIds>
-    <LineIds Name="FB_PrintPositionDmax.SimUpdate">
-      <LineId Id="4" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

@@ -51,7 +51,7 @@ fbFifoGridPoints();
 IF bPythonBusy THEN // Pending job
   IF _fbTimeout.Q THEN // Timeout occurs
     _tExecutionTime := _fbTimeout.ET;
-    bPythonAbort := TRUE;
+    bPythonAbort := TRUE;   // abort (pending operation) because id did not repond within timeout
     bPythonError := TRUE;   // set internal error
     nErrId := 1;
     bPythonBusy := FALSE;
@@ -61,16 +61,14 @@ IF bPythonBusy THEN // Pending job
     bPythonBusy := FALSE;
     IF bPythonError THEN
       nErrId := 2;
-      LogError(F_Concat4('Error during bPythonBusy, ExecTime:', TO_STRING(_tExecutionTime), ' Err:', TO_STRING(nErrId)));
+      LogError(F_Concat4('Error/abort requested by py, ExecTime:', TO_STRING(_tExecutionTime), ' Err:', TO_STRING(nErrId)));
     END_IF
   ELSIF _bAborted THEN      // abort if abort request set on ct
-    bPythonAbort := TRUE;
     bPythonBusy := FALSE;
-     bPythonError := TRUE;   // set internal error
+    bPythonError := TRUE;   // set internal error
     nErrId := 3;
   END_IF
 ELSIF bPythonAbort THEN
-  //bPythonAbort := FALSE;
   bPythonStartUpdate := FALSE;
 ELSE // Update/Job done  
   bPythonAbort := FALSE;
@@ -164,7 +162,11 @@ END_IF]]></ST>
       <LineId Id="53" Count="0" />
     </LineIds>
     <LineIds Name="FB_PythonDeformation.ExecPy">
-      <LineId Id="59" Count="34" />
+      <LineId Id="59" Count="7" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="68" Count="11" />
+      <LineId Id="81" Count="5" />
+      <LineId Id="88" Count="5" />
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_PythonDeformation.PopDeformationPoint">
