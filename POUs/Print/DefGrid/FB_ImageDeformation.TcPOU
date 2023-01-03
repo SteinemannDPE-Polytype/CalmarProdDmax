@@ -32,8 +32,7 @@ VAR
   //_fLastDeformPos   : LREAL;   // last executed position/grid of Update()
   _nUpdatedGridCol  : UDINT;   // already updated grid column
   _nUpdatedFeature  : UDINT;
-  // others 
-  _bAborted         : BOOL;
+  // others
   _nErrorId         : UDINT := 0;
   _sTempPoint       : ST_DeformationPointAccurate;
 END_VAR
