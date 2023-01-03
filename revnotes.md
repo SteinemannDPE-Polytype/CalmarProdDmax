@@ -12,7 +12,14 @@ Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 ---
 ### changes `2.0.1.6` BRM
 * FIX: attempt to fix blocked worker in deformation script after invalid cam points
-		improve abort handling and py ct release
+		- improve abort handling and py ct release
+    - deformation abort handling
+    - remove old ReleaseDeformationCT() method from mediator
+    - reset data in FB_PythonDeformation
+* FIX: layers in _VISU_PH_Grid 
+* FIX: duplicated variable _bAborted
+
+CHG: use & adapt to Commons 1.5.14
 
 ### changes `2.0.1.5` BRM
 * FIX: missing reset of some `FB_PythonDeformation` members
