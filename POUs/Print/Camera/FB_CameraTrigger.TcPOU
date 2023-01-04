@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
-  <POU Name="FB_CameraTrigger" Id="{ec098ee4-1e1e-4fe3-8952-b23d7a573fda}" SpecialFunc="None">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_CameraTrigger" Id="{987d1f55-e3de-49d8-abe4-fb7755333d45}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_CameraTrigger EXTENDS FB_Commons IMPLEMENTS I_CameraTrigger, I_StartPosDetect
 (*************************************************************************************************)
 (*  FILENAME:    FB_CameraTrigger                                                                *)
@@ -381,7 +381,7 @@ ELSE
 END_IF;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="Init" Id="{46eda74d-1233-4e75-9dff-c1e3efdde8f4}">
+    <Method Name="Init" Id="{5021cade-20d1-421a-8235-b1f6fbddf2aa}">
       <Declaration><![CDATA[METHOD Init
 VAR_INPUT
   nResolution                   : INT := 1;        (*Printhead Resolution [e.g. 600] x Subpixel Resolution [e.g. 32]*)
@@ -402,7 +402,7 @@ _bUsePositionTrigger :=bUsePositionTrigger;
 bInitOk :=TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="LogTsDiff" Id="{20caa5c8-bb11-4ee5-8484-f26bd54976be}">
+    <Method Name="LogTsDiff" Id="{23f242a9-af5a-4609-8c45-40b581c1cea1}">
       <Declaration><![CDATA[(*
   Log timestamp difference (if verbose active).
   t1-t2 
@@ -426,13 +426,13 @@ END_VAR
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Property Name="nStartPositionX0" Id="{98ef4b86-2881-4bc0-8f2f-c4878bc43198}">
+    <Property Name="nStartPositionX0" Id="{ed53d9a0-9e76-4db0-88bd-65601e507a76}">
       <Declaration><![CDATA[(*
   Detected start position X0 (absolute) in [SubPx].
 *)
 PROPERTY nStartPositionX0 : DINT
 ]]></Declaration>
-      <Get Name="Get" Id="{00a31ccd-d500-40c8-851b-114f73c27335}">
+      <Get Name="Get" Id="{8e46bd40-9eca-41f9-820c-ee7c3f112776}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>

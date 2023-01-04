@@ -10,6 +10,9 @@
 Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 
 ---
+### changes `2.0.1.7` BRM
+* FIX: compiler warnings with `I_Sim`
+
 ### changes `2.0.1.6` BRM
 * FIX: attempt to fix blocked worker in deformation script after invalid cam points
 		- improve abort handling and py ct release

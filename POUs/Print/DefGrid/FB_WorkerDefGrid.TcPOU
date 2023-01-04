@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
-  <POU Name="FB_WorkerDefGrid" Id="{3650ee95-10b0-4788-8cb9-9677368dce0d}" SpecialFunc="None">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_WorkerDefGrid" Id="{fa65b8cf-72e5-4aed-8e55-807d5f086193}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK ABSTRACT FB_WorkerDefGrid EXTENDS FB_Worker
 VAR_OUTPUT
   bError        : BOOL;       // an error is active
@@ -43,7 +43,7 @@ END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[]]></ST>
     </Implementation>
-    <Method Name="Abort" Id="{ce16643b-cda2-4181-95e0-0beb74e4ff08}">
+    <Method Name="Abort" Id="{372b6ab2-4799-4e3f-906e-56c01b939bfd}">
       <Declaration><![CDATA[(*
   Generic abort implementation of DefGrid CT.
 *)
@@ -69,7 +69,7 @@ END_VAR]]></Declaration>
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="Attach" Id="{ff11ad4e-4599-4f27-9b16-1afbb01604bb}">
+    <Method Name="Attach" Id="{3d3d05e2-0284-4b9f-a8fb-d87a12d485e5}">
       <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
 VAR_INPUT
   iCT       : I_CT;            (*container at triggered event position*)
@@ -106,7 +106,7 @@ ELSE      // unspecified (error)case just log it
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Property Name="bAttached" Id="{d663ef8d-4de3-4339-bb43-068fdf551e47}">
+    <Property Name="bAttached" Id="{75e8421f-4c1b-4f28-b8aa-a6ce0761521a}">
       <Declaration><![CDATA[{attribute 'monitoring':='call'}
 PROPERTY bAttached : BOOL]]></Declaration>
       <Get Name="Get" Id="{02ef1e0c-6e3d-4b78-a33e-9b7da2b704a6}">
@@ -120,7 +120,7 @@ END_IF]]></ST>
         </Implementation>
       </Get>
     </Property>
-    <Property Name="fPosition" Id="{72aed42f-b4ca-40a5-97ba-45c8273c2d69}">
+    <Property Name="fPosition" Id="{1e1858c5-7c38-4f1d-8953-59ade84272e5}">
       <Declaration><![CDATA[{attribute 'monitoring':='call'}
 PROPERTY fPosition : LREAL]]></Declaration>
       <Get Name="Get" Id="{1b62f39a-72fb-46df-8d2d-82b64e6e95db}">
@@ -141,7 +141,7 @@ setupPosition();]]></ST>
         </Implementation>
       </Set>
     </Property>
-    <Method Name="getCtInst" Id="{5f5eb595-b978-4be3-8880-cabf095f9d48}">
+    <Method Name="getCtInst" Id="{859c17a0-d59f-42bb-924f-4003cf4313b8}">
       <Declaration><![CDATA[(*
   Get specific container from interface.
   Returns specific container in return value and output parameter.
@@ -167,7 +167,7 @@ ELSE
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="Init" Id="{d856b57f-d00a-4db7-9b79-38cb4ce2b8d2}">
+    <Method Name="Init" Id="{8b3cf4fd-db3c-4644-9ed0-50b44d1f619f}">
       <Declaration><![CDATA[METHOD Init
 VAR_INPUT
   pCtManager : POINTER TO FB_CTManagerDefGrid;   // CTManager
@@ -211,7 +211,7 @@ IF _pEcSrc = 0 THEN LogError('could not register error source'); END_IF
 bInitialized := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStart" Id="{c627219d-988f-43f2-9b2d-62671e653543}">
+    <Method Name="mJobStart" Id="{a275727e-6111-47ec-baeb-52c177609543}">
       <Declaration><![CDATA[METHOD  ABSTRACT mJobStart
 VAR_INPUT
 	sJobDef	: CalmarCompPrint.I_JobDefinition;
@@ -221,7 +221,7 @@ END_VAR
         <ST><![CDATA[]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStop" Id="{d1727830-648d-4092-ac5b-0913487c823b}">
+    <Method Name="mJobStop" Id="{85d29eee-4380-48a1-859f-3d95e3fcf80d}">
       <Declaration><![CDATA[METHOD ABSTRACT mJobStop
 VAR_INPUT
 	sStatus	: CalmarCompPrint.I_JobStatus;
@@ -231,7 +231,7 @@ END_VAR
         <ST><![CDATA[]]></ST>
       </Implementation>
     </Method>
-    <Method Name="Release" Id="{93d9817b-e0fc-453a-98a3-5fa1fab9a696}">
+    <Method Name="Release" Id="{8ba7287a-9d1b-46f2-8490-fbe592caf837}">
       <Declaration><![CDATA[(*
   Release CT from Worker.
   :return: TRUE if CT was released, FALSE if no CT was registered 
@@ -249,7 +249,7 @@ END_IF
 _pAttachedCt:=0;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="setName" Id="{f4399b02-f69d-4f1d-8a54-2e3c9b492253}">
+    <Method Name="setName" Id="{a65498a1-5b5c-473a-a3d3-acd291ab923c}">
       <Declaration><![CDATA[METHOD PRIVATE setName : BOOL
 VAR_INPUT
   sName : STRING;
@@ -275,7 +275,7 @@ END_IF
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="setupPosition" Id="{6e3bb9fc-2b58-4b26-9d9f-a6a1876a11c6}">
+    <Method Name="setupPosition" Id="{29ba65eb-e29a-48f2-a14f-00bed62f6945}">
       <Declaration><![CDATA[METHOD PROTECTED setupPosition
 ]]></Declaration>
       <Implementation>
@@ -283,7 +283,7 @@ END_IF
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="work" Id="{39f716aa-387e-47c7-bab0-59397ba81c1f}">
+    <Method Name="work" Id="{3a4afe97-202d-4788-9f92-6d78f83fd27f}">
       <Declaration><![CDATA[METHOD  work]]></Declaration>
       <Implementation>
         <ST><![CDATA[//Work only with attached container

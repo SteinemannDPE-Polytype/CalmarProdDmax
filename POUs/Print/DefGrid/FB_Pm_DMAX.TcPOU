@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
-  <POU Name="FB_Pm_DMAX" Id="{ded3af19-1c0f-43ae-bbea-9b910b5389fa}" SpecialFunc="None">
+  <POU Name="FB_Pm_DMAX" Id="{bb1b9ded-b502-4468-a5cd-77b9faddac57}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   Managing a production on a DigiRound machine.
 *)
@@ -44,7 +44,7 @@ END_VAR]]></Declaration>
 rfTrig_PmActive(CLK:=bPmActive);]]></ST>
     </Implementation>
     <Folder Name="I_PrintStatusClient" Id="{01602ff5-4961-4770-a9e0-df788cccf137}" />
-    <Method Name="abortJob" Id="{e7b0b8e7-bea6-476d-a854-929acdccc5fe}">
+    <Method Name="abortJob" Id="{a4c167dc-2e1c-4cb0-a924-fdde935ac4c1}">
       <Declaration><![CDATA[(*
   Job was stopped. 
   :return: TRUE if some elements were aborted in machine.
@@ -61,9 +61,9 @@ END_VAR
 ]]></ST>
       </Implementation>
     </Method>
-    <Property Name="bReady" Id="{e0a03d95-7c5f-4756-a4c7-db6451047a28}">
+    <Property Name="bReady" Id="{dcb711e8-cdcf-4c79-a8a4-763acdfbddae}">
       <Declaration><![CDATA[PROPERTY bReady : BOOL]]></Declaration>
-      <Get Name="Get" Id="{1a307eee-0ea6-4ec5-9039-0ef8b0e6ef3d}">
+      <Get Name="Get" Id="{2fc1a06b-46e5-4f81-97b7-74d963af6889}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -72,9 +72,9 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Property Name="bStarted" Id="{7c0fae33-4bef-4ecf-8dec-a79b7a926ba8}">
+    <Property Name="bStarted" Id="{2f7cd73e-0b19-4d2a-86d9-8606ab7d4317}">
       <Declaration><![CDATA[PROPERTY bStarted : BOOL]]></Declaration>
-      <Get Name="Get" Id="{c0c7f381-648e-40d1-9b20-25a61a936d71}">
+      <Get Name="Get" Id="{b5077a03-1bdd-4036-a284-83025a83fe35}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -83,9 +83,9 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Property Name="bStopped" Id="{5264bbe5-2277-4b4d-8240-49acf02f844c}">
+    <Property Name="bStopped" Id="{1546dc04-e456-4125-9dbb-574cec1e9dea}">
       <Declaration><![CDATA[PROPERTY bStopped : BOOL]]></Declaration>
-      <Get Name="Get" Id="{f9659215-4887-4f54-a8d2-5ced01c25589}">
+      <Get Name="Get" Id="{2dbadb30-6efc-4edd-a3a0-df5eadbe4eb0}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -94,7 +94,7 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Method Name="CT_Create" Id="{cfae3726-f5fa-4e02-87b3-782df27cdfaa}">
+    <Method Name="CT_Create" Id="{76995193-cd48-4f19-a717-981d29070032}">
       <Declaration><![CDATA[(*
 Create/Build a new container (CT) with next page to be printed.
 *)
@@ -142,7 +142,7 @@ LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=CONCAT('create CT: ', sCT.print(0)));
 CT_Create := _created;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="CT_Finish" Id="{48660110-43aa-4a28-ada8-4734591eb4a3}">
+    <Method Name="CT_Finish" Id="{439e3f5b-f593-4c3c-9f1c-ba892333a424}">
       <Declaration><![CDATA[METHOD CT_Finish : BOOL
 VAR_INPUT
   sCT            : I_CT;               // container to produce
@@ -186,7 +186,7 @@ END_IF
 CT_Finish := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="CT_Produce" Id="{79170766-8f0d-492b-9bd5-31d495803a1a}">
+    <Method Name="CT_Produce" Id="{24513523-8391-429c-a6fd-25f8bafd10cf}">
       <Declaration><![CDATA[(*
   Finalize/Produce a CT. Now we shouldhave all necessary information for configuring the CT.
 *)
@@ -225,9 +225,9 @@ IF bPresent THEN LogLvl(Lvl:=E_LogSeverity.Detail,  Msg:=CONCAT('produceCT: ', s
 CT_Produce := _produced; ]]></ST>
       </Implementation>
     </Method>
-    <Property Name="defaultPrData" Id="{d4ff3b2c-d300-4dce-9194-b58268f6b2c8}">
+    <Property Name="defaultPrData" Id="{66e69f37-58aa-443d-a83c-468610a313a1}">
       <Declaration><![CDATA[PROPERTY defaultPrData : ST_PRINT_SETTING]]></Declaration>
-      <Get Name="Get" Id="{2b1bfc3b-d8a9-4f2e-90bd-d918b2718f36}">
+      <Get Name="Get" Id="{22d65e6c-cecd-40fd-8869-faa5495f55dc}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -236,7 +236,7 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Method Name="dynAddPage" Id="{de2d8972-ac34-45f3-bf1d-8e972539df15}">
+    <Method Name="dynAddPage" Id="{e444ac9f-bf3d-4f42-8d97-959b6c223ef3}">
       <Declaration><![CDATA[METHOD PRIVATE dynAddPage : BOOL
 VAR_INPUT
   lType     : EN_PrintPageType; 
@@ -252,7 +252,7 @@ END_IF
 _pPU^.addPage(lMaintPageNr:=lPageNr);]]></ST>
       </Implementation>
     </Method>
-    <Method Name="getNext" Id="{c716673d-cf8a-48fe-999c-d5d79147e5fe}">
+    <Method Name="getNext" Id="{44173359-3a43-4ee9-bef2-8fd31fa38a72}">
       <Declaration><![CDATA[(*
   get next page to be printed.
   :return:    TRUE if success.
@@ -283,7 +283,7 @@ END_IF
 getNext := NOT bErr;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="init" Id="{4fd111ef-fb9a-40a3-94de-9cee9fd4eb05}">
+    <Method Name="init" Id="{3c4f7c39-934a-44c4-ba8e-f515cee7c527}">
       <Declaration><![CDATA[METHOD init : BOOL
 VAR_INPUT
   pPU     : POINTER TO FB_PU;
@@ -321,7 +321,7 @@ bInitialized := TRUE;
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="JobFinished" Id="{44e5f435-dba6-4bd8-af19-495cef403d0e}">
+    <Method Name="JobFinished" Id="{ddf3f1a4-d0df-4de5-a97c-a6501b23d537}">
       <Declaration><![CDATA[METHOD JobFinished : BOOL
 VAR_INPUT
   aSeparatorId   : STRING;
@@ -335,9 +335,9 @@ END_VAR]]></Declaration>
 // NOTE: nothing implemented for now]]></ST>
       </Implementation>
     </Method>
-    <Property Name="lastCreated" Id="{a3ab9eb1-04ba-45d9-a64e-2637ea8a4415}">
+    <Property Name="lastCreated" Id="{de21e749-2b08-434e-b013-35119cd3af60}">
       <Declaration><![CDATA[PROPERTY lastCreated : I_CT]]></Declaration>
-      <Get Name="Get" Id="{5aaf8360-3116-4008-9715-6093f500b8c9}">
+      <Get Name="Get" Id="{d88fe05a-a383-4160-8c18-622bb5003c1a}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -353,7 +353,7 @@ END_VAR
         <ST><![CDATA[]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStart" Id="{c39754c8-8852-498e-914a-4153cd085596}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mJobStart" Id="{0859a55b-cc7d-43cd-856c-514e909af7ab}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mJobStart
 VAR_INPUT
 	sJobDef	: I_JobDefinition;
@@ -392,7 +392,7 @@ bPmActive := TRUE;
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStop" Id="{4e66d9c9-cbc8-4029-b2bc-ecfd2707f3e7}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mJobStop" Id="{cbd47bef-8991-4554-a12c-827c7db73263}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mJobStop
 VAR_INPUT
 	sStatus	: I_JobStatus;
@@ -419,7 +419,7 @@ bPmActive := FALSE;
 lastCreatedCT := 0;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mProduced" Id="{6ef0a06c-a684-4fe5-a32d-bb8010ec7051}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mProduced" Id="{654fc63e-2f43-4d65-9717-3b144910bc08}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mProduced
 VAR_INPUT
 	(* current progress*)

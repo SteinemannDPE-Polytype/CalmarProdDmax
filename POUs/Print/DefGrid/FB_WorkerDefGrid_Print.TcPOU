@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
-  <POU Name="FB_WorkerDefGrid_Print" Id="{a3c0fca9-0a63-49f3-a9fd-25e7fe09223b}" SpecialFunc="None">
+  <POU Name="FB_WorkerDefGrid_Print" Id="{7b2d1a1d-64e3-479c-a293-e173e2328e04}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Print EXTENDS FB_WorkerDefGrid
 VAR_INPUT
   nEncoderPos           : DINT;   // Absolute virtual encoder
@@ -113,7 +113,7 @@ END_IF
 ]]></ST>
     </Implementation>
     <Folder Name="I_PrintStatusClient" Id="{adecc86c-91cf-457b-8558-66ae01f4fccc}" />
-    <Property Name="aPaState" Id="{eb46f66a-52cc-4aca-b9e2-7eab452224bc}">
+    <Property Name="aPaState" Id="{4ee5e4ab-ad1e-4a20-9a2a-3302d2de2bff}">
       <Declaration><![CDATA[PROPERTY aPaState : STRING]]></Declaration>
       <Get Name="Get" Id="{bd1c86fe-132b-41d1-bebb-2a87f1fec851}">
         <Declaration><![CDATA[VAR
@@ -124,7 +124,7 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Method Name="Attach" Id="{0707666f-371d-4dbd-816b-7dc7310c7f8c}">
+    <Method Name="Attach" Id="{93c3a60c-5486-4c92-8f5b-48538afc9bd9}">
       <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
 VAR_INPUT
   iCT              : I_CT;                         (*container at triggered event position*)
@@ -461,7 +461,7 @@ END_FOR
 _bMsgInitialized := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="InitWorkerPrint" Id="{9e11bfb6-2c3b-4cf3-ab44-81a61cbfe170}">
+    <Method Name="InitWorkerPrint" Id="{09c1ab3a-a328-4804-a71e-c6f8315f1e49}">
       <Declaration><![CDATA[METHOD InitWorkerPrint : BOOL
 VAR_INPUT
   pAdsIfCam         : POINTER TO ST_ADS_CAMERA;   // provide camera access
@@ -489,7 +489,7 @@ fbFineAlignement.init(pAdsCam := _pAdsCam, fPxReso := _fPrintResolution, fPuWidt
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStart" Id="{e6930aa0-f0d8-458e-9de3-18f675c41155}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mJobStart" Id="{56dfa561-f132-48af-a259-8c693f9d827e}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD   mJobStart
 VAR_INPUT
 	sJobDef	: CalmarCompPrint.I_JobDefinition;
@@ -515,7 +515,7 @@ _pAdsCam^.sI_CorrectionPointIndication[4].posy := LREAL_TO_REAL((((_fPrintUnitWi
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStop" Id="{8177ad7c-6de2-4f33-9116-3de9fb737ab6}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mJobStop" Id="{e488e711-5820-4e39-a0b7-03bc468ac4ab}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD  mJobStop
 VAR_INPUT
 	sStatus	: CalmarCompPrint.I_JobStatus;
@@ -526,7 +526,7 @@ END_VAR
 _bJobActive := FALSE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="registerPc" Id="{3c39032f-7920-436e-9283-1f58258455df}">
+    <Method Name="registerPc" Id="{870c4b78-bd78-4de3-ada5-5d2812082b6d}">
       <Declaration><![CDATA[METHOD registerPc : BOOL
 VAR_INPUT
   iNewPC : I_PC;
@@ -536,7 +536,7 @@ END_VAR
         <ST><![CDATA[registerPc := fB_PcAdapter.registerPc(iNewPC := iNewPC);]]></ST>
       </Implementation>
     </Method>
-    <Method Name="registerPh" Id="{a62d8de9-9fbf-4ff4-bfce-d2ac72d680d3}">
+    <Method Name="registerPh" Id="{a4285b76-7b9a-4429-b790-f1c3b99b6d28}">
       <Declaration><![CDATA[METHOD registerPh : BOOL
 VAR_INPUT
     iPH : I_PH;
@@ -551,7 +551,7 @@ END_IF
 ]]></ST>
       </Implementation>
     </Method>
-    <Property Name="sPcFlags" Id="{fa3ef9be-bfc1-497c-bb3e-5711955c8dd7}">
+    <Property Name="sPcFlags" Id="{ad374983-a3f8-43a6-857a-f89ed7d0d4d6}">
       <Declaration><![CDATA[PROPERTY sPcFlags : CalmarCompPrint.ST_PC_FLAGS]]></Declaration>
       <Get Name="Get" Id="{31b278ad-9123-44bc-826c-af82c44e3e58}">
         <Declaration><![CDATA[VAR
@@ -563,7 +563,7 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Property Name="sPcState" Id="{f1d03b4e-3371-40d0-92fe-ec59b44e18d0}">
+    <Property Name="sPcState" Id="{dbc67959-8343-47eb-9625-5644a84b23f4}">
       <Declaration><![CDATA[PROPERTY sPcState :  CalmarCompPrint.ST_PG_STATUS]]></Declaration>
       <Get Name="Get" Id="{1766068c-03e2-40da-beb8-caa32f985382}">
         <Declaration><![CDATA[VAR
@@ -591,7 +591,7 @@ sPcState.sJobStatus       := sJobStatus;   // obsolete ???
         </Implementation>
       </Get>
     </Property>
-    <Method Name="work" Id="{cfb4a899-7ea9-4389-855e-b56f1970d69a}">
+    <Method Name="work" Id="{3c6919a9-5a09-45d0-b661-c47729a4a933}">
       <Declaration><![CDATA[METHOD  work
 VAR
   bDeformErr : BOOL;

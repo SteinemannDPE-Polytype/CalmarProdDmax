@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
-  <POU Name="FB_StartPositionDummy" Id="{8c44436b-fdf6-4982-bb45-487571d5b646}" SpecialFunc="None">
+  <POU Name="FB_StartPositionDummy" Id="{b39c833c-a36b-4965-8c58-481e806cc70e}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   A start position detection function block dummy.
   A dummy implementation to simulate start triggers at desired positions.
@@ -93,13 +93,13 @@ END_IF
 
 ]]></ST>
     </Implementation>
-    <Folder Name="I_PrintStatusClient" Id="{0f059572-48fa-432b-b785-512422fd1dfe}" />
-    <Folder Name="I_Sim" Id="{7d61ad54-78ed-4583-824e-3b28cb4bdfce}" />
-    <Folder Name="I_StartPosDetect" Id="{42dcb401-5898-4788-a131-7c35bf2d9f5b}" />
-    <Property Name="bSimEnable" Id="{9ad55ae0-9c7f-42e0-b227-356775d240a7}" FolderPath="I_Sim\">
+    <Folder Name="I_PrintStatusClient" Id="{9d33710e-c8cc-442c-973b-410bf478ee70}" />
+    <Folder Name="I_Sim" Id="{e8522a98-ea61-4df4-8bb5-1d1a4439111e}" />
+    <Folder Name="I_StartPosDetect" Id="{8f1a9dd0-62c6-4436-a157-3d6089c0dda4}" />
+    <Property Name="bSimEnable" Id="{4b2735a3-7798-4653-836c-7dbfb5f6eab4}" FolderPath="I_Sim\">
       <Declaration><![CDATA[PROPERTY bSimEnable : BOOL
 ]]></Declaration>
-      <Get Name="Get" Id="{9bd88754-a865-4550-9123-bca0f19be00e}">
+      <Get Name="Get" Id="{28742521-052d-486f-88cb-68f9a257544f}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -107,7 +107,7 @@ END_VAR
           <ST><![CDATA[bSimEnable := _bSim;]]></ST>
         </Implementation>
       </Get>
-      <Set Name="Set" Id="{b66c4a74-41e4-4373-95c4-8e6dd06c2d09}">
+      <Set Name="Set" Id="{75a95a4b-32ce-4087-90d7-19c4e7fc6122}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -116,14 +116,14 @@ END_VAR
         </Implementation>
       </Set>
     </Property>
-    <Property Name="bStartTrig" Id="{3a919c9a-ce16-49c6-b57e-75dcd07db7d1}" FolderPath="I_StartPosDetect\">
+    <Property Name="bStartTrig" Id="{2a1934d4-d7ca-4bb7-9bc3-1b97617bac0d}" FolderPath="I_StartPosDetect\">
       <Declaration><![CDATA[(*
   A new container detected.
   NOTE: a pulse only
 *)
 PROPERTY bStartTrig : BOOL
 ]]></Declaration>
-      <Get Name="Get" Id="{0a392f0b-d23a-4374-a637-12c72e002d9f}">
+      <Get Name="Get" Id="{c1dfdb2a-a615-46fc-b974-71898b52124b}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -132,13 +132,13 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Property Name="bValid" Id="{dd397979-b437-4cd6-bdee-6dad5733a67f}" FolderPath="I_StartPosDetect\">
+    <Property Name="bValid" Id="{22e2c376-3f6a-49f3-9e05-61d6584e8945}" FolderPath="I_StartPosDetect\">
       <Declaration><![CDATA[(*
   A valid container detected.
 *)
 PROPERTY bValid : BOOL
 ]]></Declaration>
-      <Get Name="Get" Id="{7761d967-0a1f-4e88-ad34-4ad5ce416735}">
+      <Get Name="Get" Id="{19a031d4-310e-4e46-98d5-6ce0d218e687}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -154,7 +154,7 @@ END_VAR
         <ST><![CDATA[]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStart" Id="{e393908f-23a1-4595-a465-2cf3c9f6001e}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mJobStart" Id="{95af7a5c-4515-4939-8db3-3e3bb3e8793e}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mJobStart
 VAR_INPUT
 	sJobDef	: CalmarCompPrint.I_JobDefinition;
@@ -168,7 +168,7 @@ fSheetLength := iJobDefinition.fSubstrateDepth;
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStop" Id="{d8356075-2335-4b08-acc5-155ab282c68f}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mJobStop" Id="{718b634d-509d-4c30-8e18-d04811e567f9}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mJobStop
 VAR_INPUT
 	sStatus	: CalmarCompPrint.I_JobStatus;
@@ -178,7 +178,7 @@ END_VAR
         <ST><![CDATA[iJobDefinition := 0;    // delete job definition]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mProduced" Id="{fe7716e6-798e-41d7-838b-f7b407401b42}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mProduced" Id="{e9c9e1df-5ec4-4a04-bf31-7bdfdcd90fcc}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mProduced
 VAR_INPUT
 	(* current progress*)
@@ -189,13 +189,13 @@ END_VAR
         <ST><![CDATA[; // nothing to do]]></ST>
       </Implementation>
     </Method>
-    <Property Name="nStartPositionX0" Id="{6b27a535-635b-4868-a381-d2f4a2a26ba0}" FolderPath="I_StartPosDetect\">
+    <Property Name="nStartPositionX0" Id="{0d3addfc-7cd9-4584-8785-021d77225910}" FolderPath="I_StartPosDetect\">
       <Declaration><![CDATA[(*
   Detected start position X0 (absolute) in [SubPx].
 *)
 PROPERTY nStartPositionX0 : DINT
 ]]></Declaration>
-      <Get Name="Get" Id="{1b86c0b7-703e-4025-917d-2f98f1c0050d}">
+      <Get Name="Get" Id="{6235d940-90be-49ff-947e-c0d01c7799b8}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -204,7 +204,7 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Method Name="SimEnter" Id="{5f3afcf0-45e7-43f3-b7fa-173569233158}" FolderPath="I_Sim\">
+    <Method Name="SimEnter" Id="{fd9c1af6-ffa2-406f-ab2c-9fab4a6af178}" FolderPath="I_Sim\">
       <Declaration><![CDATA[METHOD SimEnter : BOOL
 ]]></Declaration>
       <Implementation>
@@ -217,7 +217,7 @@ nNextSheetPosition := lPosition;
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="SimExit" Id="{48b25644-8173-4c12-af95-8aee36151a4f}" FolderPath="I_Sim\">
+    <Method Name="SimExit" Id="{9b71a04c-2b05-4b6d-b2e9-63aab6d707b9}" FolderPath="I_Sim\">
       <Declaration><![CDATA[METHOD SimExit : BOOL
 ]]></Declaration>
       <Implementation>

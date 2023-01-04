@@ -69,7 +69,9 @@ bStarted := rTrigMoving.Q OR fbPositionMaster.bSyncReq;]]></ST>
     </Implementation>
     <Folder Name="I_Sim" Id="{bd8ec4af-70d9-4e9b-8cdc-91b3cc2e54db}" />
     <Property Name="bSimEnable" Id="{30fe551a-b50f-4bf8-9016-a91da26e946e}" FolderPath="I_Sim\">
-      <Declaration><![CDATA[PROPERTY bSimEnable : BOOL
+      <Declaration><![CDATA[{attribute 'monitoring' := 'call'}
+(*Simulation is enabled set/get*)
+PROPERTY bSimEnable : BOOL
 ]]></Declaration>
       <Get Name="Get" Id="{ba61aeca-91e8-4a46-b50a-3f72adba58be}">
         <Declaration><![CDATA[VAR

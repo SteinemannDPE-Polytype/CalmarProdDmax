@@ -202,8 +202,9 @@ binarySearch:= THIS^.binarySearch(nLow, (mid - 1), nKey);]]></ST>
       </Implementation>
     </Method>
     <Property Name="bSimEnable" Id="{b6a9c427-c4f2-4033-a2ee-2748b17341ab}" FolderPath="I_Sim\">
-      <Declaration><![CDATA[PROPERTY bSimEnable : BOOL
-]]></Declaration>
+      <Declaration><![CDATA[{attribute 'monitoring' := 'call'}
+(*Simulation is enabled set/get*)
+PROPERTY bSimEnable : BOOL]]></Declaration>
       <Get Name="Get" Id="{7354722b-5fee-4faf-9fd2-4a1db0d19f3f}">
         <Declaration><![CDATA[VAR
 END_VAR
