@@ -3,17 +3,6 @@
   <Itf Name="I_ParamMediator" Id="{44f2ddfb-07a7-4305-bf98-9eca0b2e7285}">
     <Declaration><![CDATA[INTERFACE I_ParamMediator
 ]]></Declaration>
-    <Method Name="ClearCachedCT" Id="{37ede8fa-36b6-4e30-8b33-b7c3259ebe07}">
-      <Declaration><![CDATA[(*
-  Release deformation ct
-  TODO: find another way to do inter worker communication for generic methods.
-*)
-METHOD ClearCachedCT
-VAR_INPUT
-  iCT              : I_CT;
-END_VAR
-]]></Declaration>
-    </Method>
     <Property Name="fCameraToPrintOffset" Id="{89859152-e725-4920-abf7-677c2007ee9c}">
       <Declaration><![CDATA[{attribute 'monitoring':='call'}
 PROPERTY fCameraToPrintOffset : LREAL]]></Declaration>

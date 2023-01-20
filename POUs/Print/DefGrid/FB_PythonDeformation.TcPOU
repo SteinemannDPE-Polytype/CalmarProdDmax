@@ -26,6 +26,7 @@ VAR
   // internal control
   _fbTimeout : TON; (* Counter with timeout *)
 	_tExecutionTime : TIME := T#0S;   (*exection time local for scoping*)
+  _bAborted : BOOL;
   
 END_VAR]]></Declaration>
     <Implementation>
@@ -50,7 +51,7 @@ fbFifoGridPoints();
 IF bPythonBusy THEN // Pending job
 	IF _fbTimeout.Q THEN // Timeout occurs
 		_tExecutionTime := _fbTimeout.ET;
-		bPythonAbort := TRUE;
+    bPythonAbort := TRUE;   // abort (pending operation) because id did not repond within timeout
 		bPythonError := TRUE;   // set internal error
 		nErrId := 1;
 		bPythonBusy := FALSE;
@@ -60,13 +61,16 @@ IF bPythonBusy THEN // Pending job
 		bPythonBusy := FALSE;
 		IF bPythonError THEN
 			nErrId := 2;
-      LogError(F_Concat4('Error during bPythonBusy, ExecTime:', TO_STRING(_tExecutionTime), ' Err:', TO_STRING(nErrId)));
+      LogError(F_Concat4('Error/abort requested by py, ExecTime:', TO_STRING(_tExecutionTime), ' Err:', TO_STRING(nErrId)));
 		END_IF
+  ELSIF _bAborted THEN      // abort if abort request set on ct
+    bPythonBusy := FALSE;
+    bPythonError := TRUE;   // set internal error
+    nErrId := 3;
 	END_IF
 ELSIF bPythonAbort THEN
-  //bPythonAbort := FALSE;
 	bPythonStartUpdate := FALSE;
-ELSE // Update/Job done	
+ELSE // Update/Job done  
   bPythonAbort := FALSE;
 	bPythonStartUpdate := FALSE;
 	bPythonUpdateDone := FALSE;
@@ -109,7 +113,21 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[]]></ST>
+        <ST><![CDATA[fPythonPosition := 0.0;
+//nPythonId := ;
+bPythonStartUpdate := FALSE;
+bPythonAbort := FALSE;
+bPythonBusy := FALSE;
+bPythonUpdateDone := FALSE;
+bPythonError := FALSE;
+nPythonStatus := 0;
+bPythonDeformationDone := FALSE;
+
+_fbTimeout(IN:=FALSE);
+_bAborted := FALSE;
+
+fbFifoCamPoints.Reset();
+fbFifoGridPoints.Reset();]]></ST>
       </Implementation>
     </Method>
     <Method Name="UpdatePy" Id="{ab911814-1669-4a11-8a8e-0853452f33a9}">
@@ -125,7 +143,7 @@ END_VAR
   
 ELSE // Job done
     
-  IF NOT bPythonDeformationDone THEN // Sample input
+  IF NOT bPythonDeformationDone AND NOT bPythonAbort THEN // Sample input
     // start a update
     fPythonPosition := fPosition * GVL_Deformation.nC_GridSubReso;
     bPythonBusy := TRUE;
@@ -144,12 +162,7 @@ END_IF]]></ST>
       <LineId Id="53" Count="0" />
     </LineIds>
     <LineIds Name="FB_PythonDeformation.ExecPy">
-      <LineId Id="7" Count="2" />
-      <LineId Id="37" Count="0" />
-      <LineId Id="10" Count="17" />
-      <LineId Id="45" Count="1" />
-      <LineId Id="28" Count="0" />
-      <LineId Id="32" Count="4" />
+      <LineId Id="91" Count="32" />
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_PythonDeformation.PopDeformationPoint">
@@ -163,11 +176,11 @@ END_IF]]></ST>
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_PythonDeformation.Reset">
+      <LineId Id="9" Count="13" />
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_PythonDeformation.UpdatePy">
-      <LineId Id="7" Count="10" />
-      <LineId Id="19" Count="5" />
+      <LineId Id="29" Count="16" />
       <LineId Id="5" Count="0" />
     </LineIds>
   </POU>

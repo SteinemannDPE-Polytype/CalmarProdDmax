@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <Itf Name="I_PrintPosition" Id="{634f7314-a7e5-4c65-89de-e92a4b8fe620}">
-    <Declaration><![CDATA[INTERFACE I_PrintPosition EXTENDS I_Sim
+    <Declaration><![CDATA[INTERFACE I_PrintPosition
 ]]></Declaration>
     <Property Name="bMoving" Id="{23dd2e65-f1a5-4211-b225-8283cec79b43}">
       <Declaration><![CDATA[(*
@@ -32,6 +32,24 @@ PROPERTY fEnoderResolution : LREAL]]></Declaration>
       <Set Name="Set" Id="{ebce961f-eb6b-4d92-ad4b-5ec64f0dbcec}">
         <Declaration><![CDATA[]]></Declaration>
       </Set>
+    </Property>
+    <Property Name="fPrintResolution" Id="{fc84518b-762d-47e7-b815-d2362db4e291}">
+      <Declaration><![CDATA[(*
+  print(head) resolution in [dpi]
+*)
+PROPERTY fPrintResolution : LREAL]]></Declaration>
+      <Get Name="Get" Id="{28c6ff6e-0466-46e0-85dc-6ebcc4723fdf}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="fSubPxResolution" Id="{78509cc5-d194-4150-b60c-19c5ca0ed270}">
+      <Declaration><![CDATA[(*
+   SubPixel resolution [SubPx]
+*)
+PROPERTY fSubPxResolution : LREAL]]></Declaration>
+      <Get Name="Get" Id="{dd99dd92-b202-4a25-8357-8e0961ed247c}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
     </Property>
     <Method Name="getPosition" Id="{2906e58a-3a62-4903-bd4b-cc5e72ee6637}">
       <Declaration><![CDATA[(*

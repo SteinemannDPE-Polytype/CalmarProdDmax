@@ -80,7 +80,7 @@ VAR CONSTANT
   fC_START_SHIFT_OFFSET    : LREAL := -1.0E-2;
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[IF iParamMediator = 0 THEN RETURN; F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); END_IF
+      <ST><![CDATA[IF _iParamMediator = 0 THEN RETURN; F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); END_IF
 
 //TODO Add error/warnings
 bError := FALSE;
@@ -89,9 +89,9 @@ nError := 0;
 fbDropSpeedComp(fMasterSpeed:=fMasterSpeed, fDropTravelDistance:=fPUElevation);
 
 //Start offset update
-IF _fPrintStartOffset <> (fPrintStartOffset + iParamMediator.fMasterDetectToRefPos) THEN //Worker position changed
+IF _fPrintStartOffset <> (fPrintStartOffset + _iParamMediator.fMasterDetectToRefPos) THEN //Worker position changed
   IF _pAttachedCt = 0 THEN //Update only without attached container
-    _fPrintStartOffset :=fPrintStartOffset + iParamMediator.fMasterDetectToRefPos;
+    _fPrintStartOffset :=fPrintStartOffset + _iParamMediator.fMasterDetectToRefPos;
 	END_IF
 END_IF
 
@@ -493,7 +493,7 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF NOT bEnable THEN RETURN; END_IF  // only if enabled
+        <ST><![CDATA[IF NOT bWorkerEnable THEN RETURN; END_IF  // only if enabled
 
 fbPa.jobStart();
 
@@ -579,7 +579,7 @@ sPcState.bError           := fB_PcAdapter.bError;
 sPcState.bPrinting        := fB_PcAdapter.bAllPrinting;
 sPcState.bLoad            := fB_PcAdapter.bAllPreparing;
 sPcState.bArmed           := fB_PcAdapter.bAllPrinting OR fB_PcAdapter.bAllReady OR fB_PcAdapter.bAllDone OR fB_PcAdapter.bAllPreparing;
-sPcState.bEnabled         := bEnable;
+sPcState.bEnabled         := bWorkerEnable;
 sPcState.bStartStrb       := fBPa.bStartStrb;
 sPcState.bPcEnabled       := fB_PcAdapter.bPcEnable;
 sPcState.lProductCount    := 0;            // obsolete ???
@@ -599,9 +599,9 @@ END_VAR
         <ST><![CDATA[SUPER^.work();
 
 (*new job attached*)
-IF iParamMediator <> 0 AND _bNewJob THEN
+IF _iParamMediator <> 0 AND _bNewJob THEN
   _bNewJob := FALSE;
-  sDefGridSettings := iParamMediator.sDeformationGridSetttings;
+  sDefGridSettings := _iParamMediator.sDeformationGridSetttings;
   // fix some potential errors
   IF sDefGridSettings.nGridPitchX = 0 THEN sDefGridSettings.nGridPitchX :=1024; LogError(F_concat2('grid not configured, set default nGridPitchX=',TO_STRING(sDefGridSettings.nGridPitchX))); END_IF
   IF sDefGridSettings.nGridPitchY = 0 THEN sDefGridSettings.nGridPitchY :=1024; LogError(F_concat2('grid not configured, set default nGridPitchY=',TO_STRING(sDefGridSettings.nGridPitchY))); END_IF
@@ -626,7 +626,7 @@ fbPa();
 
 fBStartTimeout(IN := _bPaStartRequested,PT := T#60MS);
 
-IF _pAttachedCt <> 0 AND bEnable THEN // Work only with attached container
+IF _pAttachedCt <> 0 AND bWorkerEnable THEN // Work only with attached container
   
   // check for generic error
   IF _pAttachedCt^.bValid AND bHardwareHold THEN
@@ -638,7 +638,7 @@ IF _pAttachedCt <> 0 AND bEnable THEN // Work only with attached container
   bDeformErr := _pAttachedCt^.getDeformationStatus(eDStep=>nDeformStep);
   IF NOT bDeformErr AND nDeformStep >= E_DeformationStep.gridStarted AND NOT _bForceDefGridOff THEN 
     IF NOT gridUpdate(bEnableDeformation:=TRUE) THEN
-      _pAttachedCt^.AbortDeformation(sReason:='deformation point update failed', Src:=_pEcSrc^);
+      _pAttachedCt^.AbortDeformation(sReason:='WorkerPrint: deformation point update failed', Src:=_pEcSrc^);
     END_IF
   ELSE
     // not started or error already --> erase deformation points
@@ -925,62 +925,7 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="33" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.work">
-      <LineId Id="19" Count="0" />
-      <LineId Id="234" Count="4" />
-      <LineId Id="254" Count="2" />
-      <LineId Id="239" Count="0" />
-      <LineId Id="308" Count="0" />
-      <LineId Id="307" Count="0" />
-      <LineId Id="305" Count="0" />
-      <LineId Id="318" Count="1" />
-      <LineId Id="311" Count="0" />
-      <LineId Id="267" Count="0" />
-      <LineId Id="118" Count="0" />
-      <LineId Id="116" Count="1" />
-      <LineId Id="115" Count="0" />
-      <LineId Id="148" Count="0" />
-      <LineId Id="147" Count="0" />
-      <LineId Id="280" Count="1" />
-      <LineId Id="278" Count="0" />
-      <LineId Id="146" Count="0" />
-      <LineId Id="168" Count="0" />
-      <LineId Id="167" Count="0" />
-      <LineId Id="20" Count="1" />
-      <LineId Id="190" Count="0" />
-      <LineId Id="326" Count="0" />
-      <LineId Id="328" Count="0" />
-      <LineId Id="330" Count="0" />
-      <LineId Id="327" Count="0" />
-      <LineId Id="329" Count="0" />
-      <LineId Id="325" Count="0" />
-      <LineId Id="44" Count="0" />
-      <LineId Id="200" Count="1" />
-      <LineId Id="41" Count="0" />
-      <LineId Id="99" Count="0" />
-      <LineId Id="98" Count="0" />
-      <LineId Id="221" Count="2" />
-      <LineId Id="149" Count="0" />
-      <LineId Id="211" Count="0" />
-      <LineId Id="268" Count="0" />
-      <LineId Id="150" Count="1" />
-      <LineId Id="156" Count="1" />
-      <LineId Id="153" Count="0" />
-      <LineId Id="158" Count="2" />
-      <LineId Id="336" Count="0" />
-      <LineId Id="180" Count="0" />
-      <LineId Id="154" Count="0" />
-      <LineId Id="161" Count="0" />
-      <LineId Id="164" Count="1" />
-      <LineId Id="171" Count="0" />
-      <LineId Id="166" Count="0" />
-      <LineId Id="337" Count="0" />
-      <LineId Id="339" Count="0" />
-      <LineId Id="338" Count="0" />
-      <LineId Id="163" Count="0" />
-      <LineId Id="152" Count="0" />
-      <LineId Id="55" Count="0" />
-      <LineId Id="292" Count="3" />
-      <LineId Id="30" Count="0" />
+      <LineId Id="345" Count="76" />
       <LineId Id="10" Count="0" />
     </LineIds>
   </POU>

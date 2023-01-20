@@ -8,6 +8,7 @@ END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[]]></ST>
     </Implementation>
+    <Folder Name="I_PrintStatusClient" Id="{6e3174a4-81f1-4e18-94c7-de9c90656509}" />
     <Method Name="Attach" Id="{ba44b2bb-b602-4351-b884-27d38546747f}">
       <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
 VAR_INPUT
@@ -31,6 +32,26 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
+    <Method Name="mJobStart" Id="{cad8a58f-798d-4ce1-b364-734a7078cd17}" FolderPath="I_PrintStatusClient\">
+      <Declaration><![CDATA[METHOD   mJobStart
+VAR_INPUT
+	sJobDef	: CalmarCompPrint.I_JobDefinition;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mJobStop" Id="{e745e5b1-0639-4bb5-a186-c326d0f28306}" FolderPath="I_PrintStatusClient\">
+      <Declaration><![CDATA[METHOD  mJobStop
+VAR_INPUT
+	sStatus	: CalmarCompPrint.I_JobStatus;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="Release" Id="{7ef7389d-1596-4a7c-82f8-404606f272e5}">
       <Declaration><![CDATA[METHOD Release : BOOL
 VAR_INPUT
@@ -55,9 +76,9 @@ END_IF]]></ST>
         <ST><![CDATA[SUPER^.work();
 
 //Worker position update
-IF iParamMediator <> 0 AND _pAttachedCt = 0 THEN     // Update only without attached container
+IF _iParamMediator <> 0 AND _pAttachedCt = 0 THEN     // Update only without attached container
   // WorkerPosition =  Worker<-PU<-CAM<-SheetDetect
-  fPosition := _fWorkerToPu + iParamMediator.fMasterDetectToRefPos;
+  fPosition := _fWorkerToPu + _iParamMediator.fMasterDetectToRefPos;
 END_IF
 
 IF _pAttachedCt <> 0 THEN
@@ -75,6 +96,12 @@ END_IF]]></ST>
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Delete.fWorkerToMasterRef.Get">
       <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Delete.mJobStart">
+      <LineId Id="81" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Delete.mJobStop">
+      <LineId Id="11" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Delete.Release">
       <LineId Id="6" Count="0" />

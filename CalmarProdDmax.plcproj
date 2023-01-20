@@ -17,7 +17,7 @@
     <Implicit_Jitter_Distribution>{16d81fa0-13c7-4d29-a136-833127f063f5}</Implicit_Jitter_Distribution>
     <LibraryReferences>{ba6a19c6-5744-48f5-a170-b3a0509f6030}</LibraryReferences>
     <Released>false</Released>
-    <ProjectVersion>2.0.1.5</ProjectVersion>
+    <ProjectVersion>2.0.2.10</ProjectVersion>
     <Company>WIFAG-Polytype</Company>
     <Title>CalmarProdDmax</Title>
     <Author>Wifag//Polytype</Author>
@@ -202,7 +202,7 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print\DefGrid\FB_ParamMediatorDmax.TcPOU">
+    <Compile Include="POUs\Print\DefGrid\FB_DefGridParamMediator.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\Print\DefGrid\FB_PH_Grid.TcPOU">
@@ -290,6 +290,9 @@ Fribourg/Switzerland (2021)</Description>
     <Compile Include="POUs\Print\DefGrid\I_Correction_Grid.TcIO">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
+    </Compile>
+    <Compile Include="POUs\Print\DefGrid\I_DeformationHandler.TcIO">
+      <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\Print\DefGrid\I_ParamMediator.TcIO">
       <SubType>Code</SubType>
@@ -515,10 +518,10 @@ Fribourg/Switzerland (2021)</Description>
   </ItemGroup>
   <ItemGroup>
     <PlaceholderResolution Include="CalmarCommons">
-      <Resolution>CalmarCommons, 1.5.13.3 (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCommons, 1.7.0 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompPrint">
-      <Resolution>CalmarCompPrint, 2.0.2.23 (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCompPrint, 2.1.0 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompSystem">
       <Resolution>CalmarCompSystem, 1.7.0 (WIFAG-Polytype)</Resolution>

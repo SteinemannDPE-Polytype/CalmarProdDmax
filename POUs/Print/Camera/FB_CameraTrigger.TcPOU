@@ -86,7 +86,7 @@ VAR
   
   tCurrentTimeStamp               : T_DCTIME64;      (* Get Current Timestamp *)
   tLastTimeStamp                  : T_DCTIME64;      (* Get Current Timestamp *)
-  fCycleTime                      : LREAL;           (* Current calcualted cycle time [s]*)
+  fCycleTime                      : LREAL;           (* Current calculated cycle time [s]*)
 
   fRemDist                        : LREAL;           (*Remaining distance until trigger occurs [m]*)
   fPreTriggerPosition             : LREAL;           (*Margin between effective trigger position and generation of timestamp*)
@@ -291,7 +291,9 @@ END_IF
 
 (********************************* END OF FB *****************************************************)]]></ST>
     </Implementation>
-    <Property Name="bManualTeach" Id="{be65e27e-2353-45ae-a59f-493486ebc6b7}">
+    <Folder Name="I_CameraTrigger" Id="{7ab2c00d-c252-46d1-aef8-bb2f16d70605}" />
+    <Folder Name="I_StartPosDetect" Id="{c2d6a5aa-7e33-4d73-adbe-d2ef476aecce}" />
+    <Property Name="bManualTeach" Id="{be65e27e-2353-45ae-a59f-493486ebc6b7}" FolderPath="I_CameraTrigger\">
       <Declaration><![CDATA[PROPERTY bManualTeach : BOOL
 ]]></Declaration>
       <Get Name="Get" Id="{165e03a2-9b40-49d2-96d5-cf6c3afc504e}">
@@ -311,7 +313,7 @@ END_VAR
         </Implementation>
       </Set>
     </Property>
-    <Property Name="bStartTrig" Id="{c57106c6-b833-4147-91ae-b104af7861e0}">
+    <Property Name="bStartTrig" Id="{c57106c6-b833-4147-91ae-b104af7861e0}" FolderPath="I_StartPosDetect\">
       <Declaration><![CDATA[(*
   A new container detected on X0.
   NOTE: a pulse only
@@ -327,7 +329,7 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Property Name="bValid" Id="{8b6b81d3-ea0a-409e-8b92-7512dfe544b8}">
+    <Property Name="bValid" Id="{8b6b81d3-ea0a-409e-8b92-7512dfe544b8}" FolderPath="I_StartPosDetect\">
       <Declaration><![CDATA[(*
   A valid container detected.
 *)
@@ -343,7 +345,7 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Method Name="Disable" Id="{b02780b6-05e9-418f-b223-f6c75fbd5a3a}">
+    <Method Name="Disable" Id="{b02780b6-05e9-418f-b223-f6c75fbd5a3a}" FolderPath="I_CameraTrigger\">
       <Declaration><![CDATA[METHOD Disable : BOOL
 ]]></Declaration>
       <Implementation>
@@ -356,7 +358,7 @@ ELSE
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="Enable" Id="{26ed9d4d-13d8-4aa0-937e-fe8372b7737f}">
+    <Method Name="Enable" Id="{26ed9d4d-13d8-4aa0-937e-fe8372b7737f}" FolderPath="I_CameraTrigger\">
       <Declaration><![CDATA[METHOD Enable : BOOL
 VAR_INPUT
 	iCam	                    : I_CameraTriggerDevice;
@@ -426,7 +428,7 @@ END_VAR
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Property Name="nStartPositionX0" Id="{037ffc53-c1e7-4a3c-b1f3-28d3ac51fc5c}">
+    <Property Name="nStartPositionX0" Id="{037ffc53-c1e7-4a3c-b1f3-28d3ac51fc5c}" FolderPath="I_StartPosDetect\">
       <Declaration><![CDATA[(*
   Detected start position X0 (absolute) in [SubPx].
 *)
@@ -451,7 +453,7 @@ END_VAR
 bInhibitTrigger := FALSE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="SetSubstrateLength" Id="{e3a47706-73b1-4e53-941e-e5803ef8e452}">
+    <Method Name="SetSubstrateLength" Id="{e3a47706-73b1-4e53-941e-e5803ef8e452}" FolderPath="I_CameraTrigger\">
       <Declaration><![CDATA[METHOD SetSubstrateLength
 VAR_INPUT
   fSubstrateLength : LREAL;

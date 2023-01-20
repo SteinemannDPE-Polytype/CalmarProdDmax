@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_PrintPositionDmax" Id="{726347b1-24f3-41dd-8d38-18de7bf18c3b}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK FB_PrintPositionDmax EXTENDS FB_BasePrint IMPLEMENTS I_PrintPosition
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_PrintPositionDmax EXTENDS FB_BasePrint IMPLEMENTS I_PrintPosition, I_Sim
 VAR_INPUT
   IlEncoderPulse      AT%I* : UDINT;                // Encoder counter intput
   IbEncoderWcState    AT%I* : BOOL;                 // Encoder EL5101 WcState
@@ -41,7 +41,9 @@ VAR
   _bSim                     : BOOL;
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[// set internal used resolution
+      <ST><![CDATA[fbPositionMaster.bSim := _bSim;
+
+// set internal used resolution
 fEncoderReso := _fEncoderResolution;  
 
 // compensate resolution (if enabled)
@@ -56,6 +58,7 @@ END_IF
 
 // calc position / speed
 fbPositionMaster(fResolutionInput:=fEncoderReso, lPosReference:=IlEncoderPulse);
+
 // position status
 _bMoving := ABS(fbPositionMaster.fMasterSpeed) >= fC_MinSpeed; 
 _fSpeedMpMin := fbPositionMaster.fMasterSpeed * 60;
@@ -80,7 +83,9 @@ END_VAR
       </Get>
     </Property>
     <Property Name="bSimEnable" Id="{30fe551a-b50f-4bf8-9016-a91da26e946e}" FolderPath="I_Sim\">
-      <Declaration><![CDATA[PROPERTY bSimEnable : BOOL
+      <Declaration><![CDATA[{attribute 'monitoring' := 'call'}
+(*Simulation is enabled set/get*)
+PROPERTY bSimEnable : BOOL
 ]]></Declaration>
       <Get Name="Get" Id="{ba61aeca-91e8-4a46-b50a-3f72adba58be}">
         <Declaration><![CDATA[VAR
@@ -95,8 +100,7 @@ END_VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[_bSim := bSimEnable;
-fbPositionMaster.bSim := bSimEnable;]]></ST>
+          <ST><![CDATA[_bSim := bSimEnable;]]></ST>
         </Implementation>
       </Set>
     </Property>
@@ -135,6 +139,36 @@ END_VAR
           <ST><![CDATA[_fEncoderResolution := fEnoderResolution;]]></ST>
         </Implementation>
       </Set>
+    </Property>
+    <Property Name="fPrintResolution" Id="{48eff3cf-7d99-449a-8526-266094650008}" FolderPath="I_PrintPosition\">
+      <Declaration><![CDATA[(*
+  print(head) resolution in [dpi]
+*)
+PROPERTY fPrintResolution : LREAL
+]]></Declaration>
+      <Get Name="Get" Id="{41eb1aa4-7459-49d4-ab44-e05aefd05fe0}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fPrintResolution := _fPrintResolution;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="fSubPxResolution" Id="{36f7a9b2-ad44-4da7-acb0-b38231b661c0}" FolderPath="I_PrintPosition\">
+      <Declaration><![CDATA[(*
+   SubPixel resolution [SubPx]
+*)
+PROPERTY fSubPxResolution : LREAL
+]]></Declaration>
+      <Get Name="Get" Id="{960643e9-6989-4523-9c9c-eedf45e14680}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fSubPxResolution := _fSubPxResolution;]]></ST>
+        </Implementation>
+      </Get>
     </Property>
     <Method Name="getPosition" Id="{f3e3b96b-183e-4641-b112-e525c3bb6c11}" FolderPath="I_PrintPosition\">
       <Declaration><![CDATA[(*
@@ -204,7 +238,10 @@ fbPositionMaster.reset();]]></ST>
       </Implementation>
     </Method>
     <LineIds Name="FB_PrintPositionDmax">
-      <LineId Id="324" Count="19" />
+      <LineId Id="383" Count="1" />
+      <LineId Id="324" Count="14" />
+      <LineId Id="382" Count="0" />
+      <LineId Id="339" Count="4" />
       <LineId Id="244" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintPositionDmax.bMoving.Get">
@@ -214,8 +251,7 @@ fbPositionMaster.reset();]]></ST>
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintPositionDmax.bSimEnable.Set">
-      <LineId Id="2" Count="0" />
-      <LineId Id="5" Count="0" />
+      <LineId Id="8" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintPositionDmax.bStarted.Get">
       <LineId Id="2" Count="0" />
@@ -224,6 +260,12 @@ fbPositionMaster.reset();]]></ST>
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintPositionDmax.fEnoderResolution.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintPositionDmax.fPrintResolution.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintPositionDmax.fSubPxResolution.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintPositionDmax.getPosition">

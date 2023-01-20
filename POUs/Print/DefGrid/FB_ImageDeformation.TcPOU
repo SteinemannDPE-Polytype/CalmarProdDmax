@@ -9,6 +9,7 @@ VAR
   _eDeformationStep : E_DeformationStep;    // current active deformation step (handler)
   _eCameraMode      : E_CameraMode;         // active deformation mode
   _fFeatureGrid     : LREAL;                // camera feature grid [Px]
+  _iDefHandler      : I_DeformationHandler; // deformation handler interface for global deformation control
   _nImgProcPoints   : DINT;                 // to calc gloabl dx/dy
   _nDxShift, _nDxSum : LREAL;               // global x grid shift
   _nDyShift, _nDySum : LREAL;               // global y grid shift
@@ -31,8 +32,7 @@ VAR
   //_fLastDeformPos   : LREAL;   // last executed position/grid of Update()
   _nUpdatedGridCol  : UDINT;   // already updated grid column
   _nUpdatedFeature  : UDINT;
-  // others 
-  _bAborted         : BOOL;
+  // others
   _nErrorId         : UDINT := 0;
   _sTempPoint       : ST_DeformationPointAccurate;
 END_VAR
@@ -99,14 +99,14 @@ IF addCamPoint THEN
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Property Name="bAbortRequestDeformation" Id="{83e61a74-d85b-4c49-8637-546b50faf2c3}">
-      <Declaration><![CDATA[PROPERTY bAbortRequestDeformation : BOOL]]></Declaration>
+    <Property Name="bAborted" Id="{83e61a74-d85b-4c49-8637-546b50faf2c3}">
+      <Declaration><![CDATA[PROPERTY bAborted : BOOL]]></Declaration>
       <Get Name="Get" Id="{ae456e92-162c-483d-a80a-32c06bf6bacb}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[bAbortRequestDeformation := bPythonAbort;]]></ST>
+          <ST><![CDATA[bAborted := _bAborted;]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -268,6 +268,25 @@ END_IF
 _nImgProcPoints := _nImgProcPoints + 1;]]></ST>
       </Implementation>
     </Method>
+    <Property Name="iDeformationHandler" Id="{71b06089-7517-4dac-8a1d-8ca1a521b331}">
+      <Declaration><![CDATA[PROPERTY iDeformationHandler : I_DeformationHandler]]></Declaration>
+      <Get Name="Get" Id="{72bae4dd-0a9b-490b-ba5f-cb51797ad7d7}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[iDeformationHandler := _iDefHandler;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{c9807ef1-61f2-4084-b09d-5cf3a94e49e4}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_iDefHandler := iDeformationHandler;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
     <Method Name="init" Id="{352f33fa-22cf-4c1f-bd67-048959ae9069}">
       <Declaration><![CDATA[METHOD init
 VAR_INPUT
@@ -326,18 +345,7 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[bPythonBusy := FALSE;
-bPythonError := FALSE;
-fPythonPosition := 0.0; 
-bPythonDeformationDone := FALSE;
-bPythonAbort := FALSE;
-bPythonStartUpdate := FALSE;
-nPythonStatus := 0;
-_fbTimeout(IN:=FALSE);
-
-fbFifoCamPoints.Reset();
-fbFifoGridPoints.Reset();
-
+        <ST><![CDATA[SUPER^.Reset();   // reset FB_PythonDeformation
 
 _nGridPoints := 0;
 _nGridCols := 0;
@@ -349,6 +357,7 @@ MEMSET(destAddr:=ADR(_sDefGridSettings), fillByte:=0, n:=SIZEOF(_sDefGridSetting
 
 _eDeformationStep := E_DeformationStep.nothing;
 _eCameraMode := E_CameraMode.NoCorrection;
+_iDefHandler := 0;
 _nImgProcPoints   := 0;
 _nDxShift         := 0;
 _nDyShift         := 0;
@@ -360,7 +369,6 @@ _fStartDeformPos:=0;
 //_fLastDeformPos:=0;
 _nUpdatedGridCol := 0;
 _nUpdatedFeature := 0;
-_bAborted := FALSE;
 _nErrorId := 0;
 _tExecutionTime := T#0s;]]></ST>
       </Implementation>
@@ -494,7 +502,7 @@ THEN
   // debug info
   LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=
     F_Concat5(
-        F_Concat2('update at:', TO_STRING(fPosRel_Deform)),
+        F_Concat2('update at: ', TO_STRING(fPosRel_Deform)),
         F_Concat2(' CamP: ', TO_STRING(_nCamPoints)),
         F_Concat2(' maxX: ', TO_STRING(_nCamPoint_MaxRefX)),
         F_Concat2(' GridP: ', TO_STRING(_nGridPoints)),
@@ -583,7 +591,7 @@ _nLocalGridColsGenerated := _nLocalGridColsGenerated + ct;
       <LineId Id="42" Count="2" />
       <LineId Id="13" Count="0" />
     </LineIds>
-    <LineIds Name="FB_ImageDeformation.bAbortRequestDeformation.Get">
+    <LineIds Name="FB_ImageDeformation.bAborted.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.bBusy.Get">
@@ -641,6 +649,12 @@ _nLocalGridColsGenerated := _nLocalGridColsGenerated + ct;
       <LineId Id="36" Count="0" />
       <LineId Id="32" Count="0" />
     </LineIds>
+    <LineIds Name="FB_ImageDeformation.iDeformationHandler.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.iDeformationHandler.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
     <LineIds Name="FB_ImageDeformation.init">
       <LineId Id="10" Count="0" />
       <LineId Id="5" Count="0" />
@@ -658,36 +672,8 @@ _nLocalGridColsGenerated := _nLocalGridColsGenerated + ct;
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.reset">
-      <LineId Id="9" Count="1" />
-      <LineId Id="17" Count="0" />
-      <LineId Id="13" Count="0" />
-      <LineId Id="87" Count="0" />
-      <LineId Id="22" Count="0" />
-      <LineId Id="89" Count="0" />
-      <LineId Id="88" Count="0" />
-      <LineId Id="15" Count="1" />
-      <LineId Id="12" Count="0" />
-      <LineId Id="52" Count="0" />
-      <LineId Id="40" Count="1" />
-      <LineId Id="77" Count="0" />
-      <LineId Id="50" Count="0" />
-      <LineId Id="81" Count="0" />
-      <LineId Id="42" Count="0" />
-      <LineId Id="49" Count="0" />
-      <LineId Id="44" Count="0" />
-      <LineId Id="51" Count="0" />
-      <LineId Id="28" Count="0" />
-      <LineId Id="56" Count="0" />
-      <LineId Id="69" Count="1" />
-      <LineId Id="65" Count="0" />
-      <LineId Id="71" Count="0" />
-      <LineId Id="73" Count="0" />
-      <LineId Id="72" Count="0" />
-      <LineId Id="27" Count="0" />
-      <LineId Id="31" Count="1" />
-      <LineId Id="82" Count="1" />
-      <LineId Id="36" Count="0" />
-      <LineId Id="34" Count="1" />
+      <LineId Id="93" Count="24" />
+      <LineId Id="35" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.sDefGridSettings.Get">
       <LineId Id="2" Count="0" />
@@ -744,37 +730,7 @@ _nLocalGridColsGenerated := _nLocalGridColsGenerated + ct;
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.updateDeformation">
-      <LineId Id="138" Count="0" />
-      <LineId Id="172" Count="0" />
-      <LineId Id="167" Count="0" />
-      <LineId Id="164" Count="0" />
-      <LineId Id="171" Count="0" />
-      <LineId Id="141" Count="0" />
-      <LineId Id="160" Count="0" />
-      <LineId Id="170" Count="0" />
-      <LineId Id="186" Count="1" />
-      <LineId Id="161" Count="0" />
-      <LineId Id="173" Count="0" />
-      <LineId Id="196" Count="0" />
-      <LineId Id="201" Count="0" />
-      <LineId Id="195" Count="0" />
-      <LineId Id="204" Count="0" />
-      <LineId Id="84" Count="0" />
-      <LineId Id="192" Count="0" />
-      <LineId Id="188" Count="0" />
-      <LineId Id="190" Count="1" />
-      <LineId Id="203" Count="0" />
-      <LineId Id="205" Count="0" />
-      <LineId Id="189" Count="0" />
-      <LineId Id="193" Count="1" />
-      <LineId Id="124" Count="0" />
-      <LineId Id="127" Count="0" />
-      <LineId Id="126" Count="0" />
-      <LineId Id="128" Count="1" />
-      <LineId Id="123" Count="0" />
-      <LineId Id="199" Count="0" />
-      <LineId Id="69" Count="0" />
-      <LineId Id="200" Count="0" />
+      <LineId Id="215" Count="34" />
       <LineId Id="52" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.UpdateLocal">

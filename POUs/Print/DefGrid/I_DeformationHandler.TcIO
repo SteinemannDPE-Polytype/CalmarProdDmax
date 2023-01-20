@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <Itf Name="I_DeformationHandler" Id="{d4a4c422-72f1-4982-9d32-cf63805782af}">
+    <Declaration><![CDATA[INTERFACE I_DeformationHandler
+]]></Declaration>
+    <Method Name="DeleteCachedCt" Id="{cc6a910a-bc96-48d5-9448-7ead384a645b}">
+      <Declaration><![CDATA[METHOD DeleteCachedCt : BOOL
+VAR_INPUT
+  iCT              : I_CT;
+END_VAR]]></Declaration>
+    </Method>
+  </Itf>
+</TcPlcObject>

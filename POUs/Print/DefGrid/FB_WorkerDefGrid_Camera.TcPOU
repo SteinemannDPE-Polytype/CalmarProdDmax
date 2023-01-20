@@ -29,11 +29,8 @@ VAR
   // deformation status
   _eDeformStep                : E_DeformationStep;   // status deformation of ct
   
-  // puc message
-  fb_MsgQueue                  : FB_MSG_QUEUE;                        (*Message queue*)
-  fb_MsgHandler                : FB_MSG_HANDLER;                      (*Message handler*)
-  sL_MsgConfig                 : ST_MSG_CONFIG;                       (*Message config*)
-  
+  // Messages
+  _pMsgConfig                   : POINTER TO ST_MSG_CONFIG;
   bCamNotAvailable             : BOOL;
   fbMsg_CamNotAvailable        : FB_MESSAGE;
   bCamModeNotSupported         : BOOL;
@@ -232,7 +229,7 @@ END_IF]]></ST>
       <Declaration><![CDATA[METHOD Init
 VAR_INPUT
   pCtManager : POINTER TO FB_CTManagerDefGrid;   // CTManager
-  pParamMediator : I_ParamMediator;
+  iParamMediator : I_ParamMediator;
   pMsgConfig : POINTER TO ST_MSG_CONFIG;         // message config
   fPrintResolution : LREAL := 1;                 // print(head) resolution in [dpi]
   fSubPxResolution : LREAL := 1;                 // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
@@ -241,26 +238,23 @@ VAR
   lCtr : UDINT;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[SUPER^.Init(pCtManager:=pCtManager, pParamMediator:=pParamMediator, pMsgConfig:=pMsgConfig, fPrintResolution:=fPrintResolution, fSubPxResolution:=fSubPxResolution);
+        <ST><![CDATA[SUPER^.Init(pCtManager:=pCtManager, iParamMediator:=iParamMediator, pMsgConfig:=pMsgConfig, fPrintResolution:=fPrintResolution, fSubPxResolution:=fSubPxResolution);
 
 IF _pAdsCam = 0 THEN LogError('Call InitAds() before, ads interface unknown'); RETURN; END_IF
+IF pMsgConfig = 0 THEN LogError('Init: invalid message config given'); END_IF 
 
 (*Messaging*)
-sL_MsgConfig.bI_Enable       := TRUE;
-sL_MsgConfig.pI_FbMsgHandler := ADR(fb_MsgHandler);
-fb_MsgHandler.pI_MsgQueue    := ADR(fb_MsgQueue);
-fb_MsgQueue.pI_MsgInterface  := ADR(_pAdsCam^.sO_Message);
-fb_MsgQueue.cI_MaxElement    := TO_INT(SIZEOF(_pAdsCam^.sO_Message.sO_MsgBuffer)/SIZEOF(_pAdsCam^.sO_Message.sO_MsgBuffer[1]));
+_pMsgConfig := pMsgConfig;
 
-fbMsg_CamNotAvailable.pI_MsgConfig := ADR(sL_MsgConfig);
+fbMsg_CamNotAvailable.pI_MsgConfig := _pMsgConfig;
 fbMsg_CamNotAvailable.iI_MsgLocation := ePr_BLK_CAMERA;
 fbMsg_CamNotAvailable.iI_MsgNumber := eC_DMAX_CAM_NOTAVAIL;
 
-fbMsg_CamModeNotSupported.pI_MsgConfig := ADR(sL_MsgConfig);
+fbMsg_CamModeNotSupported.pI_MsgConfig := _pMsgConfig;
 fbMsg_CamModeNotSupported.iI_MsgLocation := ePr_BLK_CAMERA;
 fbMsg_CamModeNotSupported.iI_MsgNumber := eC_DMAX_CAM_MODE_NOTSUPPORTED; // camera not available
 
-fbMsg_CamNoConnection.pI_MsgConfig := ADR(sL_MsgConfig);
+fbMsg_CamNoConnection.pI_MsgConfig := _pMsgConfig;
 fbMsg_CamNoConnection.iI_MsgLocation := ePr_BLK_CAMERA;
 fbMsg_CamNoConnection.iI_MsgNumber := eCMa_TCPIP_COMM_ERROR;    // tcpip connection error
 
@@ -305,7 +299,7 @@ END_VAR]]></Declaration>
   // activate matching camera
   iNewCam := selectCamera(eNewCam:=_pAdsCam^.eI_CameraDevice);    // get camera settings from ADS
   IF NOT ActivateCamera(iCam:=iNewCam) THEN
-    LogError(F_Concat2('Could not activate camera', TO_STRING(_pAdsCam^.eI_CameraDevice)));
+    LogError(F_Concat2('Could not activate camera: ', TO_STRING(_pAdsCam^.eI_CameraDevice)));
     bCamNotAvailable := TRUE;
   ELSE
     // config camera from job
@@ -352,7 +346,7 @@ END_VAR
       <Implementation>
         <ST><![CDATA[IF _nRegisteredCam < nMAXCAM AND iNewCam <> 0 THEN
   // configure message interface
-  iNewCam.setMsgInterface(pMsgConfig:=ADR(sL_MsgConfig));     // set message interface
+  iNewCam.setMsgInterface(pMsgConfig:=_pMsgConfig);     // set message interface
   // add to internal list
   _nRegisteredCam := _nRegisteredCam + 1;
   _iCamList[_nRegisteredCam] := iNewCam;
@@ -446,7 +440,7 @@ END_VAR]]></Declaration>
 
 iNewCam := selectCamera(eNewCam:=eCameraDevice);    // Scanner
 IF NOT ActivateCamera(iCam:=iNewCam) THEN
-  LogError(F_Concat2('Could not activate camera', TO_STRING(eCameraDevice)));
+  LogError(F_Concat2('Could not activate camera: ', TO_STRING(eCameraDevice)));
 ELSE
   // config camera from manual teach
   _iActiveCam.fSubstrateLength := fSubstrateLength;
@@ -472,7 +466,7 @@ VAR
   lCtr : UDINT;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF iParamMediator = 0 THEN RETURN; END_IF
+        <ST><![CDATA[IF _iParamMediator = 0 THEN RETURN; END_IF
 
 SUPER^.work();
 
@@ -626,9 +620,9 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="3" Count="0" />
       <LineId Id="87" Count="0" />
       <LineId Id="86" Count="0" />
-      <LineId Id="78" Count="4" />
-      <LineId Id="84" Count="0" />
-      <LineId Id="77" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="78" Count="1" />
+      <LineId Id="112" Count="0" />
       <LineId Id="58" Count="0" />
       <LineId Id="50" Count="0" />
       <LineId Id="59" Count="0" />

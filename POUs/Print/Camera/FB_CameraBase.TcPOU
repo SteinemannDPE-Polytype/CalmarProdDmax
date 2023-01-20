@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_CameraBase" Id="{c8d0ba07-7a01-4a8a-a6e6-67ad2b34ba59}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   Base camera system
@@ -47,6 +47,7 @@ END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[]]></ST>
     </Implementation>
+    <Folder Name="I_CameraTriggerDevice" Id="{f5011c75-0834-43aa-b7e2-aca7b6c164f7}" />
     <Method Name="ActivateCam" Id="{33bd772a-5b9c-4915-8a51-eb63f24d6151}">
       <Declaration><![CDATA[METHOD ActivateCam : BOOL
 VAR_INPUT
@@ -65,7 +66,7 @@ ELSIF _iCameraSink <> 0 AND iCameraSink <>_iCameraSink THEN
 END_IF 
 
 _iCameraSink := iCameraSink;
-_iCameraTrigger.Enable(iCam := THIS^,bUseCameraTrigger:= _bUseCameraTrigger, bUseCameraTriggerFeedback:=_bUseCameraTriggerFeedback);
+_iCameraTrigger.Enable(iCam:=THIS^, bUseCameraTrigger:=_bUseCameraTrigger, bUseCameraTriggerFeedback:=_bUseCameraTriggerFeedback);
 
 _bActivated := TRUE;
 ActivateCam:=TRUE;]]></ST>
@@ -127,7 +128,7 @@ END_VAR
         </Implementation>
       </Set>
     </Property>
-    <Method Name="CamTrigger" Id="{c9e54620-5e47-4477-89e1-0544e896af19}">
+    <Method Name="CamTrigger" Id="{c9e54620-5e47-4477-89e1-0544e896af19}" FolderPath="I_CameraTriggerDevice\">
       <Declaration><![CDATA[METHOD CamTrigger
 VAR_INPUT
   bOk             : BOOL;     // trigger is ok
@@ -150,7 +151,7 @@ END_IF
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="CamTriggerDone" Id="{fb8288bc-dd74-44a9-91c5-11369148a052}">
+    <Method Name="CamTriggerDone" Id="{fb8288bc-dd74-44a9-91c5-11369148a052}" FolderPath="I_CameraTriggerDevice\">
       <Declaration><![CDATA[METHOD CamTriggerDone
 ]]></Declaration>
       <Implementation>
@@ -367,7 +368,7 @@ END_VAR
         </Implementation>
       </Set>
     </Property>
-    <Property Name="fTriggerDistance" Id="{4240e2de-52fb-4d48-a252-b6d6fe271b86}">
+    <Property Name="fTriggerDistance" Id="{4240e2de-52fb-4d48-a252-b6d6fe271b86}" FolderPath="I_CameraTriggerDevice\">
       <Declaration><![CDATA[{attribute 'monitoring':='call'}
 PROPERTY fTriggerDistance : LREAL
 ]]></Declaration>
@@ -389,7 +390,7 @@ END_VAR
         </Implementation>
       </Set>
     </Property>
-    <Property Name="fTriggerPulseLength" Id="{79315dcf-a401-4f0f-bd02-92222f94165e}">
+    <Property Name="fTriggerPulseLength" Id="{79315dcf-a401-4f0f-bd02-92222f94165e}" FolderPath="I_CameraTriggerDevice\">
       <Declaration><![CDATA[PROPERTY fTriggerPulseLength : LREAL
 ]]></Declaration>
       <Get Name="Get" Id="{f5cab0bd-a79c-444f-92aa-3659fc98aa58}">
