@@ -13,7 +13,7 @@ VAR
   _pPm : POINTER TO FB_Pm_DMAX;
 END_VAR
 VAR PERSISTENT
-  _fWorkerToPu   : LREAL := 1.2;    (*Distance between PU and this worker, mechanisch*)
+  _fWorkerToPu   : LREAL := 1.538;    (*Distance between PU and this worker, mechanisch*)
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[]]></ST>
