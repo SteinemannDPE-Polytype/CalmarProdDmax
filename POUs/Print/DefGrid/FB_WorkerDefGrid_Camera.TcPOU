@@ -258,6 +258,7 @@ fbMsg_CamNoConnection.pI_MsgConfig := _pMsgConfig;
 fbMsg_CamNoConnection.iI_MsgLocation := ePr_BLK_CAMERA;
 fbMsg_CamNoConnection.iI_MsgNumber := eCMa_TCPIP_COMM_ERROR;    // tcpip connection error
 
+_bConnectionOk := TRUE;
 _bSetInitCam := TRUE; // request a default camera
 ]]></ST>
       </Implementation>
@@ -472,8 +473,8 @@ SUPER^.work();
 
 //-----------------------------------------------------------
 //- automatic worker setup & control
-IF _bSetInitCam AND _iActiveCam = 0 THEN    // try to a default camera at start
-  ActivateCamera(selectCamera(eNewCam:=E_CameraDevice.Scanner));
+IF _bSetInitCam AND _iActiveCam = 0 THEN    // try to set a default camera at start
+  ActivateCamera(selectCamera(eNewCam:=E_CameraDevice.SheetDetect));
   _bSetInitCam := FALSE;
   _bCamValid := TRUE;
 ELSIF _iActiveCam <> 0 THEN                 // a camera is activated
@@ -631,6 +632,7 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="99" Count="0" />
       <LineId Id="101" Count="0" />
       <LineId Id="98" Count="0" />
+      <LineId Id="124" Count="0" />
       <LineId Id="2" Count="0" />
       <LineId Id="40" Count="0" />
       <LineId Id="39" Count="0" />
