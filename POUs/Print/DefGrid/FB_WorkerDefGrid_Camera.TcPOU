@@ -51,6 +51,7 @@ END_VAR
     <Implementation>
       <ST><![CDATA[]]></ST>
     </Implementation>
+    <Folder Name="I_CameraSink" Id="{9ec3d051-264b-49d1-b711-6f2c7c383bca}" />
     <Folder Name="I_PrintStatusClient" Id="{1c674285-cbe4-4e1b-ab1f-c86c3f21aeed}" />
     <Method Name="ActivateCamera" Id="{99a01e14-fa02-42f4-a663-cfcdcb61b4bd}">
       <Declaration><![CDATA[METHOD PRIVATE ActivateCamera : BOOL
@@ -85,14 +86,15 @@ END_IF
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="AddCamPoint" Id="{f453464a-4078-41ca-a01d-17dc87f686bd}">
+    <Method Name="AddCamPoint" Id="{f453464a-4078-41ca-a01d-17dc87f686bd}" FolderPath="I_CameraSink\">
       <Declaration><![CDATA[METHOD AddCamPoint : BOOL
 VAR_INPUT
 	sDeformationPoint	: ST_DeformationPointAccurate;
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF _pAttachedCt <> 0 THEN //Container attached?
+        <ST><![CDATA[{warning 'TODO: add a small queue for input points'}
+IF _pAttachedCt <> 0 THEN //Container attached?
   AddCamPoint := _pAttachedCt^.AddCamPoint(sPoint:=sDeformationPoint);
   IF AddCamPoint THEN 
     _nAddedPoint :=_nAddedPoint+1;
@@ -105,7 +107,7 @@ ELSE
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="AddTeachPoint" Id="{f2606cab-e071-41ba-b4be-aa219442a713}">
+    <Method Name="AddTeachPoint" Id="{f2606cab-e071-41ba-b4be-aa219442a713}" FolderPath="I_CameraSink\">
       <Declaration><![CDATA[METHOD AddTeachPoint : BOOL
 VAR_INPUT
 	sTeachPoint	: ST_DeformationPointAccurate;
@@ -461,6 +463,7 @@ END_IF]]></ST>
       <Declaration><![CDATA[METHOD  work
 VAR_INST
   rT_CamStarted : R_TRIG;
+  rT_CamDone : R_TRIG;
   bReqToStartCamOnCt : BOOL;
 END_VAR
 VAR
@@ -478,6 +481,8 @@ IF _bSetInitCam AND _iActiveCam = 0 THEN    // try to set a default camera at st
   _bSetInitCam := FALSE;
   _bCamValid := TRUE;
 ELSIF _iActiveCam <> 0 THEN                 // a camera is activated
+  
+  // --- cyclic call always when cam is active ---
   _bCamValid := TRUE;
   //-- update status  
   _bCamReady := _iActiveCam.GetCamStatus(
@@ -497,7 +502,7 @@ ELSE
 END_IF
 rT_CamStarted(CLK:=_bCamStarted);
 IF rT_CamStarted.Q THEN bReqToStartCamOnCt := TRUE; END_IF
-
+rT_CamDone(CLK:=_bCamDone); 
 
 
 // -----------------------------------------------------------
@@ -512,7 +517,7 @@ IF _pAttachedCt <> 0 THEN
       _pAttachedCt^.StartCamera(eCameraMode:=_iActiveCam.eCameraMode, fFeatureGrid:=_fFeatureGrid);
       bReqToStartCamOnCt := FALSE; // reset
 		END_IF
-    IF _bCamDone THEN
+    IF _bCamDone AND _eDeformStep >= E_DeformationStep.cameraStarted THEN
         LogLvl(Lvl:=E_LogSeverity.Debug, Msg:='CamDone');
         Release(_pAttachedCt^);
     END_IF
@@ -555,6 +560,7 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="7" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.AddCamPoint">
+      <LineId Id="51" Count="0" />
       <LineId Id="13" Count="0" />
       <LineId Id="15" Count="0" />
       <LineId Id="25" Count="0" />
@@ -727,7 +733,10 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="260" Count="0" />
       <LineId Id="249" Count="0" />
       <LineId Id="276" Count="0" />
-      <LineId Id="251" Count="1" />
+      <LineId Id="251" Count="0" />
+      <LineId Id="423" Count="0" />
+      <LineId Id="425" Count="0" />
+      <LineId Id="252" Count="0" />
       <LineId Id="393" Count="7" />
       <LineId Id="353" Count="0" />
       <LineId Id="359" Count="0" />

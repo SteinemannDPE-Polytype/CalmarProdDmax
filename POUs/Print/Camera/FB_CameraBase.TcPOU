@@ -23,17 +23,20 @@ VAR
   _fImageLength             : LREAL := 1;      (*Image length [m]*)
   _fImageWidth              : LREAL := 1;      (*Image width [m]*)
   _fFrameLength             : LREAL := 1;      (*Camera Frame width in [px]*)
-  _bActivated               : BOOL;
+  _bActivated               : BOOL;            (*Camera is activated*)
   _sVisuName                : STRING := 'unvailable';     (*detail visualisation instance name*)
-  _nRxCamPoints             : UDINT;                      (*number of received cam points*)
-  stCamPoint                : ST_DeformationPointAccurate;(*actual camera point*)
   
+  // status
   _bCamTriggerOk            : BOOL;
   _bCamTriggerStarted       : BOOL;
   _bCamTriggerDone          : BOOL;   
-  _nCamStartPos             : DINT;    //Cam start position ideal [SubPx]
-  _nCamStartPosDeviation    : DINT;    //Cam stated position real [SubPx]
-  
+  _nCamStartPos             : DINT;            (*Cam start position ideal [SubPx]*)
+  _nCamStartPosDeviation    : DINT;            (*Cam stated position real [SubPx]*)
+  _nRxCamPoints             : UDINT;           (*number of received cam points*)
+
+  // helper
+  stCamPoint                : ST_DeformationPointAccurate;(*actual camera point*)
+    
   // messaging
   _pMsgConfig               : POINTER TO CalmarCommons.ST_MSG_CONFIG;
 END_VAR

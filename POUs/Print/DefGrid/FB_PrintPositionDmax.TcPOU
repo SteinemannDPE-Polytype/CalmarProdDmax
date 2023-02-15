@@ -199,7 +199,7 @@ VAR_OUTPUT
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[getSpeed    := fbPositionMaster.fMasterSpeed;
-fSpeedMpMin := fSpeedMpMin;]]></ST>
+fSpeedMpMin := fbPositionMaster.fMasterSpeed*60;]]></ST>
       </Implementation>
     </Method>
     <Method Name="Init" Id="{0edf7ce9-df28-43fb-8910-213c45b50fdb}">
