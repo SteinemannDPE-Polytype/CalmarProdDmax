@@ -3,7 +3,6 @@
   <POU Name="FB_DefGridParamMediator" Id="{9642270e-d441-4770-907b-3f0d0f5dc2e9}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_DefGridParamMediator IMPLEMENTS I_ParamMediator
 VAR
-  _pCreateWorker : POINTER TO FB_WorkerDefGrid_Python;
   _pCamWorker : POINTER TO FB_WorkerDefGrid_Camera;
   _pDefWorker : POINTER TO FB_WorkerDefGrid_Deformation;
   bInitOk     : BOOL;
@@ -13,60 +12,15 @@ END_VAR
       <ST><![CDATA[]]></ST>
     </Implementation>
     <Folder Name="I_ParamMediator" Id="{39f9222d-d28f-4df1-8ed1-e2b3d113f34f}" />
-    <Property Name="fCameraToPrintOffset" Id="{43edb161-94bb-440e-a146-2ecc3ab0b15d}" FolderPath="I_ParamMediator\">
-      <Declaration><![CDATA[{attribute 'monitoring':='call'}
-PROPERTY fCameraToPrintOffset : LREAL]]></Declaration>
-      <Get Name="Get" Id="{687dfcbd-6ad8-4ffb-a3c4-66b35289f9de}">
-        <Declaration><![CDATA[VAR
-END_VAR
-]]></Declaration>
-        <Implementation>
-          <ST><![CDATA[IF bInitOk THEN
-  fCameraToPrintOffset := _pCamWorker^.fCameraToPrintOffset;
-END_IF]]></ST>
-        </Implementation>
-      </Get>
-    </Property>
-    <Property Name="fDetectToCamera" Id="{0268497d-c5b0-4639-a734-da6955c88aff}" FolderPath="I_ParamMediator\">
-      <Declaration><![CDATA[{attribute 'monitoring':='call'}
-PROPERTY fDetectToCamera : LREAL]]></Declaration>
-      <Get Name="Get" Id="{038181c1-f283-429a-835f-ddc555554d78}">
-        <Declaration><![CDATA[VAR
-END_VAR
-]]></Declaration>
-        <Implementation>
-          <ST><![CDATA[fDetectToCamera := _pCamWorker^.fDetectToCamOffset;]]></ST>
-        </Implementation>
-      </Get>
-    </Property>
-    <Property Name="fMasterDetectToRefPos" Id="{eee430db-38d9-467a-a866-93af7f37bbbb}" FolderPath="I_ParamMediator\">
-      <Declaration><![CDATA[(*
-  Distance (Offset) from Master-Trigger to Master Reference Position.
-  NOTE: This is normally the distance between the first (MASTER) StartPosDetection to first print Module (Printing Unit) 
-*)
-PROPERTY fMasterDetectToRefPos : LREAL]]></Declaration>
-      <Get Name="Get" Id="{706a4f09-3937-46b5-9660-12df944552bc}">
-        <Declaration><![CDATA[VAR
-END_VAR
-]]></Declaration>
-        <Implementation>
-          <ST><![CDATA[IF bInitOk THEN
-  fMasterDetectToRefPos := _pCamWorker^.fDetectToCamOffset + _pCamWorker^.fCameraToPrintOffset;
-END_IF]]></ST>
-        </Implementation>
-      </Get>
-    </Property>
-    <Method Name="init" Id="{9cdfcac0-144a-4d88-8e7f-21c6ce0c82c3}" FolderPath="I_ParamMediator\">
+    <Method Name="init" Id="{9cdfcac0-144a-4d88-8e7f-21c6ce0c82c3}">
       <Declaration><![CDATA[METHOD init
 VAR_INPUT
-  pCreateWorker : POINTER TO FB_WorkerDefGrid_Python;
   pCamWorker : POINTER TO FB_WorkerDefGrid_Camera;
   pDefWorker : POINTER TO FB_WorkerDefGrid_Deformation;
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF pCamWorker <> 0 AND pCamWorker <>0 AND pCreateWorker <> 0 THEN
-  _pCreateWorker := pCreateWorker;
+        <ST><![CDATA[IF pCamWorker <> 0 AND pCamWorker <> 0 THEN
   _pCamWorker := pCamWorker;
   _pDefWorker := pDefWorker;
   bInitOk := TRUE;
@@ -102,21 +56,8 @@ END_IF]]></ST>
     <LineIds Name="FB_DefGridParamMediator">
       <LineId Id="9" Count="0" />
     </LineIds>
-    <LineIds Name="FB_DefGridParamMediator.fCameraToPrintOffset.Get">
-      <LineId Id="5" Count="1" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_DefGridParamMediator.fDetectToCamera.Get">
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_DefGridParamMediator.fMasterDetectToRefPos.Get">
-      <LineId Id="5" Count="0" />
-      <LineId Id="2" Count="0" />
-      <LineId Id="6" Count="0" />
-    </LineIds>
     <LineIds Name="FB_DefGridParamMediator.init">
       <LineId Id="9" Count="0" />
-      <LineId Id="18" Count="0" />
       <LineId Id="8" Count="0" />
       <LineId Id="5" Count="0" />
       <LineId Id="11" Count="0" />

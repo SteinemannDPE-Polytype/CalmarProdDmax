@@ -3,8 +3,9 @@
   <POU Name="FB_WorkerDefGrid_Camera" Id="{6056a89a-8aeb-47d0-8a92-08f600f3d0b4}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Camera EXTENDS FB_WorkerDefGrid IMPLEMENTS I_CameraSink
 VAR
-  // camera interface PUC
+  // references
   _pAdsCam        : POINTER TO ST_ADS_CAMERA;
+  _iParamMediator : I_ParamMediator;
   
   // camera list
   _iCamList       : ARRAY[1..nMAXCAM] OF I_Camera; 
@@ -94,6 +95,7 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[{warning 'TODO: add a small queue for input points'}
+
 IF _pAttachedCt <> 0 THEN //Container attached?
   AddCamPoint := _pAttachedCt^.AddCamPoint(sPoint:=sDeformationPoint);
   IF AddCamPoint THEN 
@@ -230,8 +232,7 @@ END_IF]]></ST>
     <Method Name="Init" Id="{476974fc-f01a-47ef-80b5-8dcae46aef5e}">
       <Declaration><![CDATA[METHOD Init
 VAR_INPUT
-  pCtManager : POINTER TO FB_CTManagerDefGrid;   // CTManager
-  iParamMediator : I_ParamMediator;
+  iWorkerParams : I_WorkerParams;
   pMsgConfig : POINTER TO ST_MSG_CONFIG;         // message config
   fPrintResolution : LREAL := 1;                 // print(head) resolution in [dpi]
   fSubPxResolution : LREAL := 1;                 // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
@@ -240,9 +241,8 @@ VAR
   lCtr : UDINT;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[SUPER^.Init(pCtManager:=pCtManager, iParamMediator:=iParamMediator, pMsgConfig:=pMsgConfig, fPrintResolution:=fPrintResolution, fSubPxResolution:=fSubPxResolution);
+        <ST><![CDATA[SUPER^.Init(iWorkerParams:=iWorkerParams, pMsgConfig:=pMsgConfig, fPrintResolution:=fPrintResolution, fSubPxResolution:=fSubPxResolution);
 
-IF _pAdsCam = 0 THEN LogError('Call InitAds() before, ads interface unknown'); RETURN; END_IF
 IF pMsgConfig = 0 THEN LogError('Init: invalid message config given'); END_IF 
 
 (*Messaging*)
@@ -265,14 +265,20 @@ _bSetInitCam := TRUE; // request a default camera
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="InitAds" Id="{d420bbaf-dc4a-4caf-9bae-af7a97686b3a}">
-      <Declaration><![CDATA[METHOD InitAds
+    <Method Name="InitWorkerCamera" Id="{d420bbaf-dc4a-4caf-9bae-af7a97686b3a}">
+      <Declaration><![CDATA[METHOD InitWorkerCamera
 VAR_INPUT
   pAdsIf  : POINTER TO ST_ADS_CAMERA;
+  iDefGridParamMediator : I_ParamMediator;
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[_pAdsCam := pAdsIf;]]></ST>
+        <ST><![CDATA[IF NOT bInitialized OR _iWorkerParams.pCTManager = 0 THEN LogError('Base Worker not initialized! call init() before'); RETURN; END_IF
+IF pAdsIf = 0 THEN bInitialized := FALSE; LogError('Invalid parameter, no valid ads interface camera'); RETURN; END_IF
+IF iDefGridParamMediator = 0 THEN bInitialized := FALSE; LogError('Invalid parameter, no valid param mediator'); RETURN; END_IF
+
+_pAdsCam := pAdsIf;
+_iParamMediator := iDefGridParamMediator;]]></ST>
       </Implementation>
     </Method>
     <Method Name="is_linecam" Id="{75d58c77-ff64-480b-987c-b901e93de9a9}">
@@ -561,6 +567,7 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.AddCamPoint">
       <LineId Id="51" Count="0" />
+      <LineId Id="58" Count="0" />
       <LineId Id="13" Count="0" />
       <LineId Id="15" Count="0" />
       <LineId Id="25" Count="0" />
@@ -625,7 +632,6 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.Init">
       <LineId Id="3" Count="0" />
-      <LineId Id="87" Count="0" />
       <LineId Id="86" Count="0" />
       <LineId Id="113" Count="0" />
       <LineId Id="78" Count="1" />
@@ -643,8 +649,12 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="40" Count="0" />
       <LineId Id="39" Count="0" />
     </LineIds>
-    <LineIds Name="FB_WorkerDefGrid_Camera.InitAds">
+    <LineIds Name="FB_WorkerDefGrid_Camera.InitWorkerCamera">
+      <LineId Id="20" Count="0" />
+      <LineId Id="17" Count="1" />
+      <LineId Id="16" Count="0" />
       <LineId Id="5" Count="0" />
+      <LineId Id="21" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.is_linecam">
       <LineId Id="5" Count="0" />

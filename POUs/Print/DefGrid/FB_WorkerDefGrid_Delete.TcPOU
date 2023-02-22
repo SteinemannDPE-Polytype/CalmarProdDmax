@@ -62,9 +62,9 @@ END_VAR
         <ST><![CDATA[IF SUPER^.Release(iCT := iCT) THEN
   
   // it's the last worker so distroy attached CT
-  IF _pCtManager <> 0 THEN
+  IF _iWorkerParams.pCTManager <> 0 THEN
     LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('DestroyCT: ', TO_STRING(iCT.pCT^.iId)));
-    _pCtManager^.DestroyCT(iCT:=iCT);
+    _iWorkerParams.pCTManager^.DestroyCT(iCT:=iCT);
   END_IF
   
 END_IF]]></ST>
@@ -76,9 +76,9 @@ END_IF]]></ST>
         <ST><![CDATA[SUPER^.work();
 
 //Worker position update
-IF _iParamMediator <> 0 AND _pAttachedCt = 0 THEN     // Update only without attached container
+IF _iWorkerParams <> 0 AND _pAttachedCt = 0 THEN     // Update only without attached container
   // WorkerPosition =  Worker<-PU<-CAM<-SheetDetect
-  fPosition := _fWorkerToPu + _iParamMediator.fMasterDetectToRefPos;
+  fPosition := _fWorkerToPu + _iWorkerParams.fDetectToRefPos;
 END_IF
 
 IF _pAttachedCt <> 0 THEN
@@ -113,12 +113,7 @@ END_IF]]></ST>
       <LineId Id="15" Count="2" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Delete.work">
-      <LineId Id="10" Count="0" />
-      <LineId Id="47" Count="4" />
-      <LineId Id="46" Count="0" />
-      <LineId Id="44" Count="0" />
-      <LineId Id="31" Count="0" />
-      <LineId Id="34" Count="0" />
+      <LineId Id="52" Count="9" />
       <LineId Id="45" Count="0" />
     </LineIds>
   </POU>

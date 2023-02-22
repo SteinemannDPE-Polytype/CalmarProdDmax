@@ -10,6 +10,8 @@ END_VAR
 VAR
   // interface to py script
   fbPythonInterface : FB_PythonInterface;
+  // references
+  _iParamMediator : I_ParamMediator;
   
   // local copy of setttings
   _bNewJob : BOOL;  // new job was activated
@@ -40,9 +42,6 @@ END_VAR
       <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
 VAR_INPUT
   iCT              : I_CT;                         (*container at triggered event position*)
-END_VAR
-VAR
-  sCamSettings : ST_CameraGridSettings;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[Attach := FALSE;
@@ -134,15 +133,14 @@ END_IF]]></ST>
     <Method Name="Init" Id="{f68f2ec1-c6b3-4670-a09a-c2c908e7b5dc}">
       <Declaration><![CDATA[METHOD Init
 VAR_INPUT
-  pCtManager : POINTER TO FB_CTManagerDefGrid;   // CTManager
-  iParamMediator : I_ParamMediator;
+  iWorkerParams : I_WorkerParams;
   pMsgConfig : POINTER TO ST_MSG_CONFIG;         // message config
   fPrintResolution : LREAL := 1;                 // print(head) resolution in [dpi]
   fSubPxResolution : LREAL := 1;                 // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[SUPER^.Init(pCtManager:=pCtManager, iParamMediator:=iParamMediator, pMsgConfig:=pMsgConfig, fPrintResolution:=fPrintResolution, fSubPxResolution:=fSubPxResolution);
+        <ST><![CDATA[SUPER^.Init(iWorkerParams:=iWorkerParams, pMsgConfig:=pMsgConfig, fPrintResolution:=fPrintResolution, fSubPxResolution:=fSubPxResolution);
 
 // Init messages
 fbMsg_PythonNotRunning.pI_MsgConfig := _pMsgConfigExt;
@@ -154,16 +152,19 @@ fbMsg_PythonNotRunning.iI_MsgNumber := eC_DMAX_DEF_SCRIPT_NOT_RUNNING;]]></ST>
       <Declaration><![CDATA[METHOD InitWorkerPython
 VAR_INPUT
   aScriptPath : T_MaxString;                     // path to cmd scripts
-  //aAmsLocalHost : T_AmsNetID;                    // Ams netId localhost of the pc to run the script 
+  //aAmsLocalHost : T_AmsNetID;                    // Ams netId localhost of the pc to run the script
+  iDefGridParamMediator : I_ParamMediator;
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF NOT bInitialized OR _pCtManager = 0 THEN LogError('Base Worker not initialized! call init() before'); RETURN; END_IF
+        <ST><![CDATA[IF NOT bInitialized OR _iWorkerParams.pCTManager = 0 THEN LogError('Base Worker not initialized! call init() before'); RETURN; END_IF
+IF iDefGridParamMediator = 0 THEN bInitialized := FALSE; LogError('Invalid parameter, no valid param mediator'); RETURN; END_IF
 
 // worker specific init
+_iParamMediator := iDefGridParamMediator;
 
 fbPythonInterface.Init(
-  sCTManagerPath := _pCtManager^.sCTDefGridInstancesPath, 
+  sCTManagerPath := _iWorkerParams.pCTManager^.sCTDefGridInstancesPath, 
   sScriptPath:=aScriptPath
 );]]></ST>
       </Implementation>
@@ -184,7 +185,6 @@ _aJobName := sJobDef.aJobName;
 _aJobGuid := sJobDef.aJobId;
 _fImageDepthM := sJobDef.fImageDepth/1000;
 _fImageWidthM := sJobDef.fImageWidth/1000;
-_fCtSecurityReleasePos := F_MeterToSubPixel(fPosMeter:=_fImageDepthM + fC_MIN_SHEET_GAP, fResoSubPx:=_fPrintResolution*_fSubPxResolution);
 
 _bNewJob := TRUE;
 _bJobActive := TRUE;]]></ST>
@@ -218,13 +218,12 @@ END_VAR
       <Implementation>
         <ST><![CDATA[SUPER^.work();
 
-IF _iParamMediator <> 0 THEN
-   // -- get latest camera & deformation settings
-  _CamGridSettings := _iParamMediator.sCameraGridSettings;
-  _DefGridSettings := _iParamMediator.sDeformationGridSetttings;
-END_IF
+IF _iParamMediator <> 0 THEN F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); RETURN; END_IF
+_CamGridSettings := _iParamMediator.sCameraGridSettings;
+_DefGridSettings := _iParamMediator.sDeformationGridSetttings;
 
-IF _bNewJob OR rT_EnablePyIf.Q THEN   // new job activated or ente
+// reconfig script after job started (Mediator parameter are defined in JobStart())
+IF _bNewJob OR rT_EnablePyIf.Q THEN   // new job activated or re-enabled
   _bNewJob := FALSE;
   
   // setup script
@@ -297,13 +296,16 @@ IF fbMsg_PythonNotRunning.bMsgAck THEN fbPythonInterface.ackError(); END_IF]]></
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Python.InitWorkerPython">
       <LineId Id="54" Count="0" />
-      <LineId Id="57" Count="0" />
-      <LineId Id="71" Count="1" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="82" Count="1" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="72" Count="0" />
       <LineId Id="29" Count="0" />
       <LineId Id="43" Count="2" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Python.mJobStart">
-      <LineId Id="153" Count="11" />
+      <LineId Id="153" Count="8" />
+      <LineId Id="163" Count="1" />
       <LineId Id="81" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Python.mJobStop">
@@ -314,8 +316,9 @@ IF fbMsg_PythonNotRunning.bMsgAck THEN fbPythonInterface.ackError(); END_IF]]></
       <LineId Id="7" Count="0" />
       <LineId Id="266" Count="0" />
       <LineId Id="265" Count="0" />
-      <LineId Id="269" Count="1" />
-      <LineId Id="267" Count="1" />
+      <LineId Id="351" Count="0" />
+      <LineId Id="350" Count="0" />
+      <LineId Id="349" Count="0" />
       <LineId Id="254" Count="0" />
       <LineId Id="220" Count="0" />
       <LineId Id="226" Count="0" />

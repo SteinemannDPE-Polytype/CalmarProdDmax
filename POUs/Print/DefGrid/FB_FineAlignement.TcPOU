@@ -401,7 +401,7 @@ END_VAR
         <ST><![CDATA[_fPxResolution := fPxReso;
 _y_max         := fPuWidth * 1000;  // -> [mm]
 _pAdsCam       := pAdsCam;
-IF _pAdsCam = 0 THEN LogError('Call InitAds() before, ads interface unknown'); END_IF
+IF _pAdsCam = 0 THEN LogError('missing _pAdsCam, ads interface unknown, call worker specific init before'); END_IF
 
 // PU Deformation
 _fbPUCorrPoints[1].init(aName:='P1', aUnit:='mm', fX_Min:=-5, fX_Max:=5, fY_Min:=-5, fY_Max:=5, fIncrStep:=0.05, 

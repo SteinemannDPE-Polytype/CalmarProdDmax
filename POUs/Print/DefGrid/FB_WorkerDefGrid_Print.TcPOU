@@ -19,7 +19,9 @@ VAR_OUTPUT
 END_VAR
 
 VAR
-  _bNewJob           : BOOL;
+  // references
+  _iParamMediator : I_ParamMediator;
+    
   sDefGridSettings   : ST_DefGridSettings;  
   fCurrentColumnPos  : LREAL; // Currently column position
   fCurrentPreCharge  : LREAL; // Currently to be precharged
@@ -80,7 +82,7 @@ VAR CONSTANT
   fC_START_SHIFT_OFFSET    : LREAL := -1.0E-2;
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[IF _iParamMediator = 0 THEN RETURN; F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); END_IF
+      <ST><![CDATA[IF _iWorkerParams = 0 THEN RETURN; F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); END_IF
 
 //TODO Add error/warnings
 bError := FALSE;
@@ -89,9 +91,9 @@ nError := 0;
 fbDropSpeedComp(fMasterSpeed:=fMasterSpeed, fDropTravelDistance:=fPUElevation);
 
 //Start offset update
-IF _fPrintStartOffset <> (fPrintStartOffset + _iParamMediator.fMasterDetectToRefPos) THEN //Worker position changed
+IF _fPrintStartOffset <> (fPrintStartOffset + _iWorkerParams.fDetectToRefPos) THEN //Worker position changed
   IF _pAttachedCt = 0 THEN //Update only without attached container
-    _fPrintStartOffset :=fPrintStartOffset + _iParamMediator.fMasterDetectToRefPos;
+    _fPrintStartOffset :=fPrintStartOffset + _iWorkerParams.fDetectToRefPos;
 	END_IF
 END_IF
 
@@ -159,6 +161,11 @@ IF SUPER^.Attach(iCT:=iCT) THEN
   
   
   //Prepare print station
+  sDefGridSettings := _pAttachedCt^.sDefGridSettings;
+  // fix some potential errors
+  IF sDefGridSettings.nGridPitchX = 0 THEN sDefGridSettings.nGridPitchX :=1024; LogError(F_concat2('grid not configured, set default nGridPitchX=',TO_STRING(sDefGridSettings.nGridPitchX))); END_IF
+  IF sDefGridSettings.nGridPitchY = 0 THEN sDefGridSettings.nGridPitchY :=1024; LogError(F_concat2('grid not configured, set default nGridPitchY=',TO_STRING(sDefGridSettings.nGridPitchY))); END_IF
+  
   fbPs.bPrintEnable := iCT.bValid AND iCT.bProductPresent;
   fbPs.setGrid(sGrid:=sDefGridSettings);
   nChargedColumns := 0;
@@ -371,6 +378,7 @@ END_IF
 IF fCurrentColumnPos + _fColumnsToPrecharge > nChargedColumns AND nChargedColumns <= sDefGridSettings.nGridSizeX THEN
   IF bEnableDeformation THEN 
     // sync deformation points
+    {warning 'TODO FIX: WHILE'}
     fCurrentPreCharge := fCurrentColumnPos + _fColumnsToPrecharge;
     WHILE FLOOR(fCurrentPreCharge) > nChargedColumns AND nChargedColumns <= sDefGridSettings.nGridSizeX DO
       nAvailPoints := _pAttachedCt^.nAvailableGridPoints;
@@ -462,6 +470,7 @@ _bMsgInitialized := TRUE;]]></ST>
       <Declaration><![CDATA[METHOD InitWorkerPrint : BOOL
 VAR_INPUT
   pAdsIfCam         : POINTER TO ST_ADS_CAMERA;   // provide camera access
+  iDefGridParamMediator : I_ParamMediator;
   fPrintUnitWidth   : LREAL;     // print unit width [m]
   fLimitCorrectionX : LREAL;     // correction limit in y (abs) [px]
   fLimitCorrectionY : LREAL;     // correction limit in y (abs) [px]
@@ -469,10 +478,12 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF NOT bInitialized THEN LogError('Base Worker not initialized! call init() before'); RETURN; END_IF
-IF pAdsIfCam = 0 THEN LogError('Not valid Ads camera interface provided'); RETURN; END_IF
+IF pAdsIfCam = 0 THEN bInitialized := FALSE; LogError('Not valid Ads camera interface provided'); RETURN; END_IF
+IF iDefGridParamMediator = 0 THEN bInitialized := FALSE; LogError('Invalid parameter, no valid param mediator'); RETURN; END_IF
 
 // worker specific init
 _pAdsCam := pAdsIfCam;
+_iParamMediator := iDefGridParamMediator;
 
 //Print Aggregate
 _fPrintUnitWidth   := fPrintUnitWidth;
@@ -493,11 +504,13 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF NOT bWorkerEnable THEN RETURN; END_IF  // only if enabled
+        <ST><![CDATA[// Config workers static variables
+_fCtSecurityReleasePos := F_MeterToSubPixel(fPosMeter:=sJobDef.fImageDepth/1000 + fC_MIN_SHEET_GAP, fResoSubPx:=_fPrintResolution*_fSubPxResolution);
+
+IF NOT bWorkerEnable THEN RETURN; END_IF  // only if enabled
 
 fbPa.jobStart();
 
-_bNewJob := TRUE;
 _bJobActive := TRUE;
 
 // set correction ref points
@@ -598,15 +611,6 @@ END_VAR
       <Implementation>
         <ST><![CDATA[SUPER^.work();
 
-(*new job attached*)
-IF _iParamMediator <> 0 AND _bNewJob THEN
-  _bNewJob := FALSE;
-  sDefGridSettings := _iParamMediator.sDeformationGridSetttings;
-  // fix some potential errors
-  IF sDefGridSettings.nGridPitchX = 0 THEN sDefGridSettings.nGridPitchX :=1024; LogError(F_concat2('grid not configured, set default nGridPitchX=',TO_STRING(sDefGridSettings.nGridPitchX))); END_IF
-  IF sDefGridSettings.nGridPitchY = 0 THEN sDefGridSettings.nGridPitchY :=1024; LogError(F_concat2('grid not configured, set default nGridPitchY=',TO_STRING(sDefGridSettings.nGridPitchY))); END_IF
-END_IF
-
 (*PU deformation*)
 IF GVL_Deformation.bC_UsePUDeformation THEN
   fbFineAlignement.fT_PL1 := fPUPlate1_Temperature;
@@ -636,6 +640,8 @@ IF _pAttachedCt <> 0 AND bWorkerEnable THEN // Work only with attached container
 
   // Grid update
   bDeformErr := _pAttachedCt^.getDeformationStatus(eDStep=>nDeformStep);
+  {warning 'TODO: re-enable gridUpdate()'}
+(*
   IF NOT bDeformErr AND nDeformStep >= E_DeformationStep.gridStarted AND NOT _bForceDefGridOff THEN 
     IF NOT gridUpdate(bEnableDeformation:=TRUE) THEN
       _pAttachedCt^.AbortDeformation(sReason:='WorkerPrint: deformation point update failed', Src:=_pEcSrc^);
@@ -644,7 +650,7 @@ IF _pAttachedCt <> 0 AND bWorkerEnable THEN // Work only with attached container
     // not started or error already --> erase deformation points
     gridUpdate(bEnableDeformation:=FALSE);
   END_IF  
-  
+*)  
   // PA control
   IF _bPaStartRequested THEN
     IF fbPa.bPrinting THEN
@@ -728,6 +734,7 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="167" Count="0" />
       <LineId Id="162" Count="0" />
       <LineId Id="168" Count="1" />
+      <LineId Id="300" Count="4" />
       <LineId Id="45" Count="1" />
       <LineId Id="43" Count="0" />
       <LineId Id="147" Count="0" />
@@ -835,6 +842,7 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="166" Count="0" />
       <LineId Id="249" Count="0" />
       <LineId Id="167" Count="3" />
+      <LineId Id="295" Count="0" />
       <LineId Id="250" Count="0" />
       <LineId Id="171" Count="5" />
       <LineId Id="214" Count="0" />
@@ -867,9 +875,11 @@ fB_PcAdapter.LogLevel := LogLevel;
     <LineIds Name="FB_WorkerDefGrid_Print.InitWorkerPrint">
       <LineId Id="7" Count="0" />
       <LineId Id="29" Count="0" />
+      <LineId Id="57" Count="0" />
       <LineId Id="45" Count="0" />
       <LineId Id="15" Count="0" />
       <LineId Id="47" Count="0" />
+      <LineId Id="58" Count="0" />
       <LineId Id="10" Count="1" />
       <LineId Id="36" Count="0" />
       <LineId Id="20" Count="0" />
@@ -880,11 +890,12 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="48" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.mJobStart">
+      <LineId Id="88" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="86" Count="0" />
       <LineId Id="43" Count="0" />
       <LineId Id="53" Count="0" />
-      <LineId Id="34" Count="0" />
-      <LineId Id="48" Count="0" />
-      <LineId Id="35" Count="0" />
+      <LineId Id="34" Count="1" />
       <LineId Id="22" Count="0" />
       <LineId Id="59" Count="0" />
       <LineId Id="68" Count="0" />
@@ -925,7 +936,11 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="33" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.work">
-      <LineId Id="345" Count="76" />
+      <LineId Id="427" Count="0" />
+      <LineId Id="345" Count="0" />
+      <LineId Id="356" Count="28" />
+      <LineId Id="435" Count="1" />
+      <LineId Id="385" Count="36" />
       <LineId Id="10" Count="0" />
     </LineIds>
   </POU>

@@ -47,6 +47,9 @@ Fribourg/Switzerland (2021)</Description>
     <Compile Include="DUTs\Camera\E_CameraMode.TcDUT">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="DUTs\Camera\E_DeformationType.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="DUTs\Camera\ST_ADS_CAMERA.TcDUT">
       <SubType>Code</SubType>
     </Compile>
@@ -301,6 +304,9 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\Print\DefGrid\I_ProdManager.TcIO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Print\DefGrid\I_WorkerParams.TcIO">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\Print\DefGrid\ST_CameraGridSettings.TcDUT">

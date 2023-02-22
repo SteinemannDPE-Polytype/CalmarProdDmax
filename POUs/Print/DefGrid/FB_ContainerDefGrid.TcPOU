@@ -55,6 +55,17 @@ fBImageDeformation.nProcessId := THIS^.pCT^.iId;
 ]]></ST>
       </Implementation>
     </Method>
+    <Property Name="eCamMode" Id="{908be121-4ce8-47bc-b894-67ea1d9badcb}">
+      <Declaration><![CDATA[PROPERTY eCamMode : E_CameraMode]]></Declaration>
+      <Get Name="Get" Id="{4771b49c-2100-4b65-8c92-af55ada05f98}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[eCamMode := fBImageDeformation.eCamMode;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
     <Property Name="fDxShift" Id="{f4b62b6e-2ae9-4fbc-b999-716d94294e90}">
       <Declaration><![CDATA[(*
   Shift in x [SubPx]
@@ -175,14 +186,6 @@ END_VAR
           <ST><![CDATA[sDefGridSettings := fBImageDeformation.sDefGridSettings;]]></ST>
         </Implementation>
       </Get>
-      <Set Name="Set" Id="{f3c77bb0-91d2-48af-bba1-f099e412f5dd}">
-        <Declaration><![CDATA[VAR
-END_VAR
-]]></Declaration>
-        <Implementation>
-          <ST><![CDATA[fBImageDeformation.sDefGridSettings := sDefGridSettings;]]></ST>
-        </Implementation>
-      </Set>
     </Property>
     <Method Name="StartCamera" Id="{fa9cfc27-a9f9-4b08-a02d-72b82e2069db}">
       <Declaration><![CDATA[METHOD StartCamera
@@ -200,9 +203,11 @@ fBImageDeformation.eStep := E_DeformationStep.cameraStarted;]]></ST>
     <Method Name="StartDeformation" Id="{9e341afe-e643-4f6d-8b0c-fa3d83df99bb}">
       <Declaration><![CDATA[METHOD StartDeformation
 VAR_INPUT
+  sDefGridSettings : ST_DefGridSettings;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[fBImageDeformation.startDeformation(
+        <ST><![CDATA[fBImageDeformation.sDefGridSettings := sDefGridSettings;
+fBImageDeformation.startDeformation(
   fStartDefPos:=DINT_TO_LREAL(GetPos(nPosDomain:=E_PosDomain.pos_px))    // reference position at current position [Px]
 );]]></ST>
       </Implementation>
@@ -213,8 +218,8 @@ VAR_INPUT
   iDeformationHandler : I_DeformationHandler;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[fBImageDeformation.eStep := E_DeformationStep.createdScriptContainer;
-fBImageDeformation.iDeformationHandler := iDeformationHandler;]]></ST>
+        <ST><![CDATA[fBImageDeformation.iDeformationHandler := iDeformationHandler;
+fBImageDeformation.eStep := E_DeformationStep.createdScriptContainer;]]></ST>
       </Implementation>
     </Method>
     <Method Name="StopScript" Id="{eb4b604b-26be-4db7-b553-a71f9287a6bd}">
@@ -247,6 +252,9 @@ END_IF]]></ST>
       <LineId Id="11" Count="0" />
       <LineId Id="29" Count="0" />
     </LineIds>
+    <LineIds Name="FB_ContainerDefGrid.eCamMode.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
     <LineIds Name="FB_ContainerDefGrid.fDxShift.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
@@ -273,21 +281,19 @@ END_IF]]></ST>
     <LineIds Name="FB_ContainerDefGrid.sDefGridSettings.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_ContainerDefGrid.sDefGridSettings.Set">
-      <LineId Id="2" Count="0" />
-    </LineIds>
     <LineIds Name="FB_ContainerDefGrid.StartCamera">
       <LineId Id="80" Count="1" />
       <LineId Id="75" Count="0" />
       <LineId Id="86" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.StartDeformation">
+      <LineId Id="97" Count="0" />
       <LineId Id="91" Count="1" />
       <LineId Id="88" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.StartScript">
+      <LineId Id="14" Count="0" />
       <LineId Id="10" Count="0" />
-      <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.StopScript">
       <LineId Id="3" Count="2" />

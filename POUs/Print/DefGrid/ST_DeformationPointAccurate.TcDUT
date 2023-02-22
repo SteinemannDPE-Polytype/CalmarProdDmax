@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <DUT Name="ST_DeformationPointAccurate" Id="{710a54f1-a28e-4db9-97af-e2a748aa8661}">
     <Declaration><![CDATA[TYPE ST_DeformationPointAccurate :
 STRUCT
   index         : DINT := 0;      (*ID*)
-  x_ref         : LREAL := 0;     (*Referenz x deviation [px]*)
-  y_ref         : LREAL := 0;     (*Referenz y deviation [px]*)
+  x_ref         : LREAL := 0;     (*Referenz x [px]*)
+  y_ref         : LREAL := 0;     (*Referenz y [px]*)
   dx            : LREAL := 0;     (*x deviation [px]*)
   dy            : LREAL := 0;     (*y deviation [px]*)
   col           : DINT := 0;      (*point definition*)

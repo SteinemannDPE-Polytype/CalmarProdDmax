@@ -3,39 +3,6 @@
   <Itf Name="I_ParamMediator" Id="{44f2ddfb-07a7-4305-bf98-9eca0b2e7285}">
     <Declaration><![CDATA[INTERFACE I_ParamMediator
 ]]></Declaration>
-    <Property Name="fCameraToPrintOffset" Id="{89859152-e725-4920-abf7-677c2007ee9c}">
-      <Declaration><![CDATA[{attribute 'monitoring':='call'}
-PROPERTY fCameraToPrintOffset : LREAL]]></Declaration>
-      <Get Name="Get" Id="{2fc6b5ef-b27a-4835-a6b5-a72f5d7d8629}">
-        <Declaration><![CDATA[]]></Declaration>
-      </Get>
-    </Property>
-    <Property Name="fDetectToCamera" Id="{11ad5319-cf27-4b8b-81be-9a27f3c64a75}">
-      <Declaration><![CDATA[{attribute 'monitoring':='call'}
-PROPERTY fDetectToCamera : LREAL]]></Declaration>
-      <Get Name="Get" Id="{478f1e90-b6a4-4e92-9b77-809f2c0ab59d}">
-        <Declaration><![CDATA[]]></Declaration>
-      </Get>
-    </Property>
-    <Property Name="fMasterDetectToRefPos" Id="{c872806f-01d3-44f9-baa0-4643b95ecb2c}">
-      <Declaration><![CDATA[(*
-  Distance (Offset) from Master-Trigger to Master Reference Position.
-  NOTE: This is normally the distance between the first (MASTER) StartPosDetection to first print Module (Printing Unit) 
-*)
-PROPERTY fMasterDetectToRefPos : LREAL]]></Declaration>
-      <Get Name="Get" Id="{2ffe41b5-235e-45e6-a44a-44363033cc23}">
-        <Declaration><![CDATA[]]></Declaration>
-      </Get>
-    </Property>
-    <Method Name="init" Id="{9b7c392c-bc43-4afa-b5f3-a650552ff470}">
-      <Declaration><![CDATA[METHOD init
-VAR_INPUT
-  pCreateWorker : POINTER TO FB_WorkerDefGrid_Python;
-  pCamWorker : POINTER TO FB_WorkerDefGrid_Camera;
-  pDefWorker : POINTER TO FB_WorkerDefGrid_Deformation;
-END_VAR
-]]></Declaration>
-    </Method>
     <Property Name="sCameraGridSettings" Id="{f28e61e7-9fce-4611-bc89-520b4efc0649}">
       <Declaration><![CDATA[PROPERTY sCameraGridSettings : ST_CameraGridSettings]]></Declaration>
       <Get Name="Get" Id="{fa4b007d-6456-4d0f-9d70-1d8af69098e5}">

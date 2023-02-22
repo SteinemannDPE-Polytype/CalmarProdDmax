@@ -23,7 +23,7 @@ VAR
   _sDefGridSettings  : ST_DefGridSettings;  // local copy of settings
   _sDefGridPoints    : ARRAY[0..100, 0..100] OF ST_DeformationPointTbl; // [col, row] local grid point table
   _nGridPoints       : UDINT;               // stored and available grid points
-  _nGridCols         : UDINT;
+  _nGridCols         : UDINT;               // count current complete grid columns
   
   // local XYR handler
   _nLocalGridColsGenerated: UDINT;          // already generated "local" grid columns XYR [0..x]
@@ -59,9 +59,6 @@ IF bUsePy THEN
   WHILE PopDeformationPoint(sNewPoint=>_sTempPoint) DO
     storeDeformationPoint(sPoint:=_sTempPoint);    // save point to table
   END_WHILE
-  
-ELSE
-  ;// ExecLocal();    // call local deformation handlers 
 END_IF
 ]]></ST>
     </Implementation>
@@ -149,9 +146,7 @@ END_VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[// Only use py script in case of live and trend
-//   XYR uses local handler, Auto should never be set here
-IF _eCameraMode=E_CameraMode.Live OR _eCameraMode = E_CameraMode.Trend THEN
+          <ST><![CDATA[IF _sDefGridSettings.eDeformationType=E_DeformationType.ScriptGrid OR _sDefGridSettings.eDeformationType = E_DeformationType.ScriptGridTrend THEN
   bUsePy := TRUE;
 END_IF ]]></ST>
         </Implementation>
@@ -482,11 +477,13 @@ VAR
   fPosRel_CamFeature  : LREAL;    // theoretical feature position [feature nr](based on StartDeformation NOT real on camera)
   fPosRel_GridCol     : LREAL;    // current deformation grid number [grid nr]
   sPoint : ST_DeformationPoint;
+  nCurrentCol, nCurrentFeature : UDINT;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[// cyclic call and update deformation script
 // - parameter checks
 IF eStep < E_DeformationStep.gridStarted THEN RETURN; END_IF  // nothing to do if deformation was not started
+IF _sDefGridSettings.nGridSizeX = 0 THEN RETURN; END_IF
 IF fFeatureGrid = 0 THEN fFeatureGrid := 1024; END_IF         // set some valid default (prevents division crash)
 
 // - calc relative Deformation position
@@ -499,6 +496,10 @@ IF _nCamPoints > 2 AND
    //FLOOR(fPosRel_GridCol) > _nUpdatedGridCol        // by Grid Pitch  // AND _nUpdatedGridCol <= _sDefGridSettings.nGridSizeX
    FLOOR(fPosRel_CamFeature) > _nUpdatedFeature   // by CameraFeature pitch 2048
 THEN
+
+  nCurrentCol := TO_UDINT(FLOOR(fPosRel_GridCol));;
+  nCurrentFeature :=  TO_UDINT(FLOOR(fPosRel_CamFeature));
+
   // debug info
   LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=
     F_Concat5(
@@ -506,48 +507,46 @@ THEN
         F_Concat2(' CamP: ', TO_STRING(_nCamPoints)),
         F_Concat2(' maxX: ', TO_STRING(_nCamPoint_MaxRefX)),
         F_Concat2(' GridP: ', TO_STRING(_nGridPoints)),
-        F_Concat2(' atCol: ', TO_STRING(FLOOR(fPosRel_GridCol)))
+        F_Concat2(' atCol: ', TO_STRING(nCurrentCol))
     )
   );
 
   // - update Grid (py or local) with desired position
   IF bUsePy THEN
     UpdatePy(fPosition:=fPosRel_Deform);
-  ELSE
-    UpdateLocal(fPosition:=fPosRel_Deform);
+  ELSIF _sDefGridSettings.eDeformationType = E_DeformationType.LocalMarks1D THEN
+    UpdateLocal_1D_Marks(nGridCol:=nCurrentCol, nFeatureCt:=nCurrentFeature);
   END_IF
 
-  _nUpdatedGridCol := TO_UDINT(FLOOR(fPosRel_GridCol));
-  _nUpdatedFeature := TO_UDINT(FLOOR(fPosRel_CamFeature));
+  _nUpdatedGridCol := nCurrentCol;
+  _nUpdatedFeature := nCurrentFeature;
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="UpdateLocal" Id="{fad2ef48-fad2-4c52-b1ee-769494717330}">
-      <Declaration><![CDATA[METHOD PRIVATE UpdateLocal : BOOL
+    <Method Name="UpdateLocal_1D_Marks" Id="{fad2ef48-fad2-4c52-b1ee-769494717330}">
+      <Declaration><![CDATA[METHOD PRIVATE UpdateLocal_1D_Marks : BOOL
 VAR_INPUT
-  fPosition : LREAL;
+  nGridCol : UDINT;
+  nFeatureCt : UDINT;
 END_VAR
 VAR
-  row, col, pos_col, ct : UDINT;
+  row, col, ct : UDINT;
   sTmpPoint : ST_DeformationPointAccurate;
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF _sDefGridSettings.nGridSizeX = 0 THEN RETURN; END_IF
-
-// position column
-pos_col := TO_UDINT(fPosition / _sDefGridSettings.nGridPitchX);  // (floor) current column
-
-{warning 'TODO: implement XYR correction'}
+        <ST><![CDATA[
+ 
+{warning 'TODO: implement MarkCorrection 1D correction, linear interpolation'}
 // based on the update position generate grid coulumns
-FOR col:=_nLocalGridColsGenerated TO pos_col DO
+FOR col:=_nLocalGridColsGenerated TO nGridCol DO
   FOR row:=0 TO _sDefGridSettings.nGridSizeY (*-1*) DO
     // - calculate x/y shift and rotation based on available CamPoints
     sTmpPoint.index := TO_DINT(col * _sDefGridSettings.nGridSizeY + row);
-    //sTmpPoint.x_ref := ;
-    //sTmpPoint.y_ref := ;
-    //sTmpPoint.dx    := ;
-    //sTmpPoint.dy    := ;
+    sTmpPoint.x_ref := 0;
+    sTmpPoint.y_ref := 0;
+    sTmpPoint.dx    := 0.1*TO_LREAL(col+row);
+    sTmpPoint.dy    := 0.2*TO_LREAL(col+row);
     sTmpPoint.col   := TO_DINT(col);
     sTmpPoint.row   := TO_DINT(row);
     sTmpPoint.valid := TRUE;
@@ -556,7 +555,15 @@ FOR col:=_nLocalGridColsGenerated TO pos_col DO
   ct := ct + 1;
 END_FOR
 _nLocalGridColsGenerated := _nLocalGridColsGenerated + ct;
-]]></ST>
+
+// set state variables which would be updated in PyUpdate/PyExed
+_tExecutionTime := T#0S;
+_nErrorId := 0;
+bPythonError := FALSE;
+bPythonBusy := SEL(_nGridPoints >= _sDefGridSettings.nGridPoints, TRUE, FALSE); // all points generated
+//bPythonBusy := SEL(_nGridCols   >= _sDefGridSettings.nGridSizeX,  TRUE, FALSE);  // all columns generated
+
+bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       </Implementation>
     </Method>
     <LineIds Name="FB_ImageDeformation">
@@ -570,9 +577,6 @@ _nLocalGridColsGenerated := _nLocalGridColsGenerated + ct;
       <LineId Id="291" Count="0" />
       <LineId Id="289" Count="1" />
       <LineId Id="287" Count="0" />
-      <LineId Id="292" Count="0" />
-      <LineId Id="283" Count="0" />
-      <LineId Id="286" Count="0" />
       <LineId Id="285" Count="0" />
       <LineId Id="273" Count="0" />
     </LineIds>
@@ -605,10 +609,8 @@ _nLocalGridColsGenerated := _nLocalGridColsGenerated + ct;
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.bUsePy.Get">
-      <LineId Id="7" Count="1" />
-      <LineId Id="2" Count="0" />
-      <LineId Id="6" Count="0" />
-      <LineId Id="5" Count="0" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="11" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.eCamMode.Get">
       <LineId Id="2" Count="0" />
@@ -730,27 +732,25 @@ _nLocalGridColsGenerated := _nLocalGridColsGenerated + ct;
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.updateDeformation">
-      <LineId Id="215" Count="34" />
+      <LineId Id="215" Count="2" />
+      <LineId Id="273" Count="0" />
+      <LineId Id="218" Count="11" />
+      <LineId Id="271" Count="0" />
+      <LineId Id="270" Count="0" />
+      <LineId Id="272" Count="0" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="230" Count="17" />
+      <LineId Id="269" Count="0" />
+      <LineId Id="249" Count="0" />
       <LineId Id="52" Count="0" />
     </LineIds>
-    <LineIds Name="FB_ImageDeformation.UpdateLocal">
-      <LineId Id="36" Count="0" />
-      <LineId Id="39" Count="0" />
-      <LineId Id="37" Count="0" />
-      <LineId Id="35" Count="0" />
-      <LineId Id="42" Count="0" />
-      <LineId Id="34" Count="0" />
-      <LineId Id="11" Count="0" />
-      <LineId Id="38" Count="0" />
-      <LineId Id="16" Count="0" />
-      <LineId Id="19" Count="0" />
-      <LineId Id="24" Count="0" />
-      <LineId Id="27" Count="6" />
-      <LineId Id="25" Count="0" />
-      <LineId Id="20" Count="0" />
-      <LineId Id="40" Count="0" />
-      <LineId Id="15" Count="0" />
-      <LineId Id="41" Count="0" />
+    <LineIds Name="FB_ImageDeformation.UpdateLocal_1D_Marks">
+      <LineId Id="154" Count="0" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="126" Count="17" />
+      <LineId Id="168" Count="5" />
+      <LineId Id="175" Count="0" />
+      <LineId Id="174" Count="0" />
       <LineId Id="13" Count="0" />
     </LineIds>
   </POU>

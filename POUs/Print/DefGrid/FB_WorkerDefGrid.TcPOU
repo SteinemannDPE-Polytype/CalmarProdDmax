@@ -8,8 +8,7 @@ VAR_OUTPUT
 END_VAR
 VAR
   // config
-  _pCtManager       : POINTER TO FB_CTManagerDefGrid;  // CT Manager reference
-  _iParamMediator   : I_ParamMediator;
+  _iWorkerParams    : I_WorkerParams;
   _pMsgConfigExt    : POINTER TO ST_MSG_CONFIG;        // external message config (puc message interface)
   _nTrackPosDomain  : E_PosDomain;    // Tracking position domain 
   _fPrintResolution : LREAL := 1;     // print(head) resolution in [dpi]
@@ -151,9 +150,11 @@ VAR_OUTPUT
   pCT              : POINTER TO FB_ContainerDefGrid;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[pCT := 0;
-IF _pCtManager <> 0 THEN
-  getCtInst := _pCtManager^.GetContainerInstance(iCT);   // get real ct fb inst
+        <ST><![CDATA[IF NOT bInitialized THEN RETURN; END_IF
+
+pCT := 0;
+IF _iWorkerParams.pCTManager <> 0 THEN
+  getCtInst := _iWorkerParams.pCTManager^.GetContainerInstance(iCT);   // get real ct fb inst
   IF getCtInst <> 0 THEN
     pCT := getCtInst;   // OK all good
   ELSE
@@ -167,24 +168,24 @@ END_IF]]></ST>
     <Method Name="Init" Id="{9892d34e-806e-432a-b876-226a7f31ec11}">
       <Declaration><![CDATA[METHOD Init
 VAR_INPUT
-  pCtManager : POINTER TO FB_CTManagerDefGrid;   // CTManager
-  iParamMediator : I_ParamMediator;
+  iWorkerParams : I_WorkerParams;
   pMsgConfig : POINTER TO ST_MSG_CONFIG;         // message config
   fPrintResolution : LREAL := 1;                 // print(head) resolution in [dpi]
   fSubPxResolution : LREAL := 1;                 // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
 END_VAR
-]]></Declaration>
+VAR
+  pCTM : POINTER TO FB_CTManagerDefGrid;
+END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[_pAttachedCt:=0;
 
-IF pCtManager = 0 OR iParamMediator = 0 THEN
+IF iWorkerParams = 0 AND_THEN iWorkerParams.pCTManager = 0 THEN
   LogError(Msg:='Init: invalid parameter');
   RETURN;
 END_IF
 
 // save config
-_pCtManager := pCtManager; 
-_iParamMediator := iParamMediator;
+_iWorkerParams := iWorkerParams;
 _pMsgConfigExt := pMsgConfig;
 _fPrintResolution := fPrintResolution;
 _fSubPxResolution := fSubPxResolution;
@@ -195,7 +196,7 @@ setName('');
 
 // register worker CTManager/Tracker event subject
 _nTrackPosDomain := E_PosDomain.master_pos;
-_pCtManager^.RegisterPosition(nPosDomain:=_nTrackPosDomain, iPositionEvent:=THIS^);
+_iWorkerParams.pCTManager^.RegisterPosition(nPosDomain:=_nTrackPosDomain, iPositionEvent:=THIS^);
 
 // init error source reference
 _pEcSrc := ErrorCodes.fbErrCodeMngr.registerErrSource(
@@ -350,6 +351,7 @@ END_IF
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.getCtInst">
+      <LineId Id="40" Count="1" />
       <LineId Id="29" Count="0" />
       <LineId Id="5" Count="0" />
       <LineId Id="8" Count="0" />
@@ -360,7 +362,9 @@ END_IF
       <LineId Id="9" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.Init">
-      <LineId Id="79" Count="29" />
+      <LineId Id="79" Count="7" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="89" Count="19" />
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.mJobStart">
