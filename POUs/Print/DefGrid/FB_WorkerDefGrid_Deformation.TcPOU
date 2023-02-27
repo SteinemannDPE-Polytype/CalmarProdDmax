@@ -314,7 +314,7 @@ FOR i := nLowerIndexCTList TO nLowerIndexCTList + _nMultiAttachedCTs - 1 DO
     // tag CT with error if deformation had an error
     IF _bDeformationError[i] THEN 
       IF NOT _bAborted[i] THEN
-        pCt^.AbortDeformation(sReason:=F_Concat2('WorkerDeformation: ',EC_DefGrid.ecDefGrid_DefGridError.Desc), Src:=_pEcSrc^);
+        pCt^.AbortDeformation(sReason:=F_Concat2('WorkerDeformation: ', EC_DefGrid.ecDefGrid_DefGridError.Desc), Src:=_pEcSrc^);
       //not needed ELSE
       //  pCt^.setError(ErrDef:=EC_DefGrid.ecDefGrid_DefGridError, Src:=_pEcSrc^);
     END_IF

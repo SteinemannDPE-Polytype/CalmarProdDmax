@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <Visu Name="_VISU_WorkerDefGrid_small" Id="{e4f5b659-9e66-4187-a0fe-9dea7a61c02d}">
     <XmlArchive>
       <Data>
@@ -735,7 +735,7 @@
                       <l n="VisualElemMemberList" t="VisualElemMemberCollection" cet="VisualElemMember">
                         <o>
                           <v n="Id">1186196937L</v>
-                          <v n="Value">"m_Inst.bEnable"</v>
+                          <v n="Value">"m_Inst.bWorkerEnable"</v>
                         </o>
                       </l>
                     </o>
@@ -1356,10 +1356,10 @@
               <d n="FbMethods" t="CaseInsensitiveHashtable" ckt="String" cvt="Guid">
                 <v>FB_Init</v>
                 <v>55bfe332-11e7-4309-8b2a-7977309cdd90</v>
-                <v>FB_Exit</v>
-                <v>2271d6fc-5690-4ff2-921e-14158a4ef631</v>
                 <v>FB_Reinit</v>
                 <v>a6d25819-18cf-4689-a308-cf52d8c80bfc</v>
+                <v>FB_Exit</v>
+                <v>2271d6fc-5690-4ff2-921e-14158a4ef631</v>
               </d>
               <v n="FbName">"NotImportant"</v>
               <v n="FbGuid">{dad2e4ed-bf14-4555-8e04-7bf1c9a0d95d}</v>
@@ -1459,7 +1459,7 @@
         <Type n="Boolean">System.Boolean</Type>
         <Type n="CaseInsensitiveHashtable">{7df88604-7ac5-4e36-91c4-55e4fdad3e68}</Type>
         <Type n="ChangeVisuInputAction">{b4c3a27b-74e5-4a67-bfa9-12f8c8cda31f}</Type>
-        <Type n="ChangeVisuInputAction[]">_3S.CoDeSys.VisualElem.ChangeVisuInputAction[], VisualElem.plugin, Version=3.5.13.30, Culture=neutral, PublicKeyToken=null</Type>
+        <Type n="ChangeVisuInputAction[]">_3S.CoDeSys.VisualElem.ChangeVisuInputAction[], VisualElem.plugin, Version=3.5.13.32, Culture=neutral, PublicKeyToken=null</Type>
         <Type n="ChangeVisuType">{a418300c-fdec-47d4-86a4-53b5a5f941fa}</Type>
         <Type n="ComplexInput">{1de566f6-72a7-494c-9353-9a418172c96e}</Type>
         <Type n="DialogPositionSetting">{16f3f59a-37ad-4991-a1af-cc2926974e08}</Type>
@@ -1472,7 +1472,7 @@
         <Type n="Hashtable">System.Collections.Hashtable</Type>
         <Type n="HotkeyConfiguration">{6b108d46-58af-4e41-a3f4-174d8f160cc4}</Type>
         <Type n="InputBoxInputAction">{e8e7e747-f76f-4dee-ab1c-b9637e41ac26}</Type>
-        <Type n="InputBoxInputAction[]">_3S.CoDeSys.VisualElem.InputBoxInputAction[], VisualElem.plugin, Version=3.5.13.30, Culture=neutral, PublicKeyToken=null</Type>
+        <Type n="InputBoxInputAction[]">_3S.CoDeSys.VisualElem.InputBoxInputAction[], VisualElem.plugin, Version=3.5.13.32, Culture=neutral, PublicKeyToken=null</Type>
         <Type n="Int16">System.Int16</Type>
         <Type n="Int32">System.Int32</Type>
         <Type n="Int64">System.Int64</Type>

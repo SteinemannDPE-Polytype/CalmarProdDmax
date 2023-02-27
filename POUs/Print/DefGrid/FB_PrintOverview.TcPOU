@@ -3,10 +3,10 @@
   <POU Name="FB_PrintOverview" Id="{e3d28b16-a134-4ffc-b465-e23d7689891b}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_PrintOverview
 VAR_INPUT
-  fX_m,  fY_m   : LREAL;
-  nX_px, nY_px  : DINT;
-  fPxToMRatio   : LREAL;
-  fResSubPx     : LREAL;   // Subpixel pulse resolution
+  fX_m,  fY_m   : LREAL;    // max. x/y position [m]
+  nX_px, nY_px  : DINT;     // max. x/y pixel in view
+  fPxToMRatio   : LREAL;    // 
+  iPrintPosition : I_PrintPosition;
 END_VAR
 
 VAR
@@ -18,9 +18,8 @@ VAR
   // config
   _pCTM   : POINTER TO FB_CTManagerDefGrid;
   _pWorkerDefGrid : POINTER TO FB_WorkerDefGrid;
-  _pPositioning : POINTER TO FB_PrintPositionDmax;
   _fPrintResolution : LREAL;      // [dpi]
-  _fSubPixelResolution : LREAL;   // sub pixel resolution [x]
+  _fSubPixelResolution : LREAL;   // sub pixel resolution
   
   // Container view list
   iCT     : I_CT;
@@ -64,7 +63,7 @@ FOR nCtr := 1 TO nNum DO
     aCTV[nCtr].setPos(x:=iCT.GetPos(nPosDomain:=e_posdomain.master_pos), y:=0);
     // display
     aCTV[nCtr].bHide := FALSE;
-    aCTV[nCtr](iCT:=iCT, iIdx:=UDINT_TO_UINT(iCT.pCT^.nMemIndex), fPxtoMRatio:=fPxToMRatio, fResSubPx := fResSubPx);
+    aCTV[nCtr](iCT:=iCT, iIdx:=UDINT_TO_UINT(iCT.pCT^.nMemIndex), fPxtoMRatio:=fPxToMRatio, fResSubPx := _fPrintResolution*_fSubPixelResolution);
   END_IF
 END_FOR
 
@@ -88,7 +87,7 @@ FOR nCtr := (nCtr+1) TO nC_MAX_WORKER_VIEWS DO
 END_FOR
 
 // -- show positioning -----------------------
-fSpeed := _pPositioning^.getSpeed();
+fSpeed := iPrintPosition.getSpeed();
 IF LrealIsNaN(x:=fSpeed) THEN
   fSpeed := 0;
 END_IF
@@ -117,6 +116,10 @@ VAR
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF NOT bInit THEN RETURN; END_IF
+IF iPrintPosition = 0 THEN RETURN; END_IF
+
+_fPrintResolution := iPrintPosition.fPrintResolution;
+_fSubPixelResolution := iPrintPosition.fSubPxResolution;
 
 // changed settings
 IF _fX_m <> fX_m OR
@@ -180,41 +183,26 @@ bInit := TRUE;]]></ST>
 VAR_INPUT
   pCTM  : POINTER TO FB_CTManager;
   pWorkerDefGrid : POINTER TO FB_WorkerDefGrid;
-  pPositioning : POINTER TO FB_PrintPositionDmax;
-  fPrintResolution : LREAL;
-  fSubPixelResolution : LREAL;
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF pCTM = 0 OR pWorkerDefGrid = 0 OR pPositioning = 0 THEN RETURN; END_IF
+        <ST><![CDATA[IF pCTM = 0 OR pWorkerDefGrid = 0 THEN RETURN; END_IF
 
 _pCTM := pCTM;
 _pWorkerDefGrid := pWorkerDefGrid;
-_pPositioning := pPositioning;
-_fPrintResolution := fPrintResolution;
-_fSubPixelResolution := fSubPixelResolution;
 
 bInit := TRUE;]]></ST>
       </Implementation>
     </Method>
     <LineIds Name="FB_PrintOverview">
-      <LineId Id="295" Count="0" />
-      <LineId Id="297" Count="35" />
-      <LineId Id="472" Count="2" />
-      <LineId Id="333" Count="0" />
-      <LineId Id="250" Count="0" />
-      <LineId Id="371" Count="0" />
-      <LineId Id="370" Count="0" />
-      <LineId Id="377" Count="1" />
-      <LineId Id="373" Count="0" />
-      <LineId Id="372" Count="0" />
-      <LineId Id="419" Count="0" />
-      <LineId Id="418" Count="0" />
+      <LineId Id="573" Count="49" />
       <LineId Id="424" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintOverview.checkConfig">
       <LineId Id="26" Count="0" />
       <LineId Id="25" Count="0" />
+      <LineId Id="57" Count="2" />
+      <LineId Id="56" Count="0" />
       <LineId Id="16" Count="0" />
       <LineId Id="30" Count="0" />
       <LineId Id="36" Count="0" />
@@ -232,11 +220,8 @@ bInit := TRUE;]]></ST>
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintOverview.init">
-      <LineId Id="5" Count="0" />
-      <LineId Id="11" Count="2" />
-      <LineId Id="9" Count="0" />
-      <LineId Id="24" Count="1" />
-      <LineId Id="15" Count="0" />
+      <LineId Id="42" Count="3" />
+      <LineId Id="49" Count="0" />
       <LineId Id="14" Count="0" />
     </LineIds>
   </POU>
