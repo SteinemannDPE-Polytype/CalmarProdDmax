@@ -208,8 +208,6 @@ END_IF
   Sync deformation point to hardware.
 *)
 METHOD PRIVATE syncPoints
-VAR_INPUT
-END_VAR
 VAR
   sPoint  : ST_GridPoint;
   bOK     : BOOL;
@@ -217,18 +215,17 @@ VAR
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[// manage the sending of a point per PDI
-
-nCorrection := nCorrection AND 16#0000FFFFFFFFFFFF;  // reset correction command only
-
+        <ST><![CDATA[
 IF fbFifo.nCount > 0 THEN
   bOK := fbFifo.Pop(sGridPoint=>sPoint);
   IF bOK THEN
+    // build grid point pdi data
     nPdiVal     := UINT_TO_ULINT(sPoint.dx);
     nPdiVal     := nPdiVal OR SHL(UINT_TO_ULINT(sPoint.dy), 16);
-    nPdiVal     := nPdiVal OR SHL(UINT_TO_ULINT(sPoint.node), 32);
-    nCorrection := SHL(1, 48) OR nPdiVal;      //set cmd [16bit] cmd / [48bit] of grid point in PDI var
-    
+    nPdiVal     := nPdiVal OR SHL(UINT_TO_ULINT(sPoint.node), 32);  
+  
+    sendCorrection(nCmdBit:=nC_CORRECTION_CMDBIT_GRIDPOINT, nData:=nPdiVal);
+
     //history
     IF bEnable AND bEnDebug THEN history(ADR(sPoint)); END_IF
   ELSE
@@ -242,6 +239,37 @@ IF _sTaskInfo.CycleCount = _lastCycle THEN
   LogError('syncPoints: was called twice in same task cycle');
 END_IF
 _lastCycle := _sTaskInfo.CycleCount;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="syncPoints_old" Id="{5eb58362-cb73-42e8-a336-d248e00b91f9}">
+      <Declaration><![CDATA[METHOD PRIVATE syncPoints_old
+VAR
+  sPoint  : ST_GridPoint;
+  bOK     : BOOL;
+  nPdiVal : ULINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nCorrection := nCorrection AND 16#0000FFFFFFFFFFFF;  // reset correction command only
+
+IF fbFifo.nCount > 0 THEN
+  bOK := fbFifo.Pop(sGridPoint=>sPoint);
+  IF bOK THEN
+    // build grid point pdi data
+    nPdiVal     := UINT_TO_ULINT(sPoint.dx);
+    nPdiVal     := nPdiVal OR SHL(UINT_TO_ULINT(sPoint.dy), 16);
+    nPdiVal     := nPdiVal OR SHL(UINT_TO_ULINT(sPoint.node), 32);  
+  
+    // old sending (direct nCorrection access
+    nCorrection := nCorrection AND 16#0000FFFFFFFFFFFF;  // reset correction command only
+    nCorrection := SHL(1, 48) OR nPdiVal;      //set cmd [16bit] cmd / [48bit] of grid point in PDI var
+
+    //history
+    IF bEnable AND bEnDebug THEN history(ADR(sPoint)); END_IF
+  ELSE
+    LogError('syncPoints: could not get a new GridPoint');
+	END_IF
+END_IF]]></ST>
       </Implementation>
     </Method>
     <Method Name="writeCorrectionPoint" Id="{a049beb6-fde3-4da4-ba01-912d4c21c5c6}">
@@ -361,18 +389,15 @@ END_IF]]></ST>
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_PH_Grid.syncPoints">
-      <LineId Id="76" Count="0" />
-      <LineId Id="75" Count="0" />
-      <LineId Id="12" Count="0" />
       <LineId Id="22" Count="0" />
       <LineId Id="5" Count="0" />
       <LineId Id="13" Count="0" />
       <LineId Id="19" Count="0" />
-      <LineId Id="33" Count="0" />
-      <LineId Id="35" Count="0" />
-      <LineId Id="49" Count="0" />
-      <LineId Id="20" Count="0" />
-      <LineId Id="90" Count="0" />
+      <LineId Id="175" Count="2" />
+      <LineId Id="157" Count="0" />
+      <LineId Id="174" Count="0" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="159" Count="0" />
       <LineId Id="62" Count="1" />
       <LineId Id="88" Count="1" />
       <LineId Id="21" Count="0" />
@@ -381,6 +406,13 @@ END_IF]]></ST>
       <LineId Id="91" Count="0" />
       <LineId Id="94" Count="3" />
       <LineId Id="93" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PH_Grid.syncPoints_old">
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="8" />
+      <LineId Id="24" Count="2" />
+      <LineId Id="28" Count="5" />
+      <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_PH_Grid.writeCorrectionPoint">
       <LineId Id="57" Count="1" />
