@@ -122,6 +122,12 @@ Fribourg/Switzerland (2021)</Description>
     <Compile Include="POUs\Print\Camera\FB_TcpIpComm.TcPOU">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="POUs\Print\Camera\F_DeformationPointAcc_ToString.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Print\Camera\F_CamPoint_ToString.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="POUs\Print\Camera\ImagePool.TcIPO">
       <SubType>Code</SubType>
     </Compile>
@@ -545,6 +551,11 @@ Fribourg/Switzerland (2021)</Description>
     <Content Include="revnotes.md">
       <SubType>Content</SubType>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <SubObject Include="FB_PH_Grid.syncPoints_old">
+      <ExcludeFromBuild>true</ExcludeFromBuild>
+    </SubObject>
   </ItemGroup>
   <ProjectExtensions>
     <PlcProjectOptions>

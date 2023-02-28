@@ -396,34 +396,6 @@ END_FOR
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="dumpPointCam" Id="{395c3d1d-9935-4142-abbd-1ae2ee97ac91}">
-      <Declaration><![CDATA[METHOD PRIVATE dumpPointCam : T_MaxString
-VAR_INPUT
-  sPoint : ST_CameraPoint;
-END_VAR
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[dumpPointCam := F_Concat3(
-  F_Concat4('id: ', TO_STRING(sPoint.id), ' v: ', SEL(sPoint.valid>0, '0', '1')),
-  F_Concat4(' x_ref: ' , TO_STRING(sPoint.x_ref),' y_ref: ', TO_STRING(sPoint.y_ref)),
-  F_Concat4(' dx: ' , TO_STRING(sPoint.x),' dy: ', TO_STRING(sPoint.y))
-);]]></ST>
-      </Implementation>
-    </Method>
-    <Method Name="dumpPointDefAcc" Id="{cf5ca4b4-cdd5-4151-b917-c1edf8db1964}">
-      <Declaration><![CDATA[METHOD PRIVATE dumpPointDefAcc : T_MaxString
-VAR_INPUT
-  sPointAcc : ST_DeformationPointAccurate;
-END_VAR
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[dumpPointDefAcc := F_Concat3(
-  F_Concat4('idx: ', TO_STRING(sPointAcc.index), ' v: ', SEL(sPointAcc.valid>0, '0', '1')),
-  F_Concat4(' x_ref: ' , TO_STRING(sPointAcc.x_ref),' y_ref: ', TO_STRING(sPointAcc.y_ref)),
-  F_Concat4(' dx: ' , TO_STRING(sPointAcc.dx),' dy: ', TO_STRING(sPointAcc.dy))
-);]]></ST>
-      </Implementation>
-    </Method>
     <Property Name="eCameraMode" Id="{d4155a50-e5e0-4ccf-af89-73b07ac1930f}">
       <Declaration><![CDATA[{attribute 'monitoring':='call'}
 PROPERTY eCameraMode : E_CameraMode
@@ -702,7 +674,7 @@ REPEAT
       // invalid point received
       LogWarning(F_Concat2(
         F_Concat3('invalid ', SEL(sModus='T', 'camera', 'teach'), ' point received, '),
-        dumpPointCam(sPoint:=sTmpCamPoint)
+        F_CamPoint_ToString(sPoint:=sTmpCamPoint)
       ));
     END_IF
     IF bEnd AND nCounter < nNbMarks THEN LogWarning(F_Concat4('Less marks received than indicated in header: ', TO_STRING(nCounter), '<', TO_STRING(nNbMarks))); END_IF
@@ -720,7 +692,7 @@ REPEAT
         IF _iCameraSink <> 0 THEN
           _iCameraSink.AddCamPoint(stCamPoint);
           IF _bVerbose THEN 
-            LogLvl(Lvl:=E_LogSeverity.Debug, Msg:= F_Concat2('AddCamPoint: ', dumpPointDefAcc(sPointAcc:=stCamPoint)));
+            LogLvl(Lvl:=E_LogSeverity.Debug, Msg:= F_Concat2('AddCamPoint: ', F_DeformationPointAcc_ToString(sPointAcc:=stCamPoint)));
           END_IF
         END_IF
       END_IF
@@ -1597,14 +1569,6 @@ _bTeachOk       := TRUE;]]></ST>
       <LineId Id="488" Count="0" />
       <LineId Id="481" Count="1" />
       <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_LineCamera.dumpPointCam">
-      <LineId Id="15" Count="3" />
-      <LineId Id="9" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_LineCamera.dumpPointDefAcc">
-      <LineId Id="15" Count="3" />
-      <LineId Id="9" Count="0" />
     </LineIds>
     <LineIds Name="FB_LineCamera.eCameraMode.Get">
       <LineId Id="23" Count="0" />

@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="F_CamPoint_ToString" Id="{f06eefff-d823-4b22-a2b2-ace0d59b9dd9}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_CamPoint_ToString : T_MaxString
+VAR_INPUT
+  sPoint : ST_CameraPoint;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[F_CamPoint_ToString := F_Concat3(
+  F_Concat4('id: ', TO_STRING(sPoint.id), ' v: ', SEL(sPoint.valid>0, '0', '1')),
+  F_Concat4(' x_ref: ' , TO_STRING(sPoint.x_ref),' y_ref: ', TO_STRING(sPoint.y_ref)),
+  F_Concat4(' dx: ' , TO_STRING(sPoint.x),' dy: ', TO_STRING(sPoint.y))
+);]]></ST>
+    </Implementation>
+    <LineIds Name="F_CamPoint_ToString">
+      <LineId Id="32" Count="3" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

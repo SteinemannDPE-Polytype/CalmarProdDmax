@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="F_DeformationPointAcc_ToString" Id="{9a7a131b-6eea-4235-8694-8bfb838a7110}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_DeformationPointAcc_ToString : T_MaxString
+VAR_INPUT
+  sPointAcc : ST_DeformationPointAccurate;
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[F_DeformationPointAcc_ToString := F_Concat4(
+  F_Concat4('idx: ', TO_STRING(sPointAcc.index), ' v: ', SEL(sPointAcc.valid>0, '0', '1')),
+  F_Concat5(' c/r(', TO_STRING(sPointAcc.col), '/', TO_STRING(sPointAcc.row),')'),
+  F_Concat4(' x_ref: ' , LREAL_TO_FMTSTR(sPointAcc.x_ref, 4, TRUE),' y_ref: ', LREAL_TO_FMTSTR(sPointAcc.y_ref, 4, TRUE)),
+  F_Concat4(' dx: ' , LREAL_TO_FMTSTR(sPointAcc.dx, 4, TRUE),' dy: ', LREAL_TO_FMTSTR(sPointAcc.dy, 4, TRUE))
+);
+]]></ST>
+    </Implementation>
+    <LineIds Name="F_DeformationPointAcc_ToString">
+      <LineId Id="20" Count="1" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="22" Count="1" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="25" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

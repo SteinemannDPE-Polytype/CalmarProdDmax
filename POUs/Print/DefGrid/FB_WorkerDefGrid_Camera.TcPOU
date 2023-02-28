@@ -105,7 +105,7 @@ IF _pAttachedCt <> 0 THEN //Container attached?
     LogError(Msg:='addCamPoint failed, add to CT error');
   END_IF;
 ELSE
-  LogWarning(Msg:='addCamPoint failed, no CT attached');
+  LogWarning(Msg:=F_Concat2('addCamPoint failed, no CT attached: ', F_DeformationPointAcc_ToString(sPointAcc:=sDeformationPoint)));
 END_IF]]></ST>
       </Implementation>
     </Method>
