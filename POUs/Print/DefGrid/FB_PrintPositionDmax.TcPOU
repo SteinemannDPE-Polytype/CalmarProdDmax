@@ -14,7 +14,7 @@ VAR
   _fSubPxResolution         : LREAL := 32;          // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
   _fTaskCycleTime           : LREAL := 0.002;       // Task cycle time in [s]
   
-  _fSpeedMpMin               : LREAL;                // speed in [m/min]
+  _fSpeedMpMin              : LREAL;                // speed in [m/min]
 END_VAR
 VAR PERSISTENT
   // config values changable during runtime (recipe, visu, property)
@@ -23,9 +23,7 @@ VAR PERSISTENT
   _fSpeedCompFactor         : LREAL := 0.0;         // TODO: define value
   _fSpeedCompRefSpeed       : LREAL := 0.0;         // TODO: define value
 END_VAR
-VAR CONSTANT
-  fC_MinSpeed               : LREAL := 0.05;
-END_VAR
+
 // ---------------------------------
 // internal variables
 VAR
@@ -33,15 +31,18 @@ VAR
   fbPositionMaster          : FB_PositionMaster;
 
   // internal vars
-  _bMoving : BOOL;
-  _bStarted : BOOL;
+  _bMoving                  : BOOL;
+  _bStarted                 : BOOL;
   fEncoderReso              : LREAL;                // used encoder resolution (config + speedcomp)
   rTrigMoving               : R_TRIG;
   // simulation
   _bSim                     : BOOL;
+  rfTrig_Sim                : RF_TRIG;
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[fbPositionMaster.bSim := _bSim;
+      <ST><![CDATA[rfTrig_Sim(CLK:=_bSim);
+IF rfTrig_Sim.RT THEN fbPositionMaster.bSim:=TRUE; END_IF
+IF rfTrig_Sim.FT THEN fbPositionMaster.bSim:=FALSE; END_IF
 
 // set internal used resolution
 fEncoderReso := _fEncoderResolution;  
@@ -60,7 +61,7 @@ END_IF
 fbPositionMaster(fResolutionInput:=fEncoderReso, lPosReference:=IlEncoderPulse);
 
 // position status
-_bMoving := ABS(fbPositionMaster.fMasterSpeed) >= fC_MinSpeed; 
+_bMoving := ABS(fbPositionMaster.fMasterSpeed) >= fbPositionMaster.fMinSpeed; 
 _fSpeedMpMin := fbPositionMaster.fMasterSpeed * 60;
 rTrigMoving(CLK:=bMoving);   // create started trigger output
 _bStarted := rTrigMoving.Q OR fbPositionMaster.bSyncReq;
@@ -238,7 +239,9 @@ fbPositionMaster.reset();]]></ST>
       </Implementation>
     </Method>
     <LineIds Name="FB_PrintPositionDmax">
-      <LineId Id="383" Count="1" />
+      <LineId Id="384" Count="0" />
+      <LineId Id="467" Count="1" />
+      <LineId Id="423" Count="0" />
       <LineId Id="324" Count="14" />
       <LineId Id="382" Count="0" />
       <LineId Id="339" Count="4" />

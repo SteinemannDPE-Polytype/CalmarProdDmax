@@ -7,7 +7,7 @@
   - print unit bar banana correction
   NOTE: temperature extention of whole printbar is still handled in camera
 *)
-FUNCTION_BLOCK FB_FineAlignement EXTENDS FB_BasePrint
+FUNCTION_BLOCK FB_FineAlignement EXTENDS FB_BasePrint IMPLEMENTS I_GridPointCorrection
 VAR
   // config
   _fPxResolution     : LREAL; // pixel resolution

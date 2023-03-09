@@ -6,6 +6,7 @@ VAR
   // references
   _pAdsCam        : POINTER TO ST_ADS_CAMERA;
   _iParamMediator : I_ParamMediator;
+  _fPrintUnitWidth : LREAL;
   
   // camera list
   _iCamList       : ARRAY[1..nMAXCAM] OF I_Camera; 
@@ -270,6 +271,7 @@ _bSetInitCam := TRUE; // request a default camera
 VAR_INPUT
   pAdsIf  : POINTER TO ST_ADS_CAMERA;
   iDefGridParamMediator : I_ParamMediator;
+  fPrintUnitWidth   : LREAL;     // print unit width [m]
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -278,7 +280,8 @@ IF pAdsIf = 0 THEN bInitialized := FALSE; LogError('Invalid parameter, no valid 
 IF iDefGridParamMediator = 0 THEN bInitialized := FALSE; LogError('Invalid parameter, no valid param mediator'); RETURN; END_IF
 
 _pAdsCam := pAdsIf;
-_iParamMediator := iDefGridParamMediator;]]></ST>
+_iParamMediator := iDefGridParamMediator;
+_fPrintUnitWidth := fPrintUnitWidth;]]></ST>
       </Implementation>
     </Method>
     <Method Name="is_linecam" Id="{75d58c77-ff64-480b-987c-b901e93de9a9}">
@@ -331,6 +334,16 @@ END_VAR]]></Declaration>
     // special case
     _bLineCamType := is_linecam(_iActiveCam.sName);  // is it a LineCamera?
   END_IF
+  
+  // set correction ref points
+  _pAdsCam^.sI_CorrectionPointIndication[1].posx := 0;
+  _pAdsCam^.sI_CorrectionPointIndication[1].posy := LREAL_TO_REAL(((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2);
+  _pAdsCam^.sI_CorrectionPointIndication[2].posx := LREAL_TO_REAL(sJobDef.fImageDepth);
+  _pAdsCam^.sI_CorrectionPointIndication[2].posy := LREAL_TO_REAL(((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2);
+  _pAdsCam^.sI_CorrectionPointIndication[3].posx := 0;
+  _pAdsCam^.sI_CorrectionPointIndication[3].posy := LREAL_TO_REAL((((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2) + sJobDef.fImageWidth);
+  _pAdsCam^.sI_CorrectionPointIndication[4].posx := LREAL_TO_REAL(sJobDef.fImageDepth);
+  _pAdsCam^.sI_CorrectionPointIndication[4].posy := LREAL_TO_REAL((((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2) + sJobDef.fImageWidth);
 END_IF
 
 _bJobActive := TRUE;]]></ST>
@@ -507,7 +520,7 @@ ELSE
   _bCamValid := FALSE;                    // invalid camera
 END_IF
 rT_CamStarted(CLK:=_bCamStarted);
-IF rT_CamStarted.Q THEN bReqToStartCamOnCt := TRUE; END_IF
+IF rT_CamStarted.Q THEN bReqToStartCamOnCt := TRUE; END_IF    // trigger that cam started
 rT_CamDone(CLK:=_bCamDone); 
 
 
@@ -517,7 +530,7 @@ IF _pAttachedCt <> 0 THEN
   bError := _pAttachedCt^.getDeformationStatus(eDStep => _eDeformStep);
   
   IF _eDeformStep > E_DeformationStep.nothing AND _bCamReady AND _bTeachOk THEN      // start only if py started
-    IF bReqToStartCamOnCt THEN
+    IF bReqToStartCamOnCt THEN    // wait on cam started while next CT is attached
       // -- setup deformation with cam settings
       LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('CamStarted mode: ', TO_STRING(_iActiveCam.eCameraMode)));
       _pAttachedCt^.StartCamera(eCameraMode:=_iActiveCam.eCameraMode, fFeatureGrid:=_fFeatureGrid);
@@ -655,6 +668,7 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="16" Count="0" />
       <LineId Id="5" Count="0" />
       <LineId Id="21" Count="0" />
+      <LineId Id="28" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.is_linecam">
       <LineId Id="5" Count="0" />
@@ -675,7 +689,11 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="115" Count="0" />
       <LineId Id="168" Count="0" />
       <LineId Id="163" Count="4" />
-      <LineId Id="103" Count="5" />
+      <LineId Id="103" Count="3" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="203" Count="7" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="107" Count="1" />
       <LineId Id="11" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.mJobStop">

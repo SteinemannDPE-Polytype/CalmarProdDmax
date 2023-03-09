@@ -196,7 +196,7 @@ IF SUPER^.Attach(iCT:=iCT) THEN
 
   // check
   IF _nPosXS < nEncoderPos THEN
-    LogWarning(Msg:='Print start position < Encoder position');
+    LogWarning(Msg:=F_Concat4('Print start position:', TO_STRING(_nPosXS) ,' < Encoder position:', TO_STRING(nEncoderPos)));
 	END_IF
   
   // save current distance to print position
@@ -760,7 +760,9 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="227" Count="0" />
       <LineId Id="195" Count="0" />
       <LineId Id="190" Count="0" />
-      <LineId Id="58" Count="3" />
+      <LineId Id="58" Count="1" />
+      <LineId Id="309" Count="0" />
+      <LineId Id="61" Count="0" />
       <LineId Id="263" Count="3" />
       <LineId Id="29" Count="0" />
       <LineId Id="10" Count="0" />

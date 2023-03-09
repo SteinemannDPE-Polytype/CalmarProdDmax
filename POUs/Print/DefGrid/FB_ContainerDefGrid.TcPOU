@@ -207,6 +207,7 @@ VAR_INPUT
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[fBImageDeformation.sDefGridSettings := sDefGridSettings;
+fBImageDeformation.fPrintLengthEffective := pJob^.fSubstrateDepth;
 fBImageDeformation.startDeformation(
   fStartDefPos:=DINT_TO_LREAL(GetPos(nPosDomain:=E_PosDomain.pos_px))    // reference position at current position [Px]
 );]]></ST>
@@ -288,6 +289,7 @@ END_IF]]></ST>
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.StartDeformation">
       <LineId Id="97" Count="0" />
+      <LineId Id="101" Count="0" />
       <LineId Id="91" Count="1" />
       <LineId Id="88" Count="0" />
     </LineIds>
