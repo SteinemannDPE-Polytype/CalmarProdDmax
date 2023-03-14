@@ -3650,18 +3650,16 @@
           <o n="GeneratedLMMDescriptions" t="GeneratedLanguageModelEntriesData">
             <o n="GeneratedVisuFbDescription" t="GenericFbDescription">
               <d n="FbMethods" t="CaseInsensitiveHashtable_1" ckt="String" cvt="Guid">
-                <v>HasVisibilityAccess</v>
-                <v>2f160334-9c58-4fc5-a591-b8f3a6fe1b38</v>
+                <v>GetUpdateRects</v>
+                <v>4bae3d11-3e6e-434e-9f98-f48425742192</v>
                 <v>ContainsPoint</v>
                 <v>3c27ca30-328d-4818-9093-4b23e83d99ee</v>
-                <v>HasInputAccess</v>
-                <v>d3cc890f-108a-48d0-9c87-a30759df8c16</v>
+                <v>SetStaticState</v>
+                <v>348a0ec8-b50b-48ac-85f0-3821f78bfb60</v>
                 <v>HasInputAccessIntern</v>
                 <v>6ea5d7e1-2f97-4b29-9f29-783c64fec444</v>
                 <v>GetTooltip</v>
                 <v>437daa07-f3fe-4446-9067-85a893a96917</v>
-                <v>GetUpdateRects</v>
-                <v>4bae3d11-3e6e-434e-9f98-f48425742192</v>
                 <v>GetNamespace</v>
                 <v>0d81bdd2-c108-4490-b00b-0a2e0d55f270</v>
                 <v>GetTranslator</v>
@@ -3674,6 +3672,8 @@
                 <v>eed84958-8034-4ead-92f3-208378d1f6a5</v>
                 <v>Paint</v>
                 <v>84084069-2c66-48dd-a1af-e4b50fa2f4ae</v>
+                <v>HasVisibilityAccess</v>
+                <v>2f160334-9c58-4fc5-a591-b8f3a6fe1b38</v>
                 <v>GetElementArray</v>
                 <v>fad3574b-1c73-422d-9f08-f5b2f3924eab</v>
                 <v>SetVisuFlagsInternal</v>
@@ -3686,14 +3686,14 @@
                 <v>4eb92b77-1cf8-4d92-a87d-e578df2f8d53</v>
                 <v>Initialize</v>
                 <v>ae73e14b-6773-4d26-abcb-cbbfd07482d8</v>
+                <v>HasInputAccess</v>
+                <v>d3cc890f-108a-48d0-9c87-a30759df8c16</v>
                 <v>HasVisibilityAccessIntern</v>
                 <v>09659667-c207-47c5-8217-18255a5eb335</v>
                 <v>GetSurroundingRect</v>
                 <v>317fe9ce-22ce-480f-b567-e627d9790982</v>
                 <v>ElementInfo</v>
                 <v>fb082560-0b1f-401f-8439-14b6a0b3dd16</v>
-                <v>SetStaticState</v>
-                <v>348a0ec8-b50b-48ac-85f0-3821f78bfb60</v>
                 <v>GetLocalUsergroup</v>
                 <v>83532168-0082-49b2-952d-f4f1a10d193f</v>
                 <v>GetName</v>
@@ -3724,10 +3724,10 @@
               <d n="FbMethods" t="CaseInsensitiveHashtable_1" ckt="String" cvt="Guid">
                 <v>FB_Init</v>
                 <v>06fada2f-27c9-4faa-ba73-41d88a83078a</v>
-                <v>FB_Reinit</v>
-                <v>09e963d9-4f03-47dd-a0fb-d9a929439cf3</v>
                 <v>FB_Exit</v>
                 <v>abc70c44-cd60-4447-98cb-57d6866178ec</v>
+                <v>FB_Reinit</v>
+                <v>09e963d9-4f03-47dd-a0fb-d9a929439cf3</v>
               </d>
               <v n="FbName">"NotImportant"</v>
               <v n="FbGuid">{2c3978b4-7254-4c4a-8117-1f9381729118}</v>

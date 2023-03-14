@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_DropSpeedComp" Id="{62d8f9f6-c472-4b35-8edc-37e97243e619}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_DropSpeedComp
 VAR_INPUT
@@ -69,7 +69,7 @@ fDiffPlace :=  ( fTestDisplacement[2] - fTestDisplacement[1] ) * 1/1_000_000;
 // calc time
 _fDropSpeedDeadTime := 
 (
-    fDiffPlace      // displacment diff
+    fDiffPlace      // displacement diff
   * 1/fDiffSpeed    // speed diff
 ) * 1000;           // [s] -> [ms]
 
