@@ -3,7 +3,7 @@
   <POU Name="FB_ImageDeformation" Id="{441e42f8-e2de-4298-af7d-148639a86403}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_ImageDeformation EXTENDS FB_PythonDeformation
 VAR_INPUT
-  fPos              : LREAL;  // current ct position in [px]
+  fPos              : LREAL;                // current ct position in [px]
 END_VAR
 VAR
   _eDeformationStep : E_DeformationStep;    // current active deformation step (handler)
@@ -25,23 +25,23 @@ VAR
   _nGridPoints       : UDINT;               // stored and available grid points
   _nGridCols         : UDINT;               // count current complete grid columns
   
-  // local XYR handler
+  // local grid handler(s)
   _nLocalGridColsGenerated: UDINT;          // already generated "local" grid columns XYR [0..x]
 
-  _fStartDeformPos  : LREAL;   // position [Px] where deformation started on ct
-  //_fLastDeformPos   : LREAL;   // last executed position/grid of Update()
-  _nUpdatedGridCol  : UDINT;   // already updated grid column
-  _nUpdatedFeature  : UDINT;
-  _fPrintLengthEffective : LREAL; // effective printing length in [m]
+  _fStartDeformPos  : LREAL;                // position [Px] where deformation started on ct
+  //_fLastDeformPos   : LREAL;              // last executed position/grid of Update()
+  _nUpdatedGridCol  : UDINT;                // already updated grid column
+  _nUpdatedFeature  : UDINT;                // number of updated features (a distance)
+  _fPrintLengthEffective : LREAL;           // effective printing length in [m]
   // others
   _nErrorId         : UDINT := 0;
   _sTempPoint       : ST_DeformationPointAccurate;
 END_VAR
 VAR CONSTANT
-  tPYTHON_TIMEOUT   : TIME  := T#500MS;  // python deformation script update response timeout  
-  nMAX_COLS_DEFGRID : UDINT := 100;  // if you update this value you need to update the array variables as well (there we can't use this constant (beckhoff bug in table view))
-  nMAX_ROWS_DEFGRID : UDINT := 100;  // if you update this value you need to update the array variables as well (there we can't use this constant (beckhoff bug in table view))
-  nMAX_CAM_POINTS   : UDINT := 100;  // if you update this value you need to update the array variables as well (there we can't use this constant (beckhoff bug in table view))
+  tPYTHON_TIMEOUT   : TIME  := T#500MS;     // python deformation script update response timeout  
+  nMAX_COLS_DEFGRID : UDINT := 100;         // if you update this value you need to update the array variables as well (there we can't use this constant (beckhoff bug in table view))
+  nMAX_ROWS_DEFGRID : UDINT := 100;         // if you update this value you need to update the array variables as well (there we can't use this constant (beckhoff bug in table view))
+  nMAX_CAM_POINTS   : UDINT := 100;         // if you update this value you need to update the array variables as well (there we can't use this constant (beckhoff bug in table view))
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[IF NOT bInitialized THEN
@@ -552,22 +552,34 @@ END_VAR
 VAR
   row, col, ct : UDINT;
   sTmpPoint : ST_DeformationPointAccurate;
+  dx, dy : LREAL;
 END_VAR
 VAR_INST
   fTrig_Done : F_TRIG;
+END_VAR
+VAR_STAT
+  nTestSelection : UDINT := 0;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[ 
+        <ST><![CDATA[
 {warning 'TODO: implement MarkCorrection 1D correction, linear interpolation'}
+
 // based on the update position generate grid coulumns
 FOR col:=_nLocalGridColsGenerated TO nGridCol DO
   FOR row:=0 TO _sDefGridSettings.nGridSizeY -1 DO
+
+    CASE nTestSelection OF
+      1: dx := 0; dy := SEL(_nCamPoints>0, 0, _sCamPoints[0].sPoint.dy);  // dy of start-mark
+      2: dx := 0.1*TO_LREAL(col+row)*10; dy := 0.2*TO_LREAL(col+row)*10;  // a test-grid
+    ELSE
+      dx := dy := 0;
+    END_CASE
     // - calculate x/y shift and rotation based on available CamPoints
     sTmpPoint.index := TO_DINT(col * _sDefGridSettings.nGridSizeY + row);
     sTmpPoint.x_ref := 0;
     sTmpPoint.y_ref := 0;
-    sTmpPoint.dx    := 0;   //0.1*TO_LREAL(col+row)*10;
-    sTmpPoint.dy    := 0;   //0.2*TO_LREAL(col+row)*10;
+    sTmpPoint.dx    := 0;
+    sTmpPoint.dy    := 0;
     sTmpPoint.col   := TO_DINT(col);
     sTmpPoint.row   := TO_DINT(row);
     sTmpPoint.valid := TRUE;
@@ -578,7 +590,7 @@ END_FOR
 _nLocalGridColsGenerated := _nLocalGridColsGenerated + ct;
 
 // set state variables which would be updated in PyUpdate/PyExed
-_tExecutionTime := T#0S;
+_tExecutionTime := T#2MS;
 _nErrorId := 0;
 bPythonError := FALSE;
 bPythonBusy := SEL(_nGridPoints >= _sDefGridSettings.nGridPoints, TRUE, FALSE); // all points generated
@@ -785,7 +797,16 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="52" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.UpdateLocal_1D_Marks">
-      <LineId Id="266" Count="29" />
+      <LineId Id="331" Count="0" />
+      <LineId Id="267" Count="0" />
+      <LineId Id="332" Count="0" />
+      <LineId Id="268" Count="2" />
+      <LineId Id="343" Count="0" />
+      <LineId Id="334" Count="1" />
+      <LineId Id="346" Count="0" />
+      <LineId Id="344" Count="1" />
+      <LineId Id="336" Count="0" />
+      <LineId Id="271" Count="24" />
       <LineId Id="303" Count="1" />
       <LineId Id="307" Count="0" />
       <LineId Id="311" Count="0" />

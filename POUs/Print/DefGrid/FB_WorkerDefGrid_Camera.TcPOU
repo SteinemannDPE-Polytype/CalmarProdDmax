@@ -315,8 +315,8 @@ END_VAR]]></Declaration>
     bCamNotAvailable := TRUE;
   ELSE
     // config camera from job
-    _iActiveCam.fSubstrateLength := sJobDef.fSubstrateDepth;      // [m]
-    _iActiveCam.fSubstrateWidth  := sJobDef.fSubstrateWidth;      // [m]
+    _iActiveCam.fSubstrateLength := sJobDef.fImageDepth  / 1000;//sJobDef.fSubstrateDepth;      // [m]
+    _iActiveCam.fSubstrateWidth  := sJobDef.fImageDepth  / 1000;//sJobDef.fSubstrateWidth;      // [m]
     _iActiveCam.fImageLength     := sJobDef.fImageDepth  / 1000;  // [mm] -> [m]
     _iActiveCam.fImageWidth      := sJobDef.fImageWidth  / 1000;  // [mm] -> [m]
     _iActiveCam.fFrameLength     := _fFeatureGrid;                // [px]
