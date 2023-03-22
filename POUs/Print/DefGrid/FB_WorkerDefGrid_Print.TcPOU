@@ -75,8 +75,8 @@ VAR CONSTANT
   iC_NUM_MSG               : UDINT := 5;
   nC_COLUMNS_TO_PRECHARGE  : LREAL := 2.1;
   fC_GRIDPOINT_STREAM_TIME : LREAL := 0.0025;     // time to stream one point [s]
-  fC_START_SHIFT_FACTOR    : LREAL := -2.4E-2;
-  fC_START_SHIFT_OFFSET    : LREAL := -1.0E-2;
+  fC_START_SHIFT_FACTOR    : LREAL := -0.031;
+  fC_START_SHIFT_OFFSET    : LREAL := -0.01;
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[IF _pParamMediator = 0 THEN RETURN; F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); END_IF

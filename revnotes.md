@@ -10,6 +10,9 @@
 Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 
 ---
+### changes `2.0.1.8` BRM
+* CHG: default WorkerPrint Pre-Start ShiftFactor for running up to 80mmin
+
 ### changes `2.0.1.7` BRM
 * FIX: compiler warnings with `I_Sim`
 
