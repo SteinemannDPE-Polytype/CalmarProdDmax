@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
-  <POU Name="FB_CameraTrigger" Id="{987d1f55-e3de-49d8-abe4-fb7755333d45}" SpecialFunc="None">
+  <POU Name="FB_CameraTrigger" Id="{47bc5e7e-2d41-45be-96cc-2ea3e7019dd7}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_CameraTrigger EXTENDS FB_Commons IMPLEMENTS I_CameraTrigger, I_StartPosDetect
 (*************************************************************************************************)
 (*  FILENAME:    FB_CameraTrigger                                                                *)
@@ -49,6 +49,7 @@ END_VAR
 VAR
   bInitOk                         : BOOL;           // initialized
   bSpeedValid                     : BOOL;           // speed is valid
+  bTriggerEnabled                 : BOOL;           // detection & trigger is enabled
   bTriggerArmed                   : BOOL;           // trigger is armed
   bCamValid                       : BOOL;           // camera is valid
   bTriggerOk                      : BOOL;
@@ -86,7 +87,7 @@ VAR
   
   tCurrentTimeStamp               : T_DCTIME64;      (* Get Current Timestamp *)
   tLastTimeStamp                  : T_DCTIME64;      (* Get Current Timestamp *)
-  fCycleTime                      : LREAL;           (* Current calcualted cycle time [s]*)
+  fCycleTime                      : LREAL;           (* Current calculated cycle time [s]*)
 
   fRemDist                        : LREAL;           (*Remaining distance until trigger occurs [m]*)
   fPreTriggerPosition             : LREAL;           (*Margin between effective trigger position and generation of timestamp*)
@@ -124,7 +125,8 @@ bCamValid     := SEL(iActiveCam<>0, FALSE, TRUE);             // camera valid (i
 tCurrentTime  := F_GetCurDcTaskTime64();                      // current dc time (most accurate time stamp we have)
 fCycleTime    := (TO_LREAL(tCurrentTime) - TO_LREAL(tLastTimeStamp)) * 1E-9;  tLastTimeStamp  := tCurrentTime;  // calculate cycle time of this block
 bSheetDetected:= FALSE;                                       // Set to true below just for one cycle
-bTriggerArmed :=  NOT bInhibitTrigger AND bSpeedValid AND bI_HwEnable AND (bI_AutomaticMode OR _bCamManualTeachMode);
+bTriggerEnabled := bSpeedValid AND bI_HwEnable AND (bI_AutomaticMode OR _bCamManualTeachMode);
+bTriggerArmed :=  NOT bInhibitTrigger AND bTriggerEnabled;
 rT_Sensor(CLK:=bI_Sensor_State);
 
 IF bCamValid THEN    // save dynamic changable settings
@@ -159,7 +161,7 @@ CASE eState OF
 
   cL_SENSOREVENT:     (*Not started*)
     IF NOT bSpeedValid THEN 
-      eState := cL_IDLE;        // ignore trigger if not moving anymore (avoid zero division)
+      Reset();        // ignore trigger if not moving anymore (avoid zero division)
     ELSE
       (*Distance in [m] that the substrate has traveled between the sensor detection (time) current plc cycle*)
       fDeltaDistance     := UINT64_TO_LREAL(UInt64Sub64(ULINT_TO_ULARGE(tCurrentTime), ULINT_TO_ULARGE(tSensor_TimeStamp))) * 1E-9 * fI_ConveyorSpeed;
@@ -289,9 +291,16 @@ IF bReleaseInhibitTrigger THEN
   bInhibitTrigger := FALSE;
 END_IF
 
+(*Reset if trigger is deactivated - should improve hanging triggers*)
+IF eState > cL_SENSOREVENT AND NOT bTriggerEnabled THEN
+  Reset();
+END_IF
+
 (********************************* END OF FB *****************************************************)]]></ST>
     </Implementation>
-    <Property Name="bManualTeach" Id="{be65e27e-2353-45ae-a59f-493486ebc6b7}">
+    <Folder Name="I_CameraTrigger" Id="{7ab2c00d-c252-46d1-aef8-bb2f16d70605}" />
+    <Folder Name="I_StartPosDetect" Id="{c2d6a5aa-7e33-4d73-adbe-d2ef476aecce}" />
+    <Property Name="bManualTeach" Id="{be65e27e-2353-45ae-a59f-493486ebc6b7}" FolderPath="I_CameraTrigger\">
       <Declaration><![CDATA[PROPERTY bManualTeach : BOOL
 ]]></Declaration>
       <Get Name="Get" Id="{165e03a2-9b40-49d2-96d5-cf6c3afc504e}">
@@ -311,7 +320,7 @@ END_VAR
         </Implementation>
       </Set>
     </Property>
-    <Property Name="bStartTrig" Id="{c57106c6-b833-4147-91ae-b104af7861e0}">
+    <Property Name="bStartTrig" Id="{c57106c6-b833-4147-91ae-b104af7861e0}" FolderPath="I_StartPosDetect\">
       <Declaration><![CDATA[(*
   A new container detected on X0.
   NOTE: a pulse only
@@ -327,7 +336,7 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Property Name="bValid" Id="{8b6b81d3-ea0a-409e-8b92-7512dfe544b8}">
+    <Property Name="bValid" Id="{8b6b81d3-ea0a-409e-8b92-7512dfe544b8}" FolderPath="I_StartPosDetect\">
       <Declaration><![CDATA[(*
   A valid container detected.
 *)
@@ -343,7 +352,7 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Method Name="Disable" Id="{b02780b6-05e9-418f-b223-f6c75fbd5a3a}">
+    <Method Name="Disable" Id="{b02780b6-05e9-418f-b223-f6c75fbd5a3a}" FolderPath="I_CameraTrigger\">
       <Declaration><![CDATA[METHOD Disable : BOOL
 ]]></Declaration>
       <Implementation>
@@ -356,7 +365,7 @@ ELSE
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="Enable" Id="{26ed9d4d-13d8-4aa0-937e-fe8372b7737f}">
+    <Method Name="Enable" Id="{26ed9d4d-13d8-4aa0-937e-fe8372b7737f}" FolderPath="I_CameraTrigger\">
       <Declaration><![CDATA[METHOD Enable : BOOL
 VAR_INPUT
 	iCam	                    : I_CameraTriggerDevice;
@@ -381,7 +390,7 @@ ELSE
 END_IF;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="Init" Id="{5021cade-20d1-421a-8235-b1f6fbddf2aa}">
+    <Method Name="Init" Id="{6590ee5c-b418-41a2-a136-da091705927c}">
       <Declaration><![CDATA[METHOD Init
 VAR_INPUT
   nResolution                   : INT := 1;        (*Printhead Resolution [e.g. 600] x Subpixel Resolution [e.g. 32]*)
@@ -402,7 +411,7 @@ _bUsePositionTrigger :=bUsePositionTrigger;
 bInitOk :=TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="LogTsDiff" Id="{23f242a9-af5a-4609-8c45-40b581c1cea1}">
+    <Method Name="LogTsDiff" Id="{4f7897cf-74a6-4ccf-9bea-ff76c8118697}">
       <Declaration><![CDATA[(*
   Log timestamp difference (if verbose active).
   t1-t2 
@@ -426,13 +435,13 @@ END_VAR
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Property Name="nStartPositionX0" Id="{ed53d9a0-9e76-4db0-88bd-65601e507a76}">
+    <Property Name="nStartPositionX0" Id="{037ffc53-c1e7-4a3c-b1f3-28d3ac51fc5c}" FolderPath="I_StartPosDetect\">
       <Declaration><![CDATA[(*
   Detected start position X0 (absolute) in [SubPx].
 *)
 PROPERTY nStartPositionX0 : DINT
 ]]></Declaration>
-      <Get Name="Get" Id="{8e46bd40-9eca-41f9-820c-ee7c3f112776}">
+      <Get Name="Get" Id="{f02907f9-b5c7-4d8d-a547-1994b9a49883}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -447,11 +456,14 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[eState          := cL_IDLE;
-bInhibitTrigger := FALSE;]]></ST>
+        <ST><![CDATA[eState              := cL_IDLE;      // reset state
+OtTriggerStartTime  := F_GetCurDcTaskTime64();  // now
+ObTrigger           := FALSE;        // set output = 0
+OnTriggerCommand    := cL_ACTIVE;    // activate command
+bInhibitTrigger     := FALSE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="SetSubstrateLength" Id="{e3a47706-73b1-4e53-941e-e5803ef8e452}">
+    <Method Name="SetSubstrateLength" Id="{e3a47706-73b1-4e53-941e-e5803ef8e452}" FolderPath="I_CameraTrigger\">
       <Declaration><![CDATA[METHOD SetSubstrateLength
 VAR_INPUT
   fSubstrateLength : LREAL;
@@ -470,6 +482,7 @@ _nSubstrateLength := F_MeterToSubPixel(fPosMeter:=_fSubstrateLength, fResoSubPx:
       <LineId Id="2589" Count="0" />
       <LineId Id="2391" Count="1" />
       <LineId Id="2394" Count="0" />
+      <LineId Id="4214" Count="0" />
       <LineId Id="3492" Count="0" />
       <LineId Id="3969" Count="0" />
       <LineId Id="2605" Count="0" />
@@ -545,6 +558,8 @@ _nSubstrateLength := F_MeterToSubPixel(fPosMeter:=_fSubstrateLength, fResoSubPx:
       <LineId Id="2566" Count="7" />
       <LineId Id="4089" Count="2" />
       <LineId Id="4088" Count="0" />
+      <LineId Id="4211" Count="2" />
+      <LineId Id="4217" Count="1" />
       <LineId Id="4095" Count="0" />
       <LineId Id="1688" Count="0" />
     </LineIds>
@@ -610,7 +625,11 @@ _nSubstrateLength := F_MeterToSubPixel(fPosMeter:=_fSubstrateLength, fResoSubPx:
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_CameraTrigger.Reset">
-      <LineId Id="6" Count="1" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="7" Count="0" />
     </LineIds>
     <LineIds Name="FB_CameraTrigger.SetSubstrateLength">
       <LineId Id="8" Count="1" />
