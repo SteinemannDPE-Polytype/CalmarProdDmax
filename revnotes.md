@@ -10,6 +10,9 @@
 Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 
 ---
+### changes `2.0.1.9` BRM
+* FIX: CameraTrigger state machine might hang in some case (camera triggered for long time)
+
 ### changes `2.0.1.8` BRM
 * CHG: default WorkerPrint Pre-Start ShiftFactor for running up to 80mmin
 
