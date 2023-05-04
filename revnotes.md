@@ -10,6 +10,10 @@
 Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 
 ---
+### changes `2.0.1.10` BRM
+* FIX: hotfix version where the CONSTANTS (`MAX_BUFFER_SIZE` and `BUFFER_ITEM_SIZE`) of `FB_DeformationPointFifo` are not visible in the ADS Router.
+       Added new fb outputs with the same data in it (`nBufferSize`, `nBufferItemSize`). Should be backwards compatible. Use the new once in the python script if you have ADS symbol not found errors.
+
 ### changes `2.0.1.9` BRM
 * FIX: CameraTrigger state machine might hang in some case (camera triggered for long time)
 
