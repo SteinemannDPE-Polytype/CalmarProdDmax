@@ -120,7 +120,6 @@ nPointHead := (nPointHead + 1) MOD 100;]]></ST>
 VAR_INPUT
   pAdsIf        : POINTER TO ST_ADS_PH;                (*Pointer to its ads interface structure*)
   sPhDef        : ST_PH_DEF;                           (*ph definition structure*)
-  tTempMonitor  : TIME;                                (*ph temperature monitoring timeout (warning after elapsed time)*)
 END_VAR
 VAR
   bErr          : BOOL;
@@ -128,8 +127,7 @@ END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[SUPER^.init(
     pAdsIf:=pAdsIf,
-    sPhDef:=sPhDef,
-    tTempMonitor:=tTempMonitor
+    sPhDef:=sPhDef
 );
 
 nCorrection := 0;
@@ -323,9 +321,7 @@ END_IF]]></ST>
     </LineIds>
     <LineIds Name="FB_PH_Grid.init">
       <LineId Id="10" Count="0" />
-      <LineId Id="12" Count="1" />
-      <LineId Id="11" Count="0" />
-      <LineId Id="14" Count="0" />
+      <LineId Id="12" Count="2" />
       <LineId Id="16" Count="0" />
       <LineId Id="15" Count="0" />
       <LineId Id="27" Count="0" />
