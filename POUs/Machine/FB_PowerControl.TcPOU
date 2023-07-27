@@ -1,0 +1,184 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_PowerControl" Id="{f00c1471-2a13-4d0d-a831-b486197a028f}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  PowerSupply control (WAGO Epsitron)
+  NOTE: has direct mapped I/Os
+*)
+FUNCTION_BLOCK FB_PowerControl EXTENDS T_NamedBase
+VAR_OUTPUT
+  bO_AllFuseOk        : BOOL;
+  bO_AllEpsitronOk    : BOOL;
+  bO_AllInputOk       : BOOL;
+END_VAR
+VAR
+  i : UDINT;
+  
+  // Commands
+  bAckMsg : BOOL;
+  
+  // Epsitron Controls
+  fbEpsitronFuseControl                     : ARRAY[1..nMaxEpsitrons] OF FB_EpsitronFuseControl;   // internal instances of epsitrons
+  // list of epsitron for view & global control
+  pEpsitronsInst                            : ARRAY[1..nMaxEpsitrons] OF POINTER TO FB_EpsitronFuseControl;   // list
+  bEpsitronsAllChOk                         : ARRAY[1..nMaxEpsitrons] OF BOOL;
+  nEpsitronsRegistered                      : UDINT := 0;
+  nEpsitronViewSel                          : UDINT := 1;
+  
+  // Fuse (I/O) supervision
+  nFuseInputsRegistered                     : UDINT;
+  aFuseNames                                : ARRAY[1..nMaxFuseInputs] OF STRING;
+  pFuseInputs                               : ARRAY[1..nMaxFuseInputs] OF POINTER TO BOOL;
+  nFuseViewSel                              : UDINT := 1;
+END_VAR
+VAR CONSTANT
+  nMaxEpsitrons : UDINT := 10;
+  nMaxFuseInputs : UDINT := 20;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[bO_AllEpsitronOk := TRUE;
+FOR i:=1 TO nEpsitronsRegistered DO
+  IF pEpsitronsInst[i] <> 0 THEN
+    pEpsitronsInst[i]^();
+    
+    bEpsitronsAllChOk[i] := NOT (   (pEpsitronsInst[i]^.iO_Channel1Status = 3)
+                              OR (pEpsitronsInst[i]^.iO_Channel2Status = 3)
+                              OR (pEpsitronsInst[i]^.iO_Channel3Status = 3)
+                              OR (pEpsitronsInst[i]^.iO_Channel4Status = 3));
+
+    
+    bO_AllEpsitronOk := bO_AllEpsitronOk AND bEpsitronsAllChOk[i];
+  END_IF
+END_FOR
+
+// I/O inputs
+bO_AllInputOk := TRUE;
+FOR i:=1 TO nFuseInputsRegistered DO
+  IF pFuseInputs[i] <> 0 THEN
+    bO_AllInputOk := bO_AllInputOk AND pFuseInputs[i]^;
+  END_IF
+END_FOR       
+
+// output
+bO_AllFuseOk := bO_AllEpsitronOk AND bO_AllFuseOk;
+ 
+// Acknowledge error
+IF bAckMsg THEN  bAckMsg := FALSE;
+  FOR i:=1 TO nEpsitronsRegistered DO
+    pEpsitronsInst[i]^.mAckError();
+	END_FOR
+END_IF
+]]></ST>
+    </Implementation>
+    <Method Name="ackError" Id="{0ce62f85-eb2e-4b5a-b202-ee82395864b7}">
+      <Declaration><![CDATA[METHOD ackError]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bAckMsg := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="registerEpsitron" Id="{2d79c005-d383-46d3-951c-665d63397347}">
+      <Declaration><![CDATA[(*
+  Register configuration for an epsitron directly I/O mapped into this FB.
+*)
+METHOD registerEpsitron : BOOL
+VAR_INPUT
+  nInstIdx : UDINT;     // array instance index
+  aName    : STRING;    // Epsitron name
+  aNameCh1 : STRING;    // name of channel1
+  aNameCh2 : STRING;    // name of channel2
+  aNameCh3 : STRING;    // name of channel3
+  aNameCh4 : STRING;    // name of channel4
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nInstIdx > nMaxEpsitrons OR nInstIdx = 0      THEN LogError(F_Concat2('registerEpsitron: Invalid index, ignore: ', aName)); END_IF
+IF fbEpsitronFuseControl[nInstIdx].aI_Name <> '' THEN LogError(F_Concat2('registerEpsitron: Already configured, ignore: ', aName)); END_IF
+IF nEpsitronsRegistered >= nMaxEpsitrons         THEN LogError(F_Concat2('registerEpsitron: Too many already registered, ignore: ', aName)); END_IF
+IF aName = ''                                  THEN LogWarning(F_Concat2('registerEpsitron: No name given', '')); END_IF
+
+fbEpsitronFuseControl[nInstIdx].aI_Name := aName;
+fbEpsitronFuseControl[nInstIdx].aI_NameChannel1 := aNameCh1;
+fbEpsitronFuseControl[nInstIdx].aI_NameChannel2 := aNameCh2;
+fbEpsitronFuseControl[nInstIdx].aI_NameChannel3 := aNameCh3;
+fbEpsitronFuseControl[nInstIdx].aI_NameChannel4 := aNameCh4;
+
+nEpsitronsRegistered := nEpsitronsRegistered + 1;
+pEpsitronsInst[nEpsitronsRegistered] := ADR(fbEpsitronFuseControl[nInstIdx]);
+
+registerEpsitron := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="registerIO" Id="{6054ed82-aed1-407f-ab6c-62604550749a}">
+      <Declaration><![CDATA[METHOD registerIO : BOOL
+VAR_INPUT
+  aName  : STRING;              // name of fuse (bool) input
+  pInput : POINTER TO BOOL;     // I/O value pointer
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nFuseInputsRegistered >= nMaxFuseInputs  THEN LogError(F_Concat2('registerIO: Too many already registered, ignore: ', aName)); END_IF
+IF pInput = 0                               THEN LogError(F_Concat2('registerIO: Invalid pointer given, ignore: ', aName)); END_IF
+IF aName = ''                               THEN LogWarning(F_Concat2('registerIO: No name given', '')); END_IF
+
+nFuseInputsRegistered := nFuseInputsRegistered + 1;
+aFuseNames[nFuseInputsRegistered]  := aName;
+pFuseInputs[nFuseInputsRegistered] := pInput;
+
+registerIO := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_PowerControl">
+      <LineId Id="467" Count="0" />
+      <LineId Id="459" Count="0" />
+      <LineId Id="468" Count="0" />
+      <LineId Id="463" Count="0" />
+      <LineId Id="479" Count="0" />
+      <LineId Id="483" Count="2" />
+      <LineId Id="480" Count="0" />
+      <LineId Id="482" Count="0" />
+      <LineId Id="481" Count="0" />
+      <LineId Id="472" Count="0" />
+      <LineId Id="469" Count="0" />
+      <LineId Id="464" Count="0" />
+      <LineId Id="513" Count="0" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="514" Count="0" />
+      <LineId Id="497" Count="1" />
+      <LineId Id="507" Count="1" />
+      <LineId Id="418" Count="0" />
+      <LineId Id="420" Count="0" />
+      <LineId Id="512" Count="0" />
+      <LineId Id="389" Count="0" />
+      <LineId Id="385" Count="0" />
+      <LineId Id="227" Count="1" />
+      <LineId Id="486" Count="2" />
+      <LineId Id="237" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PowerControl.ackError">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PowerControl.registerEpsitron">
+      <LineId Id="5" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="17" Count="3" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="13" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PowerControl.registerIO">
+      <LineId Id="10" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="18" Count="1" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

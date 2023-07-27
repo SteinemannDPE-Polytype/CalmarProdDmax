@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_PS_Grid" Id="{9c5e3abb-c4bc-4a7b-938e-25a9d7e81622}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK FB_PS_Grid EXTENDS FB_PS
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_PS_Grid EXTENDS FB_PS_NewJetmap
 VAR_INPUT
 END_VAR
 VAR_OUTPUT
@@ -58,16 +58,7 @@ VAR
   bEn : BOOL;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[{warning 'TODO: remove the specific printPrepare and use de default from CompPrint 2.0.2.x which is the same'}
-bNoHeadEnabled := TRUE;
-bPrepareError := FALSE;
-
-// set print enable 
-FOR i:=1 TO nPh DO
-  bEn := sPh[i].bEnable AND _bPrintEnable;
-  sPh[i].setPrintEnable(bPrintEnable := sPh[i].bEnable AND _bPrintEnable);  // if ph is enabled and ps print enable is set
-  IF bEn THEN bNoHeadEnabled := FALSE; END_IF
-END_FOR]]></ST>
+        <ST><![CDATA[SUPER^.printPrepare(bNoHeadEnabled=>bNoHeadEnabled, bPrepareError=>bPrepareError);]]></ST>
       </Implementation>
     </Method>
     <Method Name="registerCG" Id="{15a4429f-45fa-4f57-9655-f7ccd96f089d}">
@@ -148,7 +139,6 @@ END_FOR
       <LineId Id="34" Count="0" />
     </LineIds>
     <LineIds Name="FB_PS_Grid.printPrepare">
-      <LineId Id="32" Count="8" />
       <LineId Id="14" Count="0" />
     </LineIds>
     <LineIds Name="FB_PS_Grid.registerCG">
