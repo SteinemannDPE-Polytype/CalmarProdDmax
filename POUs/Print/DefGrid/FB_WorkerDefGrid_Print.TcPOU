@@ -505,7 +505,7 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[// Config workers static variables
-_fCtSecurityReleasePos := F_MeterToSubPixel(fPosMeter:=sJobDef.fImageDepth/1000 + fC_MIN_SHEET_GAP, fResoSubPx:=_fPrintResolution*_fSubPxResolution);
+_fCtSecurityReleasePos := F_MeterToSubPixel(fPosMeter:=sJobDef.fImageDepth/1000 + fC_MaxSheetLengthExtension, fResoSubPx:=_fPrintResolution*_fSubPxResolution);
 
 IF NOT bWorkerEnable THEN RETURN; END_IF  // only if enabled
 

@@ -20,24 +20,33 @@ VAR
   // job
   _bJobActive       : BOOL;           // a job is active
   // ct
-  _pAttachedCt      : POINTER TO FB_ContainerDefGrid;  // currently attached container
+  _bAttached        : BOOL;           // one ct is attached
+  _pAttachedCt      : POINTER TO FB_ContainerDefGrid;  // currently attached container (Head)
+  _bSupportParallelCT : BOOL := FALSE;  // support for parallel CTs (else avoid attach while one connected).
+  _nAttachedCTs     : UDINT;          // Number of currently attached CTs
+  _pAttachedCTList  : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF POINTER TO FB_ContainerDefGrid;
+
   fCtPosition       : LREAL;          // Container position relative to worker position in [SubPx (E_PosDomain.master_pos)]
   _bForceRelease    : BOOL;
+
 END_VAR
 VAR_STAT
   // static variables, same for all Workers
-  _fCtSecurityReleasePos : LREAL := 0;     // [SubPx] position where to release current ct at last (security release)
+  _fCtSecurityReleasePos : LREAL := 0;// [SubPx] position where to release current ct at last (security release)
 END_VAR
 VAR PERSISTENT
   _fWorkerPosition  : LREAL;          // worker position relative to X0 in [m]
 END_VAR
 VAR CONSTANT
-  {warning 'TODO: get this value dynamically from Print system '}
-  fC_MIN_SHEET_GAP : LREAL := 0.5;  // 50cm 
+  fC_MaxSheetLengthExtension : LREAL := 0.20;  // Max. distance after given ImageLength to do security release of CT
+  // list size
+  nLowerIndexCTList : UDINT := 1;
+  nUpperIndexCTList : UDINT := 4; 
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[]]></ST>
     </Implementation>
+    <Folder Name="CTList" Id="{8b3e6e49-2ffc-4cad-96ea-0e5e1e9c12fb}" />
     <Folder Name="I_PrintStatusClient" Id="{522437a3-298d-4e2e-9ebe-709d3e172129}" />
     <Method Name="Abort" Id="{f8718905-c76d-49a9-949e-6da2bac3e031}">
       <Declaration><![CDATA[(*
@@ -99,7 +108,10 @@ ELSIF NOT bWorkerEnable AND _pAttachedCt = 0 THEN
 
 ELSE      // unspecified (error)case just log it
   LogError(Msg:='not tracked case');
-END_IF]]></ST>
+END_IF
+
+// is one attached?
+IF _pAttachedCt <> 0 THEN _bAttached:=TRUE; END_IF ]]></ST>
       </Implementation>
     </Method>
     <Property Name="bAttached" Id="{2e8c8130-f685-40b1-adbf-abe31d58117b}">
@@ -110,9 +122,8 @@ PROPERTY bAttached : BOOL]]></Declaration>
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[IF _pAttachedCt <> 0 THEN
-  bAttached := TRUE;
-END_IF]]></ST>
+          <ST><![CDATA[bAttached := _bAttached;
+]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -172,12 +183,14 @@ VAR_INPUT
   pMsgConfig : POINTER TO ST_MSG_CONFIG;         // message config
   fPrintResolution : LREAL := 1;                 // print(head) resolution in [dpi]
   fSubPxResolution : LREAL := 1;                 // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
+  bParallelCT : BOOL;                            // Support parallel processing of CTs
 END_VAR
 VAR
   pCTM : POINTER TO FB_CTManagerDefGrid;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[_pAttachedCt:=0;
+        <ST><![CDATA[_bAttached := 0;
+_pAttachedCt := 0;
 
 IF iWorkerParams = 0 AND_THEN iWorkerParams.pCTManager = 0 THEN
   LogError(Msg:='Init: invalid parameter');
@@ -190,6 +203,7 @@ _pMsgConfigExt := pMsgConfig;
 _fPrintResolution := fPrintResolution;
 _fSubPxResolution := fSubPxResolution;
 _fCtSecurityReleasePos := 0;
+_bSupportParallelCT := bParallelCT;
 setupPosition();
 
 setName('');
@@ -229,6 +243,24 @@ END_VAR
         <ST><![CDATA[]]></ST>
       </Implementation>
     </Method>
+    <Method Name="pull" Id="{5e0f29fc-a1aa-456a-98f0-78a2b334b213}" FolderPath="CTList\">
+      <Declaration><![CDATA[METHOD PRIVATE pull : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="push" Id="{c3c7aaec-1980-4a48-a4a7-8390a6d54bae}" FolderPath="CTList\">
+      <Declaration><![CDATA[METHOD PRIVATE push : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="Release" Id="{0d710157-0566-4311-84ad-ccf34b31ce11}">
       <Declaration><![CDATA[(*
   Release CT from Worker.
@@ -244,7 +276,8 @@ END_VAR
   LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('Release CT: ', _pAttachedCt^.print(0)));
   Release := TRUE; 
 END_IF
-_pAttachedCt:=0;]]></ST>
+_bAttached := 0;
+_pAttachedCt := 0;]]></ST>
       </Implementation>
     </Method>
     <Method Name="setName" Id="{66618658-df51-457a-bb97-2f422320d543}">
@@ -338,10 +371,12 @@ END_IF
       <LineId Id="102" Count="0" />
       <LineId Id="108" Count="0" />
       <LineId Id="103" Count="0" />
+      <LineId Id="147" Count="1" />
+      <LineId Id="146" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.bAttached.Get">
-      <LineId Id="3" Count="1" />
       <LineId Id="2" Count="0" />
+      <LineId Id="7" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.fPosition.Get">
       <LineId Id="2" Count="0" />
@@ -362,9 +397,12 @@ END_IF
       <LineId Id="9" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.Init">
+      <LineId Id="129" Count="0" />
       <LineId Id="79" Count="7" />
       <LineId Id="119" Count="0" />
-      <LineId Id="89" Count="19" />
+      <LineId Id="89" Count="3" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="93" Count="15" />
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.mJobStart">
@@ -373,10 +411,17 @@ END_IF
     <LineIds Name="FB_WorkerDefGrid.mJobStop">
       <LineId Id="2" Count="0" />
     </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.pull">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.push">
+      <LineId Id="5" Count="0" />
+    </LineIds>
     <LineIds Name="FB_WorkerDefGrid.Release">
       <LineId Id="3" Count="0" />
       <LineId Id="14" Count="0" />
       <LineId Id="12" Count="1" />
+      <LineId Id="23" Count="0" />
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.setName">

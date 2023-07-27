@@ -43,10 +43,10 @@ VAR PERSISTENT
                                   nGridPitchY:=GVL_Deformation.nC_GridPitch_Y
                               );
 END_VAR
-VAR CONSTANT
+(*VAR CONSTANT
   nLowerIndexCTList : UDINT := 1;
   nUpperIndexCTList : UDINT := 4; 
-END_VAR]]></Declaration>
+END_VAR*)]]></Declaration>
     <Implementation>
       <ST><![CDATA[]]></ST>
     </Implementation>
