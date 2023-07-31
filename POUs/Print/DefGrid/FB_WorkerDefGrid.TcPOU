@@ -80,28 +80,33 @@ VAR_INPUT
   iCT       : I_CT;            (*container at triggered event position*)
 END_VAR
 VAR
-  _pNewCt   : POINTER TO FB_ContainerDefGrid;
+  i : UDINT;
+  pNewCt   : POINTER TO FB_ContainerDefGrid;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF iCT = 0 THEN
+        <ST><![CDATA[Attach := FALSE;
+
+IF iCT = 0 THEN
   LogError(Msg:='attach failed -> not ct given');
   
-ELSIF bWorkerEnable AND _pAttachedCt = 0 THEN           // enabled and free to attach
-  IF getCtInst(iCT:=iCT, pCT=>_pNewCt) <> 0 THEN  // get specific container
-    _pAttachedCt := _pNewCt;
-    LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('Attach CT: ', _pNewCt^.print(0)));
-    Attach:=TRUE;                                 // attach new
-  ELSE
-    LogError(Msg:='attach failed');
-  END_IF
+ELSIF bWorkerEnable THEN  // worker enabled
   
-ELSIF bWorkerEnable AND _pAttachedCt <> 0 THEN    // enabled and already a CT attached
-  LogError(Msg:='another container already attached -> ignore new (set error)');
-  Abort(iCT:=iCT, sReason:='attach failed');  // abort new CT
-    
-ELSIF NOT bWorkerEnable AND _pAttachedCt <> 0 THEN // disabled and already a CT attached
-  // force release if any hanging, and ignore attach
-  Release(iCT:=_pAttachedCt^);
+  IF getCtInst(iCT:=iCT, pCT=>pNewCt) <> 0 THEN    // get specific container
+    // add to list ()
+    IF push(pNewCT:=pNewCt) THEN 
+      LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat4('Attach CT[', TO_STRING(_nAttachedCTs), ']: ', pNewCt^.print(0)));
+      Attach:=TRUE;                                 // attach new
+    END_IF
+  ELSE
+    LogError(Msg:='attach failed: could not get CT instance');
+  END_IF
+
+ELSIF NOT bWorkerEnable AND _nAttachedCTs > 0 THEN // disabled and already a CT attached
+  // force release all attached CT, and ignore attach
+  LogLvl(Lvl:=E_LogSeverity.Debug, Msg:='Worker disabled flush list of all attached CT');
+  WHILE _nAttachedCTs > 0 DO
+    Release(iCT:=_pAttachedCt^);
+	END_WHILE
 
 ELSIF NOT bWorkerEnable AND _pAttachedCt = 0 THEN  
   ;   // nothing to do, ignore attach
@@ -110,8 +115,9 @@ ELSE      // unspecified (error)case just log it
   LogError(Msg:='not tracked case');
 END_IF
 
-// is one attached?
-IF _pAttachedCt <> 0 THEN _bAttached:=TRUE; END_IF ]]></ST>
+
+// ok to attach
+]]></ST>
       </Implementation>
     </Method>
     <Property Name="bAttached" Id="{2e8c8130-f685-40b1-adbf-abe31d58117b}">
@@ -192,7 +198,7 @@ END_VAR]]></Declaration>
         <ST><![CDATA[_bAttached := 0;
 _pAttachedCt := 0;
 
-IF iWorkerParams = 0 AND_THEN iWorkerParams.pCTManager = 0 THEN
+IF iWorkerParams = 0 OR_ELSE iWorkerParams.pCTManager = 0 THEN
   LogError(Msg:='Init: invalid parameter');
   RETURN;
 END_IF
@@ -224,7 +230,7 @@ bInitialized := TRUE;]]></ST>
       </Implementation>
     </Method>
     <Method Name="mJobStart" Id="{2edcddcb-d5cc-4bb1-81a9-c6fb86b8259f}" FolderPath="I_PrintStatusClient\">
-      <Declaration><![CDATA[METHOD  ABSTRACT mJobStart
+      <Declaration><![CDATA[METHOD ABSTRACT mJobStart
 VAR_INPUT
 	sJobDef	: CalmarCompPrint.I_JobDefinition;
 END_VAR
@@ -246,19 +252,98 @@ END_VAR
     <Method Name="pull" Id="{5e0f29fc-a1aa-456a-98f0-78a2b334b213}" FolderPath="CTList\">
       <Declaration><![CDATA[METHOD PRIVATE pull : BOOL
 VAR_INPUT
+  pRemCT : POINTER TO FB_ContainerDefGrid;
 END_VAR
-]]></Declaration>
+VAR_OUTPUT
+  nRemIndex : UDINT := 0;
+END_VAR
+VAR
+  i                : DINT;
+  Index            : DINT;
+  LowerIndex       : DINT := 1;
+END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[]]></ST>
+        <ST><![CDATA[IF _nAttachedCTs = 0 THEN LogError('Release: but no CT is attached'); RETURN; END_IF
+
+// -- find if ct is in attached list
+Index := -1;
+FOR i:= TO_DINT(nLowerIndexCTList) TO TO_DINT(nLowerIndexCTList + _nAttachedCTs - 1) DO
+  IF _pAttachedCTList[i] = pRemCT THEN
+    Index := i;
+    EXIT;     // found
+  END_IF
+END_FOR
+IF Index = -1 THEN LogError('Release: ct inst not found in list'); RETURN; END_IF
+
+// do stop CT callback if removing first
+IF Index = TO_DINT(nLowerIndexCTList) THEN StopCT(pCtDefGrid:=pRemCT); END_IF
+
+// compress list
+IF Index >= TO_DINT(nLowerIndexCTList) AND Index < TO_DINT(nUpperIndexCTList) THEN
+  MEMMOVE(              // shift all above entries down
+    destAddr := ADR( _pAttachedCTList[Index] ), 
+    srcAddr  := ADR( _pAttachedCTList[Index + 1] ), 
+    n        := DINT_TO_UDINT(SIZEOF(_pAttachedCTList[LowerIndex]) * (UDINT_TO_DINT(_nAttachedCTs) - Index - 1 + LowerIndex))
+  );
+  _pAttachedCTList[nUpperIndexCTList] := 0;   // erase last(compressed) list entry
+END_IF
+_pAttachedCTList[_nAttachedCTs] := 0;   // erase last element
+
+// remove
+_nAttachedCTs := _nAttachedCTs - 1;   // remove one element
+
+IF _nAttachedCTs > 0 THEN 
+  // Start new HEAD
+  _pAttachedCt := _pAttachedCTList[1];
+  _bAttached := TRUE;
+  StartCT(pCtDefGrid:=_pAttachedCt);
+ELSE
+  // CT list empty (no ct attached)
+  _pAttachedCt := 0;
+  _bAttached := 0;
+END_IF
+
+nRemIndex := Index;
+pull := TRUE;]]></ST>
       </Implementation>
     </Method>
     <Method Name="push" Id="{c3c7aaec-1980-4a48-a4a7-8390a6d54bae}" FolderPath="CTList\">
       <Declaration><![CDATA[METHOD PRIVATE push : BOOL
 VAR_INPUT
+  pNewCT : POINTER TO FB_ContainerDefGrid;
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[]]></ST>
+        <ST><![CDATA[// checks
+// - valid param
+IF pNewCT = 0 THEN LogError('push: invalid pointer'); RETURN; END_IF
+// - list full
+IF _nAttachedCTs >= nUpperIndexCTList THEN  // list overflow no free element for processing
+  LogError('Deformation processing list full, ignore new CT');
+  Abort(iCT:=pNewCT^, sReason:='attach failed: too many attached');  // abort new CT (no release because not yet attached)
+  RETURN;
+END_IF
+// - only one CT allowed
+IF _nAttachedCTs > 0 AND NOT _bSupportParallelCT THEN
+  LogError(Msg:='another container already attached -> ignore new (set error)');
+  Abort(iCT:=pNewCt^, sReason:='attach failed: no parallel support');  // abort new CT
+END_IF
+
+// add to list
+_nAttachedCTs := _nAttachedCTs + 1;
+_pAttachedCTList[_nAttachedCTs] := pNewCT;
+
+// apply head
+IF _nAttachedCTs = 1 THEN
+  // set HEAD
+  _pAttachedCt := _pAttachedCTList[nLowerIndexCTList];  
+  _bAttached := TRUE;
+  
+  // start callback on HEAD
+  StartCT(pCtDefGrid:=_pAttachedCt);
+END_IF
+
+push := TRUE;]]></ST>
       </Implementation>
     </Method>
     <Method Name="Release" Id="{0d710157-0566-4311-84ad-ccf34b31ce11}">
@@ -270,14 +355,22 @@ METHOD Release : BOOL
 VAR_INPUT
   iCT              : I_CT;                         (*container at triggered event position*)
 END_VAR
-]]></Declaration>
+VAR
+  nIdx             : UDINT;
+  pCT              : POINTER TO FB_ContainerDefGrid;
+END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF iCT <> 0 AND _pAttachedCt <> 0 THEN 
-  LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('Release CT: ', _pAttachedCt^.print(0)));
-  Release := TRUE; 
+        <ST><![CDATA[// remove CT -----------------------------------------------------
+// -- get real instance
+pCT := getCtInst(iCT:=iCT);
+IF pCT = 0 THEN LogError('Release: could not find ct instance'); RETURN; END_IF
+
+// remove and release CT
+IF pull(pRemCT:=pCT, nRemIndex=>nIdx) THEN
+  LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat4('Release CT[', TO_STRING(nIdx), '] ', pCt^.print(0)));
+  Release := TRUE;  
 END_IF
-_bAttached := 0;
-_pAttachedCt := 0;]]></ST>
+]]></ST>
       </Implementation>
     </Method>
     <Method Name="setName" Id="{66618658-df51-457a-bb97-2f422320d543}">
@@ -314,25 +407,53 @@ END_IF
 ]]></ST>
       </Implementation>
     </Method>
+    <Method Name="StartCT" Id="{28400007-7a5d-4fce-a93d-03d5259530e3}">
+      <Declaration><![CDATA[METHOD PROTECTED StartCT
+VAR_INPUT
+ pCtDefGrid   : POINTER TO FB_ContainerDefGrid;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Override specific implementation in child class *)]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="StopCT" Id="{cf4cd522-5869-4bb8-853b-bccf0021d001}">
+      <Declaration><![CDATA[METHOD PROTECTED StopCT
+VAR_INPUT
+ pCtDefGrid   : POINTER TO FB_ContainerDefGrid;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Override specific implementation in child class *)]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="work" Id="{3d2d038f-b3d5-4af3-8623-edc2cf824dd4}">
-      <Declaration><![CDATA[METHOD  work]]></Declaration>
+      <Declaration><![CDATA[METHOD  work
+VAR
+  i : UDINT;
+  pCt : POINTER TO FB_ContainerDefGrid;
+END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[//Work only with attached container
-IF _pAttachedCt <> 0 THEN 
+IF _nAttachedCTs = 0 THEN RETURN; END_IF
   
-  // update CT position
-  fCtPosition := _pAttachedCt^.GetPos(nPosDomain:=E_PosDomain.master_pos) - _nTrackOffset; 
+FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
+  pCt := _pAttachedCTList[i];
 
+  // update CT position
+  fCtPosition := pCt^.GetPos(nPosDomain:=E_PosDomain.master_pos) - _nTrackOffset; 
+  
   // release CT (manually and security)
   IF _bForceRelease THEN
-    LogWarning(F_Concat2('Manually realease CTId=', TO_STRING(_pAttachedCt^.pCT^.iId)));
-    Release(iCT:=_pAttachedCt^);
+    LogWarning(F_Concat2('Manually realease CTId=', TO_STRING(pCt^.pCT^.iId)));
+    Release(iCT:=pCt^);
   ELSIF _fCtSecurityReleasePos > 0 AND (fCtPosition > _fCtSecurityReleasePos) THEN
-    LogError(F_Concat2('Security released CTId=', TO_STRING(_pAttachedCt^.pCT^.iId)));
-    Release(iCT:=_pAttachedCt^);
+    LogError(F_Concat2('Security released CTId=', TO_STRING(pCt^.pCT^.iId)));
+    Release(iCT:=pCt^);
   END_IF
-  
-END_IF
+
+END_FOR
+
 ]]></ST>
       </Implementation>
     </Method>
@@ -347,31 +468,18 @@ END_IF
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.Attach">
-      <LineId Id="100" Count="0" />
-      <LineId Id="131" Count="1" />
-      <LineId Id="130" Count="0" />
-      <LineId Id="112" Count="0" />
-      <LineId Id="125" Count="0" />
-      <LineId Id="139" Count="0" />
-      <LineId Id="114" Count="0" />
-      <LineId Id="128" Count="1" />
-      <LineId Id="113" Count="0" />
-      <LineId Id="115" Count="0" />
-      <LineId Id="104" Count="0" />
-      <LineId Id="120" Count="0" />
-      <LineId Id="117" Count="0" />
-      <LineId Id="122" Count="0" />
-      <LineId Id="118" Count="0" />
-      <LineId Id="116" Count="0" />
-      <LineId Id="123" Count="0" />
-      <LineId Id="126" Count="0" />
-      <LineId Id="105" Count="0" />
-      <LineId Id="119" Count="0" />
-      <LineId Id="127" Count="0" />
-      <LineId Id="102" Count="0" />
-      <LineId Id="108" Count="0" />
-      <LineId Id="103" Count="0" />
-      <LineId Id="147" Count="1" />
+      <LineId Id="226" Count="1" />
+      <LineId Id="172" Count="5" />
+      <LineId Id="206" Count="0" />
+      <LineId Id="205" Count="0" />
+      <LineId Id="181" Count="1" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="184" Count="2" />
+      <LineId Id="191" Count="1" />
+      <LineId Id="216" Count="0" />
+      <LineId Id="218" Count="0" />
+      <LineId Id="213" Count="2" />
+      <LineId Id="195" Count="9" />
       <LineId Id="146" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.bAttached.Get">
@@ -412,16 +520,50 @@ END_IF
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.pull">
-      <LineId Id="5" Count="0" />
+      <LineId Id="114" Count="38" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="39" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.push">
+      <LineId Id="17" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="12" Count="2" />
       <LineId Id="5" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="25" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.Release">
-      <LineId Id="3" Count="0" />
-      <LineId Id="14" Count="0" />
-      <LineId Id="12" Count="1" />
-      <LineId Id="23" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="70" Count="1" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="72" Count="0" />
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.setName">
@@ -432,21 +574,21 @@ END_IF
       <LineId Id="3" Count="0" />
       <LineId Id="2" Count="0" />
     </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.StartCT">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.StopCT">
+      <LineId Id="5" Count="0" />
+    </LineIds>
     <LineIds Name="FB_WorkerDefGrid.work">
       <LineId Id="19" Count="0" />
       <LineId Id="3" Count="0" />
-      <LineId Id="28" Count="0" />
-      <LineId Id="27" Count="0" />
-      <LineId Id="4" Count="0" />
-      <LineId Id="18" Count="0" />
-      <LineId Id="17" Count="0" />
-      <LineId Id="20" Count="0" />
-      <LineId Id="24" Count="1" />
-      <LineId Id="21" Count="0" />
-      <LineId Id="26" Count="0" />
-      <LineId Id="22" Count="1" />
-      <LineId Id="29" Count="0" />
-      <LineId Id="13" Count="0" />
+      <LineId Id="28" Count="1" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="41" Count="10" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="34" Count="1" />
       <LineId Id="2" Count="0" />
     </LineIds>
   </POU>

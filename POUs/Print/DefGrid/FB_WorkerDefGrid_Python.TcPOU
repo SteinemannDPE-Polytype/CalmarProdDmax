@@ -42,19 +42,25 @@ END_VAR
       <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
 VAR_INPUT
   iCT              : I_CT;                         (*container at triggered event position*)
+END_VAR
+VAR
+  pCt : POINTER TO FB_ContainerDefGrid;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[Attach := FALSE;
 IF SUPER^.Attach(iCT:=iCT) THEN
   // OK, attached (enabled, was ok to be attached)
+  IF getCtInst(iCT:=iCT, pCT=>pCt) = 0 THEN    // get specific container
+    RETURN;
+  END_IF
   
   // setup check
   IF _iParamMediator = 0 THEN Release(iCT:=iCT); LogError('Invalid param mediator'); RETURN; END_IF
   
   // Additional worker checks
   // - do we have a valid job? used mode?
-  IF _CamGridSettings.eCameraMode > E_CameraMode.NoCorrection AND (_pAttachedCt^.pJob = 0 OR NOT _bJobActive) THEN
-    _pAttachedCt^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^);
+  IF _CamGridSettings.eCameraMode > E_CameraMode.NoCorrection AND (iCT.pJob = 0 OR NOT _bJobActive) THEN
+    pCt^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^);
      Release(iCT:=iCT);
      
   ELSIF _CamGridSettings.eCameraMode > E_CameraMode.NoCorrection THEN
@@ -62,7 +68,7 @@ IF SUPER^.Attach(iCT:=iCT) THEN
     // -- only create ct if a deformation is active
     IF CreateDefCt(iCT:=iCT) THEN
         // set state
-        _pAttachedCt^.StartScript(iDeformationHandler:=THIS^);
+        pCt^.StartScript(iDeformationHandler:=THIS^);
         // attached
         Attach := TRUE;
     END_IF
@@ -137,10 +143,11 @@ VAR_INPUT
   pMsgConfig : POINTER TO ST_MSG_CONFIG;         // message config
   fPrintResolution : LREAL := 1;                 // print(head) resolution in [dpi]
   fSubPxResolution : LREAL := 1;                 // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
+  bParallelCT : BOOL;                            // Support parallel processing of CTs
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[SUPER^.Init(iWorkerParams:=iWorkerParams, pMsgConfig:=pMsgConfig, fPrintResolution:=fPrintResolution, fSubPxResolution:=fSubPxResolution);
+        <ST><![CDATA[SUPER^.Init(iWorkerParams:=iWorkerParams, pMsgConfig:=pMsgConfig, fPrintResolution:=fPrintResolution, fSubPxResolution:=fSubPxResolution, bParallelCT:=bParallelCT);
 
 // Init messages
 fbMsg_PythonNotRunning.pI_MsgConfig := _pMsgConfigExt;
@@ -262,7 +269,12 @@ IF fbMsg_PythonNotRunning.bMsgAck THEN fbPythonInterface.ackError(); END_IF]]></
       <LineId Id="9" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Python.Attach">
-      <LineId Id="306" Count="26" />
+      <LineId Id="306" Count="2" />
+      <LineId Id="339" Count="0" />
+      <LineId Id="343" Count="0" />
+      <LineId Id="309" Count="0" />
+      <LineId Id="336" Count="0" />
+      <LineId Id="310" Count="22" />
       <LineId Id="211" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Python.CreateDefCt">

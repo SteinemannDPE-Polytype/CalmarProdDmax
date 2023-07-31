@@ -127,7 +127,7 @@ VAR_INPUT
   iCT              : I_CT;                         (*container at triggered event position*)
 END_VAR
 VAR
-  tempCt :  POINTER TO FB_ContainerDefGrid;
+  pCt : POINTER TO FB_ContainerDefGrid;
   bDeformErr : BOOL;
   eDeformStep : E_DeformationStep;
 END_VAR]]></Declaration>
@@ -135,9 +135,12 @@ END_VAR]]></Declaration>
         <ST><![CDATA[Attach := FALSE;
 IF SUPER^.Attach(iCT:=iCT) THEN
   // OK, attached (enabled, was ok to be attached)
+  IF getCtInst(iCT:=iCT, pCT=>pCt) = 0 THEN    // get specific container
+    RETURN;
+  END_IF
   
-  bDeformErr := _pAttachedCt^.getDeformationStatus(eDStep=>eDeformStep);   // get latest status 
-  
+  bDeformErr := pCt^.getDeformationStatus(eDStep=>eDeformStep);   // get latest status 
+
   // Additional worker checks
 
   // - deformation started? and no deformation error so far
@@ -145,15 +148,15 @@ IF SUPER^.Attach(iCT:=iCT) THEN
     Release(iCT:=iCT);  // nothing to do anymore
 
   // - job is valid?
-  ELSIF _pAttachedCt^.pJob = 0 OR NOT _bJobActive THEN
+  ELSIF iCT.pJob = 0 OR NOT _bJobActive THEN
     _pAttachedCt^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^);
     Release(iCT:=iCT);
-       
+
   // - camera ready
   ELSIF (NOT _bCamValid OR NOT _bCamReady) THEN  // check if cam is ready
-    _pAttachedCt^.AbortDeformation(sReason:='Camera invalid or not ready for attach', Src:=_pEcSrc^);
+    pCt^.AbortDeformation(sReason:='Camera invalid or not ready for attach', Src:=_pEcSrc^);
     Release(iCT:=iCT);
-  
+
   // OK attach
   ELSE
     Attach := TRUE;
@@ -237,12 +240,13 @@ VAR_INPUT
   pMsgConfig : POINTER TO ST_MSG_CONFIG;         // message config
   fPrintResolution : LREAL := 1;                 // print(head) resolution in [dpi]
   fSubPxResolution : LREAL := 1;                 // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
+  bParallelCT : BOOL;                            // Support parallel processing of CTs
 END_VAR
 VAR
   lCtr : UDINT;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[SUPER^.Init(iWorkerParams:=iWorkerParams, pMsgConfig:=pMsgConfig, fPrintResolution:=fPrintResolution, fSubPxResolution:=fSubPxResolution);
+        <ST><![CDATA[SUPER^.Init(iWorkerParams:=iWorkerParams, pMsgConfig:=pMsgConfig, fPrintResolution:=fPrintResolution, fSubPxResolution:=fSubPxResolution, bParallelCT:=bParallelCT);
 
 IF pMsgConfig = 0 THEN LogError('Init: invalid message config given'); END_IF 
 
@@ -493,6 +497,7 @@ END_VAR]]></Declaration>
 
 SUPER^.work();
 
+
 //-----------------------------------------------------------
 //- automatic worker setup & control
 IF _bSetInitCam AND _iActiveCam = 0 THEN    // try to set a default camera at start
@@ -600,6 +605,8 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="233" Count="0" />
       <LineId Id="154" Count="0" />
       <LineId Id="215" Count="0" />
+      <LineId Id="299" Count="1" />
+      <LineId Id="298" Count="0" />
       <LineId Id="268" Count="0" />
       <LineId Id="267" Count="0" />
       <LineId Id="260" Count="0" />
@@ -755,7 +762,7 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
     <LineIds Name="FB_WorkerDefGrid_Camera.work">
       <LineId Id="341" Count="0" />
       <LineId Id="362" Count="0" />
-      <LineId Id="340" Count="0" />
+      <LineId Id="434" Count="1" />
       <LineId Id="347" Count="2" />
       <LineId Id="121" Count="0" />
       <LineId Id="260" Count="0" />
