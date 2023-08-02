@@ -137,6 +137,7 @@ VAR_INPUT
   bOk             : BOOL;     // trigger is ok
 	nPos            : DINT;     // camera triggered position
   nPosDeviation   : DINT;     // camera started deviation
+  nX0             : DINT;     // detected position sheet/repetition
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -148,8 +149,8 @@ _nCamStartPos   := nPos;
 _nCamStartPosDeviation := nPosDeviation;
 
 LogLvl(Lvl:=E_LogSeverity.Debug, Msg:='CamTrigger');
-IF _iCameraSink <> 0 THEN   // link to sink (wokerCam -> CT)
-  ;
+IF _iCameraSink <> 0 THEN   // inform sink
+  _iCameraSink.CamStarted(nX0:=nX0);
 END_IF
 ]]></ST>
       </Implementation>
@@ -161,7 +162,11 @@ END_IF
         <ST><![CDATA[_bCamTriggerStarted    := FALSE;  // this call marks the end of the camera trigger period
 _bCamTriggerDone       := TRUE;
 
-LogLvl(Lvl:=E_LogSeverity.Debug, Msg:='CamTriggerDone');]]></ST>
+LogLvl(Lvl:=E_LogSeverity.Debug, Msg:='CamTriggerDone');
+IF _iCameraSink <> 0 THEN   // inform sink
+  _iCameraSink.CamDone();
+END_IF
+]]></ST>
       </Implementation>
     </Method>
     <Method Name="DeactivateCam" Id="{a856b950-c2e0-49b9-8c57-589d4c82956d}">
@@ -560,6 +565,8 @@ END_VAR
       <LineId Id="6" Count="0" />
       <LineId Id="9" Count="0" />
       <LineId Id="8" Count="0" />
+      <LineId Id="12" Count="2" />
+      <LineId Id="11" Count="0" />
     </LineIds>
     <LineIds Name="FB_CameraBase.DeactivateCam">
       <LineId Id="7" Count="7" />

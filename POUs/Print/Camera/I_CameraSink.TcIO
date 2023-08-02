@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <Itf Name="I_CameraSink" Id="{c7f13400-6272-4109-9d42-da2a605cebc8}">
     <Declaration><![CDATA[{attribute 'monitoring':='call'}
 INTERFACE I_CameraSink
@@ -15,6 +15,24 @@ END_VAR
       <Declaration><![CDATA[METHOD AddTeachPoint : BOOL
 VAR_INPUT
   sTeachPoint : ST_DeformationPointAccurate;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="CamDone" Id="{dae457a0-f1b8-4ae1-bdb6-7fab81b30ff7}">
+      <Declaration><![CDATA[(*
+  Event cam done "detecting points", sheet/repeate done.
+  Called after last point will be streamed to same CT.
+*)
+METHOD CamDone : BOOL]]></Declaration>
+    </Method>
+    <Method Name="CamStarted" Id="{6167fba8-5e99-4ef2-8c53-3654b01163aa}">
+      <Declaration><![CDATA[(*
+  Event cam started "detecting points".
+  Is called before streaming cam points.
+*)
+METHOD CamStarted
+VAR_INPUT
+  nX0 : DINT; // detected start position
 END_VAR
 ]]></Declaration>
     </Method>

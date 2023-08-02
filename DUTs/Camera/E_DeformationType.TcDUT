@@ -4,6 +4,7 @@
     <Declaration><![CDATA[{attribute 'qualified_only'}
 {attribute 'strict'}
 {attribute 'to_string'}
+//NOTE: this definition must match the textlist "E_DeformationType"
 TYPE E_DeformationType :
 (
   NoDeformation   := 0,   // NoCorrection

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_CameraTcpIp" Id="{c88746fd-4ca5-43f1-8f99-b1b2f4ff3dbc}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   Base camera system with TcpIp communicatiom
@@ -60,18 +60,6 @@ END_IF]]></ST>
         </Implementation>
       </Get>
     </Property>
-    <Method Name="CamTrigger" Id="{d48e1d35-2b38-4ef9-bdb8-dd4cb5e947c7}">
-      <Declaration><![CDATA[METHOD CamTrigger
-VAR_INPUT
-  bOk             : BOOL;     // trigger is ok
-	nPos            : DINT;     // camera triggered position
-  nPosDeviation   : DINT;     // camera started deviation
-END_VAR
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[SUPER^.CamTrigger(bOk:=bOk, nPos:=nPos, nPosDeviation:=nPosDeviation);]]></ST>
-      </Implementation>
-    </Method>
     <Method Name="DeactivateCam" Id="{0e77b3b1-585b-4e9f-9303-220734544750}">
       <Declaration><![CDATA[METHOD DeactivateCam : BOOL
 VAR_INPUT
@@ -158,9 +146,6 @@ END_VAR
       <LineId Id="13" Count="0" />
       <LineId Id="9" Count="0" />
       <LineId Id="8" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_CameraTcpIp.CamTrigger">
-      <LineId Id="6" Count="0" />
     </LineIds>
     <LineIds Name="FB_CameraTcpIp.DeactivateCam">
       <LineId Id="15" Count="0" />

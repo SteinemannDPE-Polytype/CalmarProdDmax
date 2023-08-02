@@ -206,7 +206,7 @@ CASE eState OF
         eState         := cL_WAITFEEDBACK;
       ELSE
         eState         := cL_TRIGACTIVE;
-        iActiveCam.CamTrigger(bOk:=bTriggerOk, nPos:=iI_CurrentPos, nPosDeviation:=0);
+        iActiveCam.CamTrigger(bOk:=bTriggerOk, nPos:=iI_CurrentPos, nPosDeviation:=0, nX0:=_nX0);
       END_IF
 
       OnTriggerCommand := cL_INACTIVE; (*Disarm already command to EL2252, trigger generated*)
@@ -244,8 +244,8 @@ CASE eState OF
       // effective started position
       fDeltaDistance  := UINT64_TO_LREAL(UInt64Sub64(ULINT_TO_ULARGE(tCurrentTime), ULINT_TO_ULARGE(tTriggerFeedback_TimeStamp))) * 1E-9 * fI_ConveyorSpeed;
       _nCamStartedPos := iI_CurrentPos - F_MeterToSubPixel(fPosMeter:=fDeltaDistance, fResoSubPx:=_nResolution);
-      IF _bManualStart THEN iActiveCam.CamTrigger(bOk:=bTriggerOk, nPos:=_nCamStartPos, nPosDeviation:=0);
-      ELSE                  iActiveCam.CamTrigger(bOk:=bTriggerOk, nPos:=_nCamStartPos, nPosDeviation:=-_nCamStartedPos+_nCamStartPos); END_IF  (*!!!!   sign inverted*)
+      IF _bManualStart THEN iActiveCam.CamTrigger(bOk:=bTriggerOk, nPos:=_nCamStartPos, nPosDeviation:=0, nX0:=_nX0);
+      ELSE                  iActiveCam.CamTrigger(bOk:=bTriggerOk, nPos:=_nCamStartPos, nPosDeviation:=-_nCamStartedPos+_nCamStartPos, nX0:=_nX0); END_IF  (*!!!!   sign inverted*)
     ELSE
      eState           := cL_WAITFEEDBACK;
     END_IF    
@@ -255,7 +255,7 @@ CASE eState OF
     
     // calculate end timestamp of trigger (end of trigger active signal)
     tTrigger_EventTime := (tTrigger_EventTime + LREAL_TO_ULINT(_fTriggerLength * 1E6));
-    
+     
     OnTriggerCommand := cL_INACTIVE;
     ObTrigger        := FALSE;
     

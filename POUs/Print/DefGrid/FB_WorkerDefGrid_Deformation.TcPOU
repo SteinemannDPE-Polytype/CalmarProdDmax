@@ -124,9 +124,8 @@ IF iDefGridParamMediator = 0 THEN bInitialized := FALSE; LogError('Invalid param
 // worker specific init
 _nPrintUnitWidth := nPrintUnitWidth;
 _iParamMediator := iDefGridParamMediator;
-
-_nMultiAttachedCTs := 0;
 _bNewJob := FALSE;
+
 FOR i:=nLowerIndexCTList TO nUpperIndexCTList DO
   _nDeformationProcPoints[i]     := 0;
   _nDeformationProcCols[i]       := 0;
@@ -331,9 +330,8 @@ END_FOR
       <LineId Id="8" Count="0" />
       <LineId Id="5" Count="0" />
       <LineId Id="24" Count="0" />
-      <LineId Id="30" Count="0" />
-      <LineId Id="23" Count="0" />
       <LineId Id="31" Count="0" />
+      <LineId Id="56" Count="0" />
       <LineId Id="47" Count="0" />
       <LineId Id="33" Count="8" />
       <LineId Id="32" Count="0" />

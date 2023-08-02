@@ -197,6 +197,7 @@ END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[_bAttached := 0;
 _pAttachedCt := 0;
+_nAttachedCTs := 0;
 
 IF iWorkerParams = 0 OR_ELSE iWorkerParams.pCTManager = 0 THEN
   LogError(Msg:='Init: invalid parameter');
@@ -506,7 +507,9 @@ END_FOR
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.Init">
       <LineId Id="129" Count="0" />
-      <LineId Id="79" Count="7" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="80" Count="6" />
       <LineId Id="119" Count="0" />
       <LineId Id="89" Count="3" />
       <LineId Id="131" Count="0" />

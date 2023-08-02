@@ -360,6 +360,9 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\E_DeformationType.TcTLO">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_ContainerDefGrid.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>

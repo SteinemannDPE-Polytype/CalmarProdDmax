@@ -330,9 +330,10 @@ VAR_INPUT
   bOk             : BOOL;     // trigger is ok
 	nPos            : DINT;     // camera triggered position
   nPosDeviation   : DINT;     // camera started deviation
+  nX0             : DINT;     // detected position sheet/repetition
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[SUPER^.CamTrigger(bOk:=bOk, nPos:=nPos, nPosDeviation:=nPosDeviation);
+        <ST><![CDATA[SUPER^.CamTrigger(bOk:=bOk, nPos:=nPos, nPosDeviation:=nPosDeviation, nX0:=nX0);
 
 _tTimeTrigger := F_GetCurDcTaskTime64();    // save trigger time stamp (a little later than the real)
 IF _bVerbose THEN LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('CamTrigger at: ', TO_STRING(_tTimeTrigger))); END_IF

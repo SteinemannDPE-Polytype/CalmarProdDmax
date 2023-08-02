@@ -13,26 +13,29 @@ VAR
   _sCamName       : ARRAY[1..5] OF STRING;
   _nRegisteredCam : UDINT;    // number registered cameras
   _iActiveCam     : I_Camera; // active selected camera interface
-  
+
   // cam status
   _bCamValid      : BOOL;
   _bCamReady      : BOOL;    // Camera no error
   _bConnectionOk  : BOOL;    //
+  _bLineCamType   : BOOL;    // TRUE if it's a LineCamera
+  _bSetInitCam    : BOOL;    // set initial camera
+  _bCamStarted    : BOOL;    // Camera started
+  
+  // cam point status
   _bTeachOk       : BOOL;    // Teach successful
   _nTeachedPoints : UDINT;   // Teached points for this job
   _nScannedPoints : UDINT;   // Scanned points on current sheet
-  _bCamStarted    : BOOL;    // Camera started
-  _bCamDone       : BOOL;    // Camera done
-  _nAddedPoint    : UDINT;   // Added point to image deformation
- 
-  _bLineCamType   : BOOL;    // TRUE if it's a LineCamera
-  _bSetInitCam    : BOOL;    // set initial camera
+  _nAddedPoint    : UDINT;   // point sent to image deformation on ct
+  _nCamBufferPoints : UDINT;  // cam point input stream buffer (allows jittering the Attach of CT)
+  _CamBufferPoints : ARRAY[1..GVL_Camera.cMaxNbMarks] OF ST_DeformationPointAccurate;
   
   // deformation status
-  _eDeformStep                : E_DeformationStep;   // status deformation of ct
+  _eDeformStep                 : E_DeformationStep;   // status deformation of ct
+  _nX0                         : DINT;   // detected sheet/repeat position [SubPx]              
   
   // Messages
-  _pMsgConfig                   : POINTER TO ST_MSG_CONFIG;
+  _pMsgConfig                  : POINTER TO ST_MSG_CONFIG;
   bCamNotAvailable             : BOOL;
   fbMsg_CamNotAvailable        : FB_MESSAGE;
   bCamModeNotSupported         : BOOL;
@@ -95,19 +98,13 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[{warning 'TODO: add a small queue for input points'}
+        <ST><![CDATA[IF _nCamBufferPoints >= GVL_Camera.cMaxNbMarks THEN LogError('AddCamPoint: CamPoint buffer is full (overflow), ignore point'); RETURN; END_IF
 
-IF _pAttachedCt <> 0 THEN //Container attached?
-  AddCamPoint := _pAttachedCt^.AddCamPoint(sPoint:=sDeformationPoint);
-  IF AddCamPoint THEN 
-    _nAddedPoint :=_nAddedPoint+1;
-    //cameraImgProc(newDeformationPoint:=iDeformationPoint);  //Update image processing
-  ELSE
-    LogError(Msg:='addCamPoint failed, add to CT error');
-  END_IF;
-ELSE
-  LogWarning(Msg:=F_Concat2('addCamPoint failed, no CT attached: ', F_DeformationPointAcc_ToString(sPointAcc:=sDeformationPoint)));
-END_IF]]></ST>
+// add to internal buffer
+_nCamBufferPoints := _nCamBufferPoints + 1;
+_CamBufferPoints[_nCamBufferPoints] := sDeformationPoint; 
+
+AddCamPoint := TRUE;]]></ST>
       </Implementation>
     </Method>
     <Method Name="AddTeachPoint" Id="{f2606cab-e071-41ba-b4be-aa219442a713}" FolderPath="I_CameraSink\">
@@ -118,7 +115,9 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[
-// ignore the teach points for now]]></ST>
+// ignore the teach points for now
+
+AddTeachPoint := TRUE;]]></ST>
       </Implementation>
     </Method>
     <Method Name="Attach" Id="{af64d5ac-9c9c-46b2-994b-9271d2dee30d}">
@@ -139,10 +138,8 @@ IF SUPER^.Attach(iCT:=iCT) THEN
     RETURN;
   END_IF
   
-  bDeformErr := pCt^.getDeformationStatus(eDStep=>eDeformStep);   // get latest status 
-
   // Additional worker checks
-
+  bDeformErr := pCt^.getDeformationStatus(eDStep=>eDeformStep);   // get latest status 
   // - deformation started? and no deformation error so far
   IF bDeformErr OR eDeformStep = E_DeformationStep.nothing THEN
     Release(iCT:=iCT);  // nothing to do anymore
@@ -207,6 +204,51 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
+    <Method Name="CamDone" Id="{dc314c49-d032-45fe-9f30-26d4dc97edc1}" FolderPath="I_CameraSink\">
+      <Declaration><![CDATA[(*
+  Event cam done "detecting points", sheet/repeate done.
+  Called after last point will be streamed to same CT.
+*)
+METHOD CamDone : BOOL
+(*VAR_INPUT
+  nDetectedLength : LREAL; // [m]
+END_VAR*)]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _nAttachedCTs=0 OR NOT _bCamStarted OR _eDeformStep < E_DeformationStep.cameraStarted THEN
+  RETURN;
+END_IF
+
+// last point was received, we can dump the buffer and release the Container
+streamPoints();   // stream all buffered points
+
+LogLvl(Lvl:=E_LogSeverity.Debug, Msg:='CamDone');
+Release(_pAttachedCt^);   // release head container
+
+_bCamStarted := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CamStarted" Id="{909d4056-0090-41d1-b186-5c0194c8eb85}" FolderPath="I_CameraSink\">
+      <Declaration><![CDATA[(*
+  Event cam started "detecting points".
+  Is called before streaming cam points.
+*)
+METHOD CamStarted
+VAR_INPUT
+  nX0 : DINT; // detected start position
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// erase rx buffer
+_nCamBufferPoints := 0;
+MEMSET(destAddr:=ADR(_CamBufferPoints[1]), fillByte:=0, n:=SIZEOF(_CamBufferPoints));
+
+// save x0 for sheet lenght calculation
+_nX0 := nX0;
+
+_bCamStarted := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
     <Property Name="fCameraToPrintOffset" Id="{c7f93a14-f1d1-4c31-a277-d18b12fc9117}">
       <Declaration><![CDATA[PROPERTY fCameraToPrintOffset : LREAL]]></Declaration>
       <Get Name="Get" Id="{7463415f-08fd-4759-a1b6-38cdc37fe30e}">
@@ -285,7 +327,12 @@ IF iDefGridParamMediator = 0 THEN bInitialized := FALSE; LogError('Invalid param
 
 _pAdsCam := pAdsIf;
 _iParamMediator := iDefGridParamMediator;
-_fPrintUnitWidth := fPrintUnitWidth;]]></ST>
+_fPrintUnitWidth := fPrintUnitWidth;
+
+_bCamStarted := FALSE;
+// done by worker (always when cam activated)
+//_bCamValid := _bCamReady := _bConnectionOk := FALSE;
+//_nTeachedPoints := _nScannedPoints := 0;]]></ST>
       </Implementation>
     </Method>
     <Method Name="is_linecam" Id="{75d58c77-ff64-480b-987c-b901e93de9a9}">
@@ -482,16 +529,34 @@ ELSE
 END_IF]]></ST>
       </Implementation>
     </Method>
+    <Method Name="streamPoints" Id="{e6587db5-c53f-4607-886b-a01751f01b92}">
+      <Declaration><![CDATA[METHOD PRIVATE streamPoints
+VAR
+  i : UDINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _nAttachedCTs=0 OR NOT _bCamStarted OR _eDeformStep < E_DeformationStep.cameraStarted THEN
+  RETURN;
+END_IF
+
+
+// stream buffered points
+WHILE _nAddedPoint < _nCamBufferPoints DO
+
+  IF _pAttachedCt^.AddCamPoint(sPoint:=_CamBufferPoints[_nAddedPoint+1]) THEN 
+    //cameraImgProc(newDeformationPoint:=iDeformationPoint);  //Update image processing
+  ELSE
+    LogError(Msg:='addCamPoint failed, add to CT error');
+  END_IF;
+
+  _nAddedPoint :=_nAddedPoint+1;
+END_WHILE
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="work" Id="{51a4cd28-adfd-4791-8e23-e9bc638f5539}">
       <Declaration><![CDATA[METHOD  work
-VAR_INST
-  rT_CamStarted : R_TRIG;
-  rT_CamDone : R_TRIG;
-  bReqToStartCamOnCt : BOOL;
-END_VAR
-VAR
-  lCtr : UDINT;
-END_VAR]]></Declaration>
+]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF _iParamMediator = 0 THEN RETURN; END_IF
 
@@ -504,18 +569,22 @@ IF _bSetInitCam AND _iActiveCam = 0 THEN    // try to set a default camera at st
   ActivateCamera(selectCamera(eNewCam:=E_CameraDevice.SheetDetect));
   _bSetInitCam := FALSE;
   _bCamValid := TRUE;
+
 ELSIF _iActiveCam <> 0 THEN                 // a camera is activated
   
   // --- cyclic call always when cam is active ---
   _bCamValid := TRUE;
-  //-- update status  
+  
+  //-- update status
+  {warning '  >> and refactor to remve the bCamStarted&bCamDone from get Status interface'}
   _bCamReady := _iActiveCam.GetCamStatus(
                               bConnectionOK => _bConnectionOk, 
                               bTeachOk => _bTeachOk, 
                               nTeachedPoints => _nTeachedPoints, 
                               nScannedPoints => _nScannedPoints,
-                              bCamStarted => _bCamStarted,
-                              bCamDone => _bCamDone);
+                              //bCamStarted => _bCamStarted,   // we have events on I_CameraSink
+                              //bCamDone => _bCamDone
+                            );
   // -- worker position setup
   IF _pAttachedCt = 0 THEN     // Update only without attached container
     // WorkerPosition 
@@ -524,42 +593,35 @@ ELSIF _iActiveCam <> 0 THEN                 // a camera is activated
 ELSE
   _bCamValid := FALSE;                    // invalid camera
 END_IF
-rT_CamStarted(CLK:=_bCamStarted);
-IF rT_CamStarted.Q THEN bReqToStartCamOnCt := TRUE; END_IF    // trigger that cam started
-rT_CamDone(CLK:=_bCamDone); 
 
 
 // -----------------------------------------------------------
 // Work only with attached container
 IF _pAttachedCt <> 0 THEN
+  // we have a HEAD container
   bError := _pAttachedCt^.getDeformationStatus(eDStep => _eDeformStep);
   
-  IF _eDeformStep > E_DeformationStep.nothing AND _bCamReady AND _bTeachOk THEN      // start only if py started
-    IF bReqToStartCamOnCt THEN    // wait on cam started while next CT is attached
-      // -- setup deformation with cam settings
-      LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('CamStarted mode: ', TO_STRING(_iActiveCam.eCameraMode)));
-      _pAttachedCt^.StartCamera(eCameraMode:=_iActiveCam.eCameraMode, fFeatureGrid:=_fFeatureGrid);
-      bReqToStartCamOnCt := FALSE; // reset
-		END_IF
-    IF _bCamDone AND _eDeformStep >= E_DeformationStep.cameraStarted THEN
-        LogLvl(Lvl:=E_LogSeverity.Debug, Msg:='CamDone');
-        Release(_pAttachedCt^);
-    END_IF
-      
-    (*IF _eDeformStep >= E_DeformationStep.cameraStarted AND _nScannedPoints > 3 THEN   // TODO: handle this in py script / select local Grid generation or script
-      _pAttachedCt^.UpdateDeformation();         // update with cam feature grid  
-      IF _bCamDone THEN
-        Release(_pAttachedCt^);
+    IF _eDeformStep > E_DeformationStep.nothing AND _bCamReady AND _bTeachOk THEN      // start only if previous started
+      IF _eDeformStep < E_DeformationStep.cameraStarted THEN
+        // start cam on ct
+        LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('Start Camera with mode: ', TO_STRING(_iActiveCam.eCameraMode)));
+        _pAttachedCt^.StartCamera(eCameraMode:=_iActiveCam.eCameraMode, fFeatureGrid:=_fFeatureGrid);
+        
+			ELSIF _eDeformStep >= E_DeformationStep.cameraStarted AND _bCamStarted THEN
+        // run update on ct
+        // stream points
+        streamPoints();
+        // superview abort cases
       END_IF
-    END_IF*)
-    
-    
-  ELSE
-    IF _bCamStarted THEN
-      LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat6('CamDone step: ', TO_STRING(_eDeformStep), ' CamReady: ', TO_STRING(_bCamReady), ' TeachOk: ', TO_STRING(_bTeachOk)));
-      Release(_pAttachedCt^);
-    END_IF
-  END_IF
+    ELSE
+      IF _bCamStarted THEN
+        // error on camera while started
+        LogError('Abort Camera while it was started');
+			END_IF
+      // release because cam not ready or pior worker not done its job
+      Release(_pAttachedCt^);   // release head container
+		END_IF
+
 END_IF
 
 // call messages
@@ -584,22 +646,16 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="7" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.AddCamPoint">
-      <LineId Id="51" Count="0" />
-      <LineId Id="58" Count="0" />
-      <LineId Id="13" Count="0" />
-      <LineId Id="15" Count="0" />
-      <LineId Id="25" Count="0" />
-      <LineId Id="30" Count="0" />
-      <LineId Id="32" Count="0" />
-      <LineId Id="37" Count="1" />
-      <LineId Id="31" Count="0" />
-      <LineId Id="43" Count="0" />
-      <LineId Id="46" Count="0" />
+      <LineId Id="66" Count="2" />
+      <LineId Id="64" Count="1" />
+      <LineId Id="63" Count="0" />
       <LineId Id="16" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.AddTeachPoint">
       <LineId Id="8" Count="0" />
       <LineId Id="7" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="13" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.Attach">
       <LineId Id="233" Count="0" />
@@ -608,8 +664,6 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="299" Count="1" />
       <LineId Id="298" Count="0" />
       <LineId Id="268" Count="0" />
-      <LineId Id="267" Count="0" />
-      <LineId Id="260" Count="0" />
       <LineId Id="262" Count="0" />
       <LineId Id="273" Count="0" />
       <LineId Id="263" Count="0" />
@@ -641,6 +695,26 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.bLineCamActive.Get">
       <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.CamDone">
+      <LineId Id="32" Count="1" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="17" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.CamStarted">
+      <LineId Id="14" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="16" Count="1" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.fCameraToPrintOffset.Get">
       <LineId Id="5" Count="1" />
@@ -676,6 +750,10 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="5" Count="0" />
       <LineId Id="21" Count="0" />
       <LineId Id="28" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="38" Count="1" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.is_linecam">
       <LineId Id="5" Count="0" />
@@ -759,6 +837,18 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="20" Count="2" />
       <LineId Id="5" Count="0" />
     </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.streamPoints">
+      <LineId Id="17" Count="2" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="32" Count="1" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="39" Count="2" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="42" Count="1" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.work">
       <LineId Id="341" Count="0" />
       <LineId Id="362" Count="0" />
@@ -768,11 +858,16 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="260" Count="0" />
       <LineId Id="249" Count="0" />
       <LineId Id="276" Count="0" />
+      <LineId Id="497" Count="0" />
       <LineId Id="251" Count="0" />
       <LineId Id="423" Count="0" />
       <LineId Id="425" Count="0" />
       <LineId Id="252" Count="0" />
-      <LineId Id="393" Count="7" />
+      <LineId Id="457" Count="0" />
+      <LineId Id="393" Count="0" />
+      <LineId Id="447" Count="0" />
+      <LineId Id="394" Count="6" />
+      <LineId Id="444" Count="0" />
       <LineId Id="353" Count="0" />
       <LineId Id="359" Count="0" />
       <LineId Id="415" Count="0" />
@@ -780,39 +875,32 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="357" Count="0" />
       <LineId Id="245" Count="0" />
       <LineId Id="122" Count="1" />
-      <LineId Id="404" Count="0" />
-      <LineId Id="406" Count="0" />
-      <LineId Id="351" Count="0" />
-      <LineId Id="346" Count="0" />
+      <LineId Id="499" Count="0" />
       <LineId Id="344" Count="0" />
       <LineId Id="343" Count="0" />
       <LineId Id="136" Count="0" />
       <LineId Id="385" Count="0" />
-      <LineId Id="327" Count="0" />
-      <LineId Id="195" Count="0" />
-      <LineId Id="182" Count="0" />
-      <LineId Id="184" Count="0" />
-      <LineId Id="382" Count="1" />
-      <LineId Id="279" Count="0" />
-      <LineId Id="407" Count="0" />
-      <LineId Id="187" Count="0" />
-      <LineId Id="376" Count="0" />
-      <LineId Id="384" Count="0" />
-      <LineId Id="378" Count="0" />
-      <LineId Id="370" Count="0" />
-      <LineId Id="379" Count="0" />
-      <LineId Id="151" Count="0" />
-      <LineId Id="166" Count="0" />
-      <LineId Id="373" Count="1" />
-      <LineId Id="167" Count="0" />
-      <LineId Id="141" Count="0" />
-      <LineId Id="372" Count="0" />
-      <LineId Id="371" Count="0" />
-      <LineId Id="153" Count="0" />
-      <LineId Id="203" Count="0" />
-      <LineId Id="380" Count="0" />
-      <LineId Id="285" Count="0" />
-      <LineId Id="204" Count="0" />
+      <LineId Id="461" Count="0" />
+      <LineId Id="471" Count="0" />
+      <LineId Id="463" Count="0" />
+      <LineId Id="467" Count="0" />
+      <LineId Id="474" Count="0" />
+      <LineId Id="481" Count="0" />
+      <LineId Id="477" Count="1" />
+      <LineId Id="489" Count="0" />
+      <LineId Id="476" Count="0" />
+      <LineId Id="479" Count="0" />
+      <LineId Id="483" Count="0" />
+      <LineId Id="487" Count="0" />
+      <LineId Id="485" Count="0" />
+      <LineId Id="480" Count="0" />
+      <LineId Id="472" Count="0" />
+      <LineId Id="501" Count="1" />
+      <LineId Id="504" Count="0" />
+      <LineId Id="503" Count="0" />
+      <LineId Id="488" Count="0" />
+      <LineId Id="486" Count="0" />
+      <LineId Id="473" Count="0" />
       <LineId Id="152" Count="0" />
       <LineId Id="138" Count="0" />
       <LineId Id="310" Count="0" />

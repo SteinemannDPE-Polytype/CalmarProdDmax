@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <Itf Name="I_CameraTriggerDevice" Id="{e67ddc26-9f69-469c-859c-41db6fb7e18e}">
     <Declaration><![CDATA[INTERFACE I_CameraTriggerDevice
 ]]></Declaration>
@@ -9,6 +9,7 @@ VAR_INPUT
   bOk             : BOOL;     // trigger is ok
 	nPos            : DINT;     // camera triggered position
   nPosDeviation   : DINT;     // camera started deviation
+  nX0             : DINT;     // detected position sheet/repetition
 END_VAR
 ]]></Declaration>
     </Method>
