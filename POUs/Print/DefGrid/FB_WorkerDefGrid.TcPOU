@@ -3,42 +3,43 @@
   <POU Name="FB_WorkerDefGrid" Id="{ec3f04b6-f22a-4a73-9fd6-d551c3304c16}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK ABSTRACT FB_WorkerDefGrid EXTENDS FB_Worker
 VAR_OUTPUT
-  bError        : BOOL;       // an error is active
-  nError        : UDINT;      // error code if error active, =0 else
+  bError            : BOOL;                           // an error is active
+  nError            : UDINT;                          // error code if error active, =0 else
 END_VAR
 VAR
   // config
-  _iWorkerParams    : I_WorkerParams;
-  _pMsgConfigExt    : POINTER TO ST_MSG_CONFIG;        // external message config (puc message interface)
-  _nTrackPosDomain  : E_PosDomain;    // Tracking position domain 
-  _fPrintResolution : LREAL := 1;     // print(head) resolution in [dpi]
-  _fSubPxResolution : LREAL := 1;     // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution
-  _name             : STRING;         // Worker name
+  _iWorkerParams    : I_WorkerParams;                 // worker ct tracking position
+  _pMsgConfigExt    : POINTER TO ST_MSG_CONFIG;       // external message config (puc message interface)
+  _nTrackPosDomain  : E_PosDomain;                    // Tracking position domain
+  _fPmPosition      : LREAL := 0;                     // Module's position
+  _fPrintResolution : LREAL := 1;                     // print(head) resolution in [dpi]
+  _fSubPxResolution : LREAL := 1;                     // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution
+  _name             : STRING;                         // Worker name
   _sVisuName        : STRING := 'VISU_WorkerDefGrid'; // Worker visu instance name
-  _pEcSrc           : POINTER TO T_ErrSrc;       // Error source definition
+  _pEcSrc           : POINTER TO T_ErrSrc;            // Error source definition
 
   // job
-  _bJobActive       : BOOL;           // a job is active
+  _bJobActive       : BOOL;                           // a job is active
   // ct
-  _bAttached        : BOOL;           // one ct is attached
-  _pAttachedCt      : POINTER TO FB_ContainerDefGrid;  // currently attached container (Head)
-  _bSupportParallelCT : BOOL := FALSE;  // support for parallel CTs (else avoid attach while one connected).
-  _nAttachedCTs     : UDINT;          // Number of currently attached CTs
+  _bAttached        : BOOL;                           // one ct is attached
+  _pAttachedCt      : POINTER TO FB_ContainerDefGrid; // currently attached container (Head)
+  _bSupportParallelCT : BOOL := FALSE;                // support for parallel CTs (else avoid attach while one connected).
+  _nAttachedCTs     : UDINT;                          // Number of currently attached CTs
   _pAttachedCTList  : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF POINTER TO FB_ContainerDefGrid;
-
-  fCtPosition       : LREAL;          // Container position relative to worker position in [SubPx (E_PosDomain.master_pos)]
-  _bForceRelease    : BOOL;
+  // position control
+  fCtPosition       : LREAL;                          // Container position relative to worker position in [SubPx (E_PosDomain.master_pos)]
+  _bForceRelease    : BOOL;                           // Manually force a ct release
 
 END_VAR
 VAR_STAT
-  // static variables, same for all Workers
-  _fCtSecurityReleasePos : LREAL := 0;// [SubPx] position where to release current ct at last (security release)
+  // static variables, SAME for ALL Workers
+  _fCtSecurityReleasePos : LREAL := 0;                // [SubPx] position where to release current ct at last (security release)
 END_VAR
 VAR PERSISTENT
-  _fWorkerPosition  : LREAL;          // worker position relative to X0 in [m]
+  _fWorkerPosition  : LREAL;                          // [m] worker distance to X0 (position from X0) (CT creation X0 and domain)
 END_VAR
 VAR CONSTANT
-  fC_MaxSheetLengthExtension : LREAL := 0.20;  // Max. distance after given ImageLength to do security release of CT
+  fC_MaxSheetLengthExtension : LREAL := 0.30;         // Max. distance after given ImageLength to do security release of CT
   // list size
   nLowerIndexCTList : UDINT := 1;
   nUpperIndexCTList : UDINT := 4; 
@@ -133,6 +134,26 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
+    <Property Name="fPmPosition" Id="{d92b9b16-90aa-4c5b-b19e-b5474bf3230c}">
+      <Declaration><![CDATA[(* Module's position (added to Worker distance)*)
+PROPERTY fPmPosition : LREAL]]></Declaration>
+      <Get Name="Get" Id="{241798c3-d525-48bd-860d-9157cfcc0d8a}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fPmPosition := _fPmPosition;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{6dc92f85-1c40-4919-ade8-3bf32e481b01}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fPmPosition := fPmPosition;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
     <Property Name="fPosition" Id="{9e6d5cd4-bcef-45e7-9eee-8ae16a558520}">
       <Declaration><![CDATA[{attribute 'monitoring':='call'}
 PROPERTY fPosition : LREAL]]></Declaration>
@@ -149,8 +170,8 @@ END_VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[_fWorkerPosition := fPosition;
-setupPosition();]]></ST>
+          <ST><![CDATA[_fWorkerPosition := fPosition;  // [m] save position
+_nTrackOffset := F_MeterToSubPixel(fPosMeter:=fPosition, fResoSubPx:=_fPrintResolution*_fSubPxResolution);  // [pos domain] save position]]></ST>
         </Implementation>
       </Set>
     </Property>
@@ -211,7 +232,6 @@ _fPrintResolution := fPrintResolution;
 _fSubPxResolution := fSubPxResolution;
 _fCtSecurityReleasePos := 0;
 _bSupportParallelCT := bParallelCT;
-setupPosition();
 
 setName('');
 
@@ -388,7 +408,7 @@ END_VAR]]></Declaration>
   // generate worker name
   _name := THIS^.InstanceName;
   WHILE NOT bDone DO
-    nIdx := FIND(_name, '_');
+    nIdx := FIND(_name, '.');
     IF nIdx = 0 THEN bDone := TRUE; EXIT; 
     ELSE
       _name := RIGHT(_name,LEN(_name)-nIdx);
@@ -401,11 +421,10 @@ END_IF
       </Implementation>
     </Method>
     <Method Name="setupPosition" Id="{9ff8ca00-2108-4d66-ac77-a2dd30739e0e}">
-      <Declaration><![CDATA[METHOD PROTECTED setupPosition
+      <Declaration><![CDATA[METHOD ABSTRACT setupPosition
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[_nTrackOffset := F_MeterToSubPixel(fPosMeter:=fPosition, fResoSubPx:=_fPrintResolution*_fSubPxResolution);
-]]></ST>
+        <ST><![CDATA[(*implement in child class*)]]></ST>
       </Implementation>
     </Method>
     <Method Name="StartCT" Id="{28400007-7a5d-4fce-a93d-03d5259530e3}">
@@ -446,15 +465,17 @@ FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
   
   // release CT (manually and security)
   IF _bForceRelease THEN
-    LogWarning(F_Concat2('Manually realease CTId=', TO_STRING(pCt^.pCT^.iId)));
+    //Abort(iCT:=pCt^, sReason:='Manually realease CT');
+    LogWarning(F_Concat2('Manually realease CT Id=', TO_STRING(pCt^.pCT^.iId)));
     Release(iCT:=pCt^);
+    
   ELSIF _fCtSecurityReleasePos > 0 AND (fCtPosition > _fCtSecurityReleasePos) THEN
-    LogError(F_Concat2('Security released CTId=', TO_STRING(pCt^.pCT^.iId)));
+    //Abort(iCT:=pCt^, sReason:=F_Concat2('Security released CT Id=', TO_STRING(pCt^.pCT^.iId)));
+    LogError(F_Concat2('Security released CT Id=', TO_STRING(pCt^.pCT^.iId)));
     Release(iCT:=pCt^);
   END_IF
 
 END_FOR
-
 ]]></ST>
       </Implementation>
     </Method>
@@ -487,12 +508,18 @@ END_FOR
       <LineId Id="2" Count="0" />
       <LineId Id="7" Count="0" />
     </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.fPmPosition.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.fPmPosition.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
     <LineIds Name="FB_WorkerDefGrid.fPosition.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.fPosition.Set">
       <LineId Id="3" Count="0" />
-      <LineId Id="2" Count="0" />
+      <LineId Id="7" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.getCtInst">
       <LineId Id="40" Count="1" />
@@ -513,7 +540,7 @@ END_FOR
       <LineId Id="119" Count="0" />
       <LineId Id="89" Count="3" />
       <LineId Id="131" Count="0" />
-      <LineId Id="93" Count="15" />
+      <LineId Id="94" Count="14" />
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.mJobStart">
@@ -575,7 +602,6 @@ END_FOR
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.setupPosition">
       <LineId Id="3" Count="0" />
-      <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.StartCT">
       <LineId Id="5" Count="0" />
@@ -589,9 +615,15 @@ END_FOR
       <LineId Id="28" Count="1" />
       <LineId Id="52" Count="0" />
       <LineId Id="54" Count="0" />
-      <LineId Id="41" Count="10" />
+      <LineId Id="41" Count="4" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="46" Count="1" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="49" Count="2" />
       <LineId Id="39" Count="0" />
-      <LineId Id="34" Count="1" />
+      <LineId Id="34" Count="0" />
       <LineId Id="2" Count="0" />
     </LineIds>
   </POU>

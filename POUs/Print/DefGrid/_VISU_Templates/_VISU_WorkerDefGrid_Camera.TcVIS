@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <Visu Name="_VISU_WorkerDefGrid_Camera" Id="{6da48dd2-d468-46e7-9518-8f2152f9bdb4}">
     <XmlArchive>
       <Data>
@@ -258,12 +258,12 @@
                               <d n="TypeNodeAttributesData" t="CaseInsensitiveHashtable" ckt="String" cvt="String">
                                 <v>Visible</v>
                                 <v>False</v>
-                                <v>DefaultArraySize</v>
-                                <v>5</v>
-                                <v>VisibleChildren</v>
-                                <v>True</v>
                                 <v>ieccodeconversion_array</v>
                                 <v></v>
+                                <v>VisibleChildren</v>
+                                <v>True</v>
+                                <v>DefaultArraySize</v>
+                                <v>5</v>
                                 <v>''NORMAL__COMMENT</v>
                                 <v> We hide this node to prevent having two References nodes
  Nevertheless we want to make sure that the children are displayed</v>
@@ -319,8 +319,8 @@
                         <o n="TypeNodeAttributes" t="TypeNodeAttributes2">
                           <v n="AttrFlags">81920UL</v>
                           <d n="TypeNodeAttributesData" t="CaseInsensitiveHashtable" ckt="String" cvt="String">
-                            <v>DisplayFrameReferencesConfiguration</v>
-                            <v></v>
+                            <v>conditionalshow</v>
+                            <v>visu_elemdev</v>
                             <v>DescriptionTextId</v>
                             <v>TL_ElementProperties.Desc_ReferencedVisus</v>
                             <v>SortFlag</v>
@@ -331,14 +331,14 @@
                             <v>Simple|Standard</v>
                             <v>DynamicArray</v>
                             <v></v>
-                            <v>conditionalshow</v>
-                            <v>visu_elemdev</v>
+                            <v>DisplayFrameReferencesConfiguration</v>
+                            <v></v>
                             <v>FrameReferences</v>
                             <v></v>
-                            <v>DisplayTextId</v>
-                            <v>TL_ElementProperties.References</v>
                             <v>Storable</v>
                             <v>True</v>
+                            <v>DisplayTextId</v>
+                            <v>TL_ElementProperties.References</v>
                           </d>
                           <v n="ConvDone">true</v>
                         </o>
@@ -1820,7 +1820,7 @@
                     </o>
                     <o>
                       <v n="Id">390574330L</v>
-                      <v n="Value">"Detect -&gt; Cam (Trig.Dist.)"</v>
+                      <v n="Value">"Detect -&gt; Cam"</v>
                     </o>
                     <o>
                       <v n="Id">2597686782L</v>
@@ -1832,7 +1832,7 @@
                     </o>
                     <o>
                       <v n="Id">823443203L</v>
-                      <v n="Value">"7545"</v>
+                      <v n="Value">"2040"</v>
                     </o>
                   </l>
                 </o>
@@ -1981,7 +1981,7 @@
                     </o>
                     <o>
                       <v n="Id">2678395525L</v>
-                      <v n="Value" t="Int16">1</v>
+                      <v n="Value" t="Int16">2</v>
                     </o>
                     <o>
                       <v n="Id">564465120L</v>
@@ -1989,7 +1989,7 @@
                     </o>
                     <o>
                       <v n="Id">390574330L</v>
-                      <v n="Value">"%1.4f [m]"</v>
+                      <v n="Value">"%1.5f [m]"</v>
                     </o>
                     <o>
                       <v n="Id">2597686782L</v>
@@ -1997,7 +1997,7 @@
                     </o>
                     <o>
                       <v n="Id">2477733581L</v>
-                      <v n="Value">"m_Inst._iActiveCam.fTriggerDistance"</v>
+                      <v n="Value">"m_Inst._iActiveCam.fDetectToCameraOffset"</v>
                     </o>
                     <o>
                       <v n="Id">2880254039L</v>
@@ -2005,7 +2005,7 @@
                     </o>
                     <o>
                       <v n="Id">823443203L</v>
-                      <v n="Value">"2560"</v>
+                      <v n="Value">"3481"</v>
                     </o>
                   </l>
                 </o>
@@ -2015,7 +2015,26 @@
                 <v n="VisualElementIdentifier">"GenElemInst_60"</v>
                 <n n="VisualElementOfflinePaintCommands" />
                 <n n="VisualElementFrameInformation" />
-                <d n="VisualElementInputActions" t="Hashtable" />
+                <d n="VisualElementInputActions" t="Hashtable" ckt="String" cvt="IInputAction[]">
+                  <v>OnMouseClick</v>
+                  <a cet="InputBoxInputAction">
+                    <o>
+                      <v n="InputBoxVariable">""</v>
+                      <v n="InputType">"Default"</v>
+                      <v n="InputBoxMin">""</v>
+                      <v n="InputBoxMax">""</v>
+                      <v n="InputBoxDialogTitle">""</v>
+                      <v n="Password">false</v>
+                      <v n="UseTextOutputVariable">true</v>
+                      <v n="TextOutputVariableInitialized">false</v>
+                      <v n="OtherVarConversion">""</v>
+                      <v n="Format">""</v>
+                      <v n="DialogPosition" t="DialogPositionSetting">UseGlobalSetting</v>
+                      <v n="DialogXPos">""</v>
+                      <v n="DialogYPos">""</v>
+                    </o>
+                  </a>
+                </d>
                 <v n="VisualElementIdentification">{f9300a5a-6f4b-4bf2-9b6d-08fea878b240}</v>
                 <v n="VisualElementOwningObjectGuid">{6da48dd2-d468-46e7-9518-8f2152f9bdb4}</v>
                 <a n="LMGuids" et="Guid" />
@@ -2331,7 +2350,7 @@
                     </o>
                     <o>
                       <v n="Id">390574330L</v>
-                      <v n="Value">"%1.4f [m]"</v>
+                      <v n="Value">"%1.5f [m]"</v>
                     </o>
                     <o>
                       <v n="Id">2597686782L</v>
@@ -2347,7 +2366,7 @@
                     </o>
                     <o>
                       <v n="Id">823443203L</v>
-                      <v n="Value">"2560"</v>
+                      <v n="Value">"3481"</v>
                     </o>
                   </l>
                 </o>
@@ -2665,7 +2684,7 @@
                     </o>
                     <o>
                       <v n="Id">2678395525L</v>
-                      <v n="Value" t="Int16">1</v>
+                      <v n="Value" t="Int16">2</v>
                     </o>
                     <o>
                       <v n="Id">564465120L</v>
@@ -2673,7 +2692,7 @@
                     </o>
                     <o>
                       <v n="Id">390574330L</v>
-                      <v n="Value">"%1.4f [m]"</v>
+                      <v n="Value">"%1.5f [m]"</v>
                     </o>
                     <o>
                       <v n="Id">2597686782L</v>
@@ -2689,7 +2708,7 @@
                     </o>
                     <o>
                       <v n="Id">823443203L</v>
-                      <v n="Value">"2560"</v>
+                      <v n="Value">"3481"</v>
                     </o>
                   </l>
                 </o>
@@ -2699,7 +2718,26 @@
                 <v n="VisualElementIdentifier">"GenElemInst_83"</v>
                 <n n="VisualElementOfflinePaintCommands" />
                 <n n="VisualElementFrameInformation" />
-                <d n="VisualElementInputActions" t="Hashtable" />
+                <d n="VisualElementInputActions" t="Hashtable" ckt="String" cvt="IInputAction[]">
+                  <v>OnMouseClick</v>
+                  <a cet="InputBoxInputAction">
+                    <o>
+                      <v n="InputBoxVariable">""</v>
+                      <v n="InputType">"Default"</v>
+                      <v n="InputBoxMin">""</v>
+                      <v n="InputBoxMax">""</v>
+                      <v n="InputBoxDialogTitle">""</v>
+                      <v n="Password">false</v>
+                      <v n="UseTextOutputVariable">true</v>
+                      <v n="TextOutputVariableInitialized">false</v>
+                      <v n="OtherVarConversion">""</v>
+                      <v n="Format">""</v>
+                      <v n="DialogPosition" t="DialogPositionSetting">UseGlobalSetting</v>
+                      <v n="DialogXPos">""</v>
+                      <v n="DialogYPos">""</v>
+                    </o>
+                  </a>
+                </d>
                 <v n="VisualElementIdentification">{7e9e771a-266e-4f83-bba4-2347a413d0ca}</v>
                 <v n="VisualElementOwningObjectGuid">{6da48dd2-d468-46e7-9518-8f2152f9bdb4}</v>
                 <a n="LMGuids" et="Guid" />
@@ -4262,7 +4300,7 @@
                     </o>
                     <o>
                       <v n="Id">390574330L</v>
-                      <v n="Value">"%1.4f [m]"</v>
+                      <v n="Value">"%1.5f [m]"</v>
                     </o>
                     <o>
                       <v n="Id">2597686782L</v>
@@ -4278,7 +4316,7 @@
                     </o>
                     <o>
                       <v n="Id">823443203L</v>
-                      <v n="Value">"2560"</v>
+                      <v n="Value">"3481"</v>
                     </o>
                   </l>
                 </o>
@@ -4604,7 +4642,7 @@
                     </o>
                     <o>
                       <v n="Id">390574330L</v>
-                      <v n="Value">"%1.4f [m]"</v>
+                      <v n="Value">"%1.5f [m]"</v>
                     </o>
                     <o>
                       <v n="Id">2597686782L</v>
@@ -4620,7 +4658,7 @@
                     </o>
                     <o>
                       <v n="Id">823443203L</v>
-                      <v n="Value">"2560"</v>
+                      <v n="Value">"3481"</v>
                     </o>
                   </l>
                 </o>
@@ -4946,7 +4984,7 @@
                     </o>
                     <o>
                       <v n="Id">390574330L</v>
-                      <v n="Value">"%1.4f [m]"</v>
+                      <v n="Value">"%1.5f [m]"</v>
                     </o>
                     <o>
                       <v n="Id">2597686782L</v>
@@ -4962,7 +5000,7 @@
                     </o>
                     <o>
                       <v n="Id">823443203L</v>
-                      <v n="Value">"2560"</v>
+                      <v n="Value">"3481"</v>
                     </o>
                   </l>
                 </o>
@@ -5939,10 +5977,10 @@
               <d n="FbMethods" t="CaseInsensitiveHashtable_1" ckt="String" cvt="Guid">
                 <v>FB_Init</v>
                 <v>9a8b3c89-0a37-4764-8b97-692d387a4ee4</v>
-                <v>FB_Exit</v>
-                <v>30c4e4ec-8570-40cc-b4c7-39e92fdcc270</v>
                 <v>FB_Reinit</v>
                 <v>f47336a1-f8ac-4be9-aa02-7bad575da4b0</v>
+                <v>FB_Exit</v>
+                <v>30c4e4ec-8570-40cc-b4c7-39e92fdcc270</v>
               </d>
               <v n="FbName">"NotImportant"</v>
               <v n="FbGuid">{2a9b1294-9cc2-4bb8-93e9-c8564087b95c}</v>
@@ -6044,7 +6082,7 @@
         <Type n="CaseInsensitiveHashtable">{02a85e84-ef2d-46fc-93f2-acb0bbff3eda}</Type>
         <Type n="CaseInsensitiveHashtable_1">{7df88604-7ac5-4e36-91c4-55e4fdad3e68}</Type>
         <Type n="ChangeVisuInputAction">{b4c3a27b-74e5-4a67-bfa9-12f8c8cda31f}</Type>
-        <Type n="ChangeVisuInputAction[]">_3S.CoDeSys.VisualElem.ChangeVisuInputAction[], VisualElem.plugin, Version=3.5.13.30, Culture=neutral, PublicKeyToken=null</Type>
+        <Type n="ChangeVisuInputAction[]">_3S.CoDeSys.VisualElem.ChangeVisuInputAction[], VisualElem.plugin, Version=3.5.13.32, Culture=neutral, PublicKeyToken=null</Type>
         <Type n="ChangeVisuType">{a418300c-fdec-47d4-86a4-53b5a5f941fa}</Type>
         <Type n="ComplexInput">{1de566f6-72a7-494c-9353-9a418172c96e}</Type>
         <Type n="DialogPositionSetting">{16f3f59a-37ad-4991-a1af-cc2926974e08}</Type>
@@ -6056,8 +6094,9 @@
         <Type n="Guid">System.Guid</Type>
         <Type n="Hashtable">System.Collections.Hashtable</Type>
         <Type n="HotkeyConfiguration">{6b108d46-58af-4e41-a3f4-174d8f160cc4}</Type>
+        <Type n="IInputAction[]">_3S.CoDeSys.VisualElem.IInputAction[], VisualElem, Version=3.5.13.0, Culture=neutral, PublicKeyToken=null</Type>
         <Type n="InputBoxInputAction">{e8e7e747-f76f-4dee-ab1c-b9637e41ac26}</Type>
-        <Type n="InputBoxInputAction[]">_3S.CoDeSys.VisualElem.InputBoxInputAction[], VisualElem.plugin, Version=3.5.13.30, Culture=neutral, PublicKeyToken=null</Type>
+        <Type n="InputBoxInputAction[]">_3S.CoDeSys.VisualElem.InputBoxInputAction[], VisualElem.plugin, Version=3.5.13.32, Culture=neutral, PublicKeyToken=null</Type>
         <Type n="Int16">System.Int16</Type>
         <Type n="Int32">System.Int32</Type>
         <Type n="Int64">System.Int64</Type>

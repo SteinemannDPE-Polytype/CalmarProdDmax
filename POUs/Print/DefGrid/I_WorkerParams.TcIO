@@ -3,16 +3,6 @@
   <Itf Name="I_WorkerParams" Id="{266da92d-f54b-43ea-b59c-0109178d5344}">
     <Declaration><![CDATA[INTERFACE I_WorkerParams
 ]]></Declaration>
-    <Property Name="fDetectToRefPos" Id="{c872806f-01d3-44f9-baa0-4643b95ecb2c}">
-      <Declaration><![CDATA[(*
-  Distance (Offset) from Master-Trigger to Master Reference Position.
-  NOTE: This is normally the distance between the first (MASTER) StartPosDetection to first print Module (Printing Unit) 
-*)
-PROPERTY fDetectToRefPos : LREAL]]></Declaration>
-      <Get Name="Get" Id="{2ffe41b5-235e-45e6-a44a-44363033cc23}">
-        <Declaration><![CDATA[]]></Declaration>
-      </Get>
-    </Property>
     <Property Name="pCTManager" Id="{b023f623-44f7-4991-83f0-5e16e98745c3}">
       <Declaration><![CDATA[PROPERTY pCTManager : POINTER TO FB_CTManagerDefGrid]]></Declaration>
       <Get Name="Get" Id="{a4d73a7e-8965-46e2-84ae-0103fc837639}">

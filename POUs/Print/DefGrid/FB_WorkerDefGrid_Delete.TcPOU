@@ -3,7 +3,7 @@
   <POU Name="FB_WorkerDefGrid_Delete" Id="{7527e8ae-b298-40c4-9d5c-225c5c9f33be}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Delete EXTENDS FB_WorkerDefGrid
 VAR PERSISTENT
-  _fWorkerToPu   : LREAL := 3;    (*Distance between PU and this worker, mechanisch*)
+  _fWorkerToRefPos  : LREAL := 1.2;    (*Distance between master PM and this worker, mechanisch, CT Create X0*)
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[]]></ST>
@@ -21,17 +21,6 @@ END_VAR
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Property Name="fWorkerToMasterRef" Id="{89984a29-c49f-4fef-962c-903196b3c502}">
-      <Declaration><![CDATA[PROPERTY fWorkerToMasterRef : LREAL]]></Declaration>
-      <Get Name="Get" Id="{69475d99-e2f1-4a28-885b-7624fa90c9a3}">
-        <Declaration><![CDATA[VAR
-END_VAR
-]]></Declaration>
-        <Implementation>
-          <ST><![CDATA[fWorkerToMasterRef := _fWorkerToPu;]]></ST>
-        </Implementation>
-      </Get>
-    </Property>
     <Method Name="mJobStart" Id="{cad8a58f-798d-4ce1-b364-734a7078cd17}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD   mJobStart
 VAR_INPUT
@@ -70,16 +59,22 @@ END_VAR
 END_IF]]></ST>
       </Implementation>
     </Method>
+    <Method Name="setupPosition" Id="{b628cd62-6531-486f-98cb-d0a8a8c5d926}">
+      <Declaration><![CDATA[METHOD setupPosition
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _pAttachedCt <> 0 THEN RETURN; END_IF    // Update only without attached container
+
+fPosition := _fWorkerToRefPos + _fPmPosition;     // generic module specific "offset" + configurative offset
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="work" Id="{7026ea79-caca-4595-a7ed-707178d44865}">
       <Declaration><![CDATA[METHOD  work]]></Declaration>
       <Implementation>
         <ST><![CDATA[SUPER^.work();
 
-//Worker position update
-IF _iWorkerParams <> 0 AND _pAttachedCt = 0 THEN     // Update only without attached container
-  // WorkerPosition =  Worker<-PU<-CAM<-SheetDetect
-  fPosition := _fWorkerToPu + _iWorkerParams.fDetectToRefPos;
-END_IF
+setupPosition();    // Worker position update
 
 IF _pAttachedCt <> 0 THEN
   Release(iCT:=_pAttachedCt^);
@@ -93,9 +88,6 @@ END_IF]]></ST>
       <LineId Id="6" Count="0" />
       <LineId Id="18" Count="0" />
       <LineId Id="8" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_WorkerDefGrid_Delete.fWorkerToMasterRef.Get">
-      <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Delete.mJobStart">
       <LineId Id="81" Count="0" />
@@ -112,8 +104,15 @@ END_IF]]></ST>
       <LineId Id="13" Count="0" />
       <LineId Id="15" Count="2" />
     </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Delete.setupPosition">
+      <LineId Id="4" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Delete.work">
-      <LineId Id="52" Count="9" />
+      <LineId Id="52" Count="1" />
+      <LineId Id="58" Count="3" />
       <LineId Id="45" Count="0" />
     </LineIds>
   </POU>

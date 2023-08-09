@@ -34,19 +34,17 @@ VAR
   _bAborted                   : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF BOOL;   // status deformation of ct
   
   // view
-  nGridRowStart, nGridColStart : UDINT := 0;
+  nGridRowStart, nGridColStart: UDINT := 0;
 END_VAR
 
 VAR PERSISTENT
-  _sDeformationGridSettings : ST_DefGridSettings := (   // grid definition settings
+  _sDeformationGridSettings  : ST_DefGridSettings := (   // grid definition settings
                                   nGridPitchX:=GVL_Deformation.nC_GridPitch_X, 
                                   nGridPitchY:=GVL_Deformation.nC_GridPitch_Y
-                              );
+                             );
+  _fDistToCam                : LREAL := 0.02;   // distance to cam worker 
 END_VAR
-(*VAR CONSTANT
-  nLowerIndexCTList : UDINT := 1;
-  nUpperIndexCTList : UDINT := 4; 
-END_VAR*)]]></Declaration>
+]]></Declaration>
     <Implementation>
       <ST><![CDATA[]]></ST>
     </Implementation>
@@ -229,6 +227,19 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
+    <Method Name="setupPosition" Id="{1f73979b-268d-42aa-b4ea-f6f74e1b6d50}">
+      <Declaration><![CDATA[METHOD setupPosition
+VAR
+  sCamSettings : ST_CameraGridSettings;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _pAttachedCt <> 0 THEN RETURN; END_IF    // Update only without attached container
+
+sCamSettings := _iParamMediator.sCameraGridSettings;
+fPosition := sCamSettings.fDetectToCam + _fDistToCam + _fPmPosition;
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="work" Id="{9d84abdd-b080-4ea5-b34b-481b6fa9d0e0}">
       <Declaration><![CDATA[METHOD  work
 VAR
@@ -239,11 +250,12 @@ END_VAR]]></Declaration>
         <ST><![CDATA[//-----------------------------------------------------------
 //NOTE: over written parent (we call AbortDeformation instead just releasing CT) SUPER^.work();    // update pos and do error releases
 
+setupPosition();    // Worker position update
+
 // Work only with attached container
-  
 FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
   pCt := _pAttachedCTList[i];
-
+  
   // update CT position
   fCtPosition := pCt^.GetPos(nPosDomain:=E_PosDomain.master_pos) - _nTrackOffset; 
   
@@ -276,7 +288,7 @@ FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
     Release(iCT:=_pAttachedCt^);
   
   // ! 2*SecurityReleasePosition, should work with max. 4 attached CT
-  ELSIF 2*_fCtSecurityReleasePos > 0 AND (fCtPosition > _fCtSecurityReleasePos) THEN
+  ELSIF 1.5*_fCtSecurityReleasePos > 0 AND (fCtPosition > _fCtSecurityReleasePos) THEN
     LogError(F_Concat2('Security released CTId=', TO_STRING(pCt^.pCT^.iId)));
     pCt^.AbortDeformation(sReason:='Security released CT', Src:=_pEcSrc^);
     Release(iCT:=_pAttachedCt^);
@@ -379,13 +391,25 @@ END_FOR
     <LineIds Name="FB_WorkerDefGrid_Deformation.sDeformationGridSettings.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Deformation.setupPosition">
+      <LineId Id="13" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="3" Count="0" />
+    </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Deformation.work">
       <LineId Id="332" Count="0" />
       <LineId Id="382" Count="0" />
+      <LineId Id="403" Count="0" />
+      <LineId Id="402" Count="0" />
       <LineId Id="390" Count="0" />
       <LineId Id="333" Count="0" />
-      <LineId Id="391" Count="2" />
-      <LineId Id="338" Count="30" />
+      <LineId Id="392" Count="1" />
+      <LineId Id="341" Count="0" />
+      <LineId Id="399" Count="1" />
+      <LineId Id="398" Count="0" />
+      <LineId Id="342" Count="26" />
       <LineId Id="384" Count="1" />
       <LineId Id="370" Count="3" />
       <LineId Id="375" Count="2" />

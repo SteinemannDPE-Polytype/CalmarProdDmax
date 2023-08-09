@@ -13,7 +13,7 @@ VAR
   _pPm : POINTER TO FB_ProdManager_DMAX;
 END_VAR
 VAR PERSISTENT
-  _fWorkerToPu   : LREAL := 1.2;    (*Distance between PU and this worker, mechanisch*)
+  _fWorkerToRefPos  : LREAL := 1.1;    (*Distance between master PM and this worker, mechanisch, CT Create X0*)
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[]]></ST>
@@ -58,17 +58,6 @@ END_VAR]]></Declaration>
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Property Name="fWorkerToMasterRef" Id="{d213abe5-dfd5-4330-9682-099f2ba8982a}">
-      <Declaration><![CDATA[PROPERTY fWorkerToMasterRef : LREAL]]></Declaration>
-      <Get Name="Get" Id="{530a8023-6b19-4384-9a2f-e3a75c3159cc}">
-        <Declaration><![CDATA[VAR
-END_VAR
-]]></Declaration>
-        <Implementation>
-          <ST><![CDATA[fWorkerToMasterRef := _fWorkerToPu;]]></ST>
-        </Implementation>
-      </Get>
-    </Property>
     <Method Name="InitWorkerVerify" Id="{b89f6ac4-9ac9-4bfe-8bb7-e25e99bfe006}">
       <Declaration><![CDATA[(*
   Set PrintManager.
@@ -116,6 +105,16 @@ END_VAR
 END_IF]]></ST>
       </Implementation>
     </Method>
+    <Method Name="setupPosition" Id="{ba790993-47df-42cc-8f54-d5be88ee8b37}">
+      <Declaration><![CDATA[METHOD setupPosition
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _pAttachedCt <> 0 THEN RETURN; END_IF    // Update only without attached container
+
+fPosition := _fWorkerToRefPos + _fPmPosition;     // generic module specific "offset" + configurative offset
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="work" Id="{f3293130-827d-4f71-beb2-d681c617967b}">
       <Declaration><![CDATA[METHOD  work
 VAR_INST
@@ -125,11 +124,7 @@ END_VAR
       <Implementation>
         <ST><![CDATA[SUPER^.work();
 
-//Worker position update
-IF _iWorkerParams <> 0 AND _pAttachedCt = 0 THEN     // Update only without attached container
-  // WorkerPosition =  Worker<-PU<-CAM<-SheetDetect
-  fPosition := _fWorkerToPu + _iWorkerParams.fDetectToRefPos;
-END_IF
+setupPosition();    // Worker position update
 
 IF _pAttachedCt <> 0 THEN
   tpEjectPulse(Q=>bWateGateActive);
@@ -178,9 +173,6 @@ END_IF]]></ST>
       <LineId Id="37" Count="0" />
       <LineId Id="8" Count="0" />
     </LineIds>
-    <LineIds Name="FB_WorkerDefGrid_Verify.fWorkerToMasterRef.Get">
-      <LineId Id="2" Count="0" />
-    </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Verify.InitWorkerVerify">
       <LineId Id="5" Count="0" />
       <LineId Id="14" Count="0" />
@@ -196,8 +188,18 @@ END_IF]]></ST>
       <LineId Id="6" Count="0" />
       <LineId Id="16" Count="1" />
     </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Verify.setupPosition">
+      <LineId Id="4" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="3" Count="0" />
+    </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Verify.work">
-      <LineId Id="65" Count="21" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="73" Count="13" />
       <LineId Id="45" Count="0" />
     </LineIds>
   </POU>

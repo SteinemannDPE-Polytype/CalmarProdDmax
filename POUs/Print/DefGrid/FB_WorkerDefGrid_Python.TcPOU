@@ -208,6 +208,20 @@ END_VAR
 _bJobActive := FALSE;]]></ST>
       </Implementation>
     </Method>
+    <Method Name="setupPosition" Id="{306e6870-fcda-49b6-bbc8-487fc586e0b2}">
+      <Declaration><![CDATA[METHOD setupPosition
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// !!! No Auto-Setup implemented 
+
+
+(*
+IF _pAttachedCt <> 0 THEN RETURN; END_IF    // Update only without attached container
+
+fPosition := xyz + _fPmPosition;
+*)]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="work" Id="{3c4c9ab8-eeba-4bde-9db0-7737c05146ce}">
       <Declaration><![CDATA[METHOD  work
 VAR_INPUT
@@ -228,6 +242,8 @@ END_VAR
 IF _iParamMediator <> 0 THEN F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); RETURN; END_IF
 _CamGridSettings := _iParamMediator.sCameraGridSettings;
 _DefGridSettings := _iParamMediator.sDeformationGridSetttings;
+
+setupPosition();    // Worker position update
 
 // reconfig script after job started (Mediator parameter are defined in JobStart())
 IF _bNewJob OR rT_EnablePyIf.Q THEN   // new job activated or re-enabled
@@ -324,13 +340,25 @@ IF fbMsg_PythonNotRunning.bMsgAck THEN fbPythonInterface.ackError(); END_IF]]></
       <LineId Id="6" Count="0" />
       <LineId Id="11" Count="0" />
     </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Python.setupPosition">
+      <LineId Id="9" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="4" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="3" Count="0" />
+    </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Python.work">
       <LineId Id="7" Count="0" />
       <LineId Id="266" Count="0" />
       <LineId Id="265" Count="0" />
       <LineId Id="351" Count="0" />
       <LineId Id="350" Count="0" />
-      <LineId Id="349" Count="0" />
+      <LineId Id="367" Count="0" />
+      <LineId Id="366" Count="0" />
+      <LineId Id="364" Count="0" />
       <LineId Id="254" Count="0" />
       <LineId Id="220" Count="0" />
       <LineId Id="226" Count="0" />

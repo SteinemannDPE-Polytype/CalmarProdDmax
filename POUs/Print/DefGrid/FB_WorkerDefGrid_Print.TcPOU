@@ -6,6 +6,7 @@ VAR_INPUT
   nEncoderPos           : DINT;   // Absolute virtual encoder
   bHardwareSync         : BOOL;
   bHardwareHold         : BOOL;
+  {warning 'TODO: refactor according WorkerPrintWEU offsets in [m] and worker position without DetectToPrintDist?'}
   fPrintStartOffset     : LREAL;  // Offset from Module reference (configurative PU/PM/PG/PA ADS offset)
   fDetectOffset         : LREAL;  // StartDetect to Modoule reference
   fPrintYOffset         : LREAL;  // Y-Shift in ram memory
@@ -91,18 +92,15 @@ nError := 0;
 fbDropSpeedComp(fMasterSpeed:=fMasterSpeed, fDropTravelDistance:=fPUElevation);
 
 //Start offset update
-IF _fPrintStartOffset <> (fPrintStartOffset + _iWorkerParams.fDetectToRefPos) THEN //Worker position changed
+IF _fPrintStartOffset <> (fPrintStartOffset) THEN //Worker position changed
   IF _pAttachedCt = 0 THEN //Update only without attached container
-    _fPrintStartOffset :=fPrintStartOffset + _iWorkerParams.fDetectToRefPos;
+    _fPrintStartOffset :=fPrintStartOffset;
 	END_IF
 END_IF
 
 //Worker position update
 IF _fWorkerPosition <> (_fPrintStartOffset + (_fStartShiftOffset + _fStartShiftFactor * fMasterSpeed)) THEN //Worker position changed (camera settings change)
-  IF _pAttachedCt = 0 THEN //Update only without attached container
-    // WorkerPosition =  PU<-CAM + CAM<-SheetDetect + StartShift calculated (with speed)
-    fPosition := _fPrintStartOffset + (_fStartShiftOffset + _fStartShiftFactor * fMasterSpeed);
-	END_IF
+  setupPosition();
 END_IF
 
 (*---- Messaging -----------------------*)
@@ -561,6 +559,16 @@ END_IF
 ]]></ST>
       </Implementation>
     </Method>
+    <Method Name="setupPosition" Id="{628e46fa-87ee-48db-bb57-e3742275d44f}">
+      <Declaration><![CDATA[METHOD setupPosition
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _pAttachedCt <> 0 THEN RETURN; END_IF    // Update only without attached container
+
+// WorkerPosition =  PU<-CAM + CAM<-SheetDetect + StartShift calculated (with speed)
+fPosition := _fPrintStartOffset + (_fStartShiftOffset + _fStartShiftFactor * fMasterSpeed);]]></ST>
+      </Implementation>
+    </Method>
     <Property Name="sPcFlags" Id="{d2e3a5fd-216b-48f5-b618-16b7666b6bd2}">
       <Declaration><![CDATA[PROPERTY sPcFlags : CalmarCompPrint.ST_PC_FLAGS]]></Declaration>
       <Get Name="Get" Id="{31b278ad-9123-44bc-826c-af82c44e3e58}">
@@ -694,9 +702,8 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="280" Count="3" />
       <LineId Id="285" Count="0" />
       <LineId Id="279" Count="0" />
-      <LineId Id="288" Count="3" />
-      <LineId Id="295" Count="0" />
-      <LineId Id="293" Count="1" />
+      <LineId Id="288" Count="2" />
+      <LineId Id="294" Count="0" />
       <LineId Id="286" Count="0" />
       <LineId Id="100" Count="0" />
       <LineId Id="172" Count="0" />
@@ -915,6 +922,11 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="8" Count="0" />
       <LineId Id="10" Count="2" />
       <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Print.setupPosition">
+      <LineId Id="5" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="6" Count="1" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.sPcFlags.Get">
       <LineId Id="5" Count="0" />
