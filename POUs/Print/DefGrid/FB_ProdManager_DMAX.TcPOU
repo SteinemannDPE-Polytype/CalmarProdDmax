@@ -326,9 +326,6 @@ bInitialized := TRUE;
       <Declaration><![CDATA[METHOD JobFinished : BOOL
 VAR_INPUT
   aSeparatorId   : STRING;
-END_VAR
-VAR
-  pHandling      : POINTER TO ST_JobHandling;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[// Job Handling -----------------------
@@ -358,11 +355,6 @@ END_VAR
       <Declaration><![CDATA[METHOD mJobStart
 VAR_INPUT
 	sJobDef	: I_JobDefinition;
-END_VAR
-VAR
-  lCt     : UDINT;
-  sHandling : ST_JobHandling;
-  pHandling : POINTER TO ST_JobHandling;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF NOT bInitialized THEN RETURN; END_IF
