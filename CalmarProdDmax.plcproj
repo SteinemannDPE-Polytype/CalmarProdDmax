@@ -17,7 +17,7 @@
     <Implicit_Jitter_Distribution>{16d81fa0-13c7-4d29-a136-833127f063f5}</Implicit_Jitter_Distribution>
     <LibraryReferences>{ba6a19c6-5744-48f5-a170-b3a0509f6030}</LibraryReferences>
     <Released>false</Released>
-    <ProjectVersion>2.0.2.13</ProjectVersion>
+    <ProjectVersion>2.0.2.14</ProjectVersion>
     <Company>WIFAG-Polytype</Company>
     <Title>CalmarProdDmax</Title>
     <Author>Wifag//Polytype</Author>
@@ -37,6 +37,7 @@ Fribourg/Switzerland (2021)</Description>
     <Folder Include="POUs\Print\DefGrid\_Test" />
     <Folder Include="POUs\Print\DefGrid\_VISU_Templates" />
     <Folder Include="POUs\Print\DMAX" />
+    <Folder Include="POUs\Print\Ads" />
     <Folder Include="POUs\Print\WEU" />
     <Folder Include="Version" />
   </ItemGroup>
@@ -97,6 +98,12 @@ Fribourg/Switzerland (2021)</Description>
     <Compile Include="POUs\Machine\_VISU_PowerControl.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="POUs\Print\Ads\FB_ADS_CAMERA.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Print\Ads\FB_ADS_DVTSHEETALIGNMENT.TcPOU">
+      <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\Print\Camera\FB_CameraBase.TcPOU">
       <SubType>Code</SubType>
@@ -462,6 +469,12 @@ Fribourg/Switzerland (2021)</Description>
     <PlaceholderReference Include="CalmarCompPrint">
       <DefaultResolution>CalmarCompPrint, * (WIFAG-Polytype)</DefaultResolution>
       <Namespace>CalmarCompPrint</Namespace>
+      <Parameters>
+        <Parameter ListName="GVL_PRINTDEF" xmlns="">
+          <Key>ICPR_MAX_NB_POS_DOMAIN</Key>
+          <Value>2</Value>
+        </Parameter>
+      </Parameters>
     </PlaceholderReference>
     <PlaceholderReference Include="CalmarCompSystem">
       <DefaultResolution>CalmarCompSystem, * (WIFAG-Polytype)</DefaultResolution>
@@ -554,16 +567,16 @@ Fribourg/Switzerland (2021)</Description>
   </ItemGroup>
   <ItemGroup>
     <PlaceholderResolution Include="CalmarCommons">
-      <Resolution>CalmarCommons, 1.7.0 (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCommons, 2.0.0.6 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompDevices">
       <Resolution>CalmarCompDevices, 1.7.2 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompPrint">
-      <Resolution>CalmarCompPrint, 2.1.1 (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCompPrint, 2.2.1 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompSystem">
-      <Resolution>CalmarCompSystem, 1.7.0 (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCompSystem, 2.0.0.4 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompTcpIp">
       <Resolution>CalmarCompTcpIp, 1.0.4 (WIFAG-Polytype)</Resolution>

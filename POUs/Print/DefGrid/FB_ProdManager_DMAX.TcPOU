@@ -8,7 +8,6 @@ FUNCTION_BLOCK FB_ProdManager_DMAX EXTENDS FB_BasePrint IMPLEMENTS I_PrintStatus
 VAR
  //references
   _pPU                : POINTER TO FB_PU;               (*PU reference*)
-  _pAdsPU             : POINTER TO ST_ADS_PU;
   
   //settings
   _defaultPrintData   : ST_PRINT_SETTING;               (*default PDI data if no CT present*)
@@ -250,7 +249,11 @@ IF lType <> EN_PrintPageType.maintenance THEN
   LogError('dynAddPage: only supports maintenance pages'); 
 END_IF
 
-_pPU^.addPage(lMaintPageNr:=lPageNr);]]></ST>
+_pPU^.addPage(
+  lPageType:=EN_PrintPageType.maintenance,
+  lPageSrc:=EN_PrintPageSrc.Sample,
+  lPageNr:=1
+);]]></ST>
       </Implementation>
     </Method>
     <Method Name="getNext" Id="{5d75c39d-9fb1-4ff9-a5b0-edf19030c563}">
@@ -288,19 +291,17 @@ getNext := NOT bErr;]]></ST>
       <Declaration><![CDATA[METHOD init : BOOL
 VAR_INPUT
   pPU     : POINTER TO FB_PU;
-  pAdsPU  : POINTER TO ST_ADS_PU;
   // machine specific
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[// parameter checks
-IF pPU = 0 OR pAdsPU = 0 THEN
+IF pPU = 0 THEN
   F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer);
   RETURN;
 END_IF
 
 // register external references
 _pPU := pPU;
-_pAdsPU := pAdsPU;
 
 // init lists
 prodList(List:=_prodMem);  // initial call for list setup and init
@@ -389,9 +390,6 @@ bPmActive := TRUE;
       <Declaration><![CDATA[METHOD mJobStop
 VAR_INPUT
 	sStatus	: I_JobStatus;
-END_VAR
-VAR
-  eHandlingState  : EN_JobHandlingState;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF NOT bInitialized THEN RETURN; END_IF
@@ -463,6 +461,9 @@ END_VAR
     <LineIds Name="FB_ProdManager_DMAX.dynAddPage">
       <LineId Id="3" Count="4" />
       <LineId Id="2" Count="0" />
+      <LineId Id="14" Count="1" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="16" Count="0" />
     </LineIds>
     <LineIds Name="FB_ProdManager_DMAX.getNext">
       <LineId Id="3" Count="9" />
@@ -470,7 +471,7 @@ END_VAR
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ProdManager_DMAX.init">
-      <LineId Id="3" Count="8" />
+      <LineId Id="3" Count="7" />
       <LineId Id="16" Count="3" />
       <LineId Id="37" Count="5" />
       <LineId Id="36" Count="0" />

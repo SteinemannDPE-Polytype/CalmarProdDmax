@@ -1,0 +1,220 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_ADS_DVTSHEETALIGNEMT" Id="{767ea748-f391-4f32-9fdd-aa405f60b0a7}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ADS_DVTSHEETALIGNEMT EXTENDS FB_AdsBlockBase
+VAR
+  // ---------------------------------
+  // ADS interface block specific
+
+  (*In*)
+  bI_Enable          : BOOL := FALSE;   (*Enable processing*)
+
+  bI_UsePrintMark    : BOOL := TRUE;    (*Enable processing of print marks*)
+  sI_PrintMarkSizeX  : ST_VAR_IN_REAL;  (*Print mark X size [mm]*)
+  sI_PrintMarkSizeY  : ST_VAR_IN_REAL;  (*Print mark Y size [mm]*)
+
+  sI_HeadGap         : ST_VAR_IN_REAL;  (*Gap between head and substrate [mm]*)
+
+  lI_SegmentSize     : UDINT;           (*Distance between two images in pixel*)
+  lI_SegmentCount    : UDINT;           (*Number of images*)
+  fI_SegmentAngle    : REAL;            (*Angle between two segments in deg*)
+
+  sI_DeltaX          : ST_VAR_IN_REAL;  (*X offset between camera marks [mm]*)
+
+  bI_IsMaintenanceJob: BOOL;            (*Maintenance job: disable shift and rotation*)
+
+  (*Out*)
+  sO_CurrentAngle    : ST_VAR_OUT_REAL; (*Last measured angle in deg*)
+  lO_CurrentYShift   : UDINT;           (*Last measured Y Shift in Pixel*)
+
+  bO_RangeErrorAngle : BOOL;            (*Measured angle out of range*)
+  bO_RangeErrorShift : BOOL;            (*Measured shift out of range*)
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="config" Id="{310c53a1-bb03-42bc-8be5-9521b96a931e}">
+      <Declaration><![CDATA[METHOD config
+VAR_INPUT
+  bSurfaceVelocity_Exist   : BOOL;   
+  aSurfaceVelocity_Type    : STRING;
+  aSurfaceVelocity_Unit    : STRING;
+  fSurfaceVelocity_Min     : REAL;
+  fSurfaceVelocity_Max     : REAL;
+  
+  bSizeX_Exist            : BOOL;   
+  aSizeX_Unit             : STRING;   
+  fSizeX_Min              : REAL;   
+  fSizeX_Max              : REAL;   
+  bSizeY_Exist            : BOOL;    
+  aSizeY_Unit             : STRING;  
+  fSizeY_Min              : REAL;    
+  fSizeY_Max              : REAL;    
+  bSizeZ_Exist            : BOOL;    
+  aSizeZ_Unit             : STRING;  
+  fSizeZ_Min              : REAL;    
+  fSizeZ_Max              : REAL;    
+ 
+  bPositionX_Exist        : BOOL;    
+  aPositionX_Unit         : STRING;  
+  fPositionX_Min          : REAL;    
+  fPositionX_Max          : REAL;    
+  bPositionY_Exist        : BOOL;    
+  aPositionY_Unit         : STRING;    
+  fPositionY_Min          : REAL;    
+  fPositionY_Max          : REAL;    
+  bPositionZ_Exist        : BOOL;    
+  aPositionZ_Unit         : STRING;  
+  fPositionZ_Min          : REAL;    
+  fPositionZ_Max          : REAL;  
+END_VAR   ]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[sI_SurfaceVelocity.bC_Exist := bSurfaceVelocity_Exist;
+sI_SurfaceVelocity.aC_Type  := aSurfaceVelocity_Type ;
+sI_SurfaceVelocity.aC_Unit  := aSurfaceVelocity_Unit ;
+sI_SurfaceVelocity.fC_Min   := fSurfaceVelocity_Min  ;
+sI_SurfaceVelocity.fC_Max   := fSurfaceVelocity_Max  ;
+                               
+sI_SizeX.bC_Exist           :=  bSizeX_Exist     ;
+sI_SizeX.aC_Unit            :=  aSizeX_Unit      ;
+sI_SizeX.fC_Min             :=  fSizeX_Min       ;
+sI_SizeX.fC_Max             :=  fSizeX_Max       ;
+sI_SizeY.bC_Exist           :=  bSizeY_Exist     ;
+sI_SizeY.aC_Unit            :=  aSizeY_Unit      ;
+sI_SizeY.fC_Min             :=  fSizeY_Min       ;
+sI_SizeY.fC_Max             :=  fSizeY_Max       ;
+sI_SizeZ.bC_Exist           :=  bSizeZ_Exist     ;
+sI_SizeZ.aC_Unit            :=  aSizeZ_Unit      ;
+sI_SizeZ.fC_Min             :=  fSizeZ_Min       ;
+sI_SizeZ.fC_Max             :=  fSizeZ_Max       ;
+                                                 ;
+sI_PositionX.bC_Exist       :=  bPositionX_Exist ;
+sI_PositionX.aC_Unit        :=  aPositionX_Unit  ;
+sI_PositionX.fC_Min         :=  fPositionX_Min   ;
+sI_PositionX.fC_Max         :=  fPositionX_Max   ;
+sI_PositionY.bC_Exist       :=  bPositionY_Exist ;
+sI_PositionY.aC_Unit        :=  aPositionY_Unit  ;
+sI_PositionY.fC_Min         :=  fPositionY_Min   ;
+sI_PositionY.fC_Max         :=  fPositionY_Max   ;
+sI_PositionZ.bC_Exist       :=  bPositionZ_Exist ;
+sI_PositionZ.aC_Unit        :=  aPositionZ_Unit  ;
+sI_PositionZ.fC_Min         :=  fPositionZ_Min   ;
+sI_PositionZ.fC_Max         :=  fPositionZ_Max   ;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="fSurfaceVelocity" Id="{24e6e27e-13a1-469a-9a2a-490528596b12}">
+      <Declaration><![CDATA[PROPERTY fSurfaceVelocity : REAL]]></Declaration>
+      <Get Name="Get" Id="{8ffcf6cc-940d-45bf-b5a2-ff115701b6b2}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fSurfaceVelocity := sI_SurfaceVelocity.fI_Val;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="getSubstrateSettings" Id="{fbca72d4-cbb7-45e5-a262-0753c86219c4}">
+      <Declaration><![CDATA[METHOD getSubstrateSettings : ST_SubstrateSettings]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[getSubstrateSettings.aSubstrateName := sSubstrateName;
+getSubstrateSettings.fSurfaceVelocity := fSurfaceVelocity;
+getSubstrateSettings.fSizeX := sI_SizeX.fI_Val;
+getSubstrateSettings.fSizeY := sI_SizeY.fI_Val;
+getSubstrateSettings.fSizeZ := sI_SizeZ.fI_Val;
+getSubstrateSettings.fPosX  := sI_PositionX.fI_Val;
+getSubstrateSettings.fPosY  := sI_PositionY.fI_Val;
+getSubstrateSettings.fPosZ  := sI_PositionZ.fI_Val;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="setSubstratePosition" Id="{f4ce8d26-4beb-485c-b86e-473954aa2069}">
+      <Declaration><![CDATA[METHOD setSubstratePosition
+VAR_INPUT
+  fPositionX : REAL;
+  fPositionY : REAL;
+  fPositionZ : REAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[sI_PositionX.fI_Val := fPositionX;
+sI_PositionY.fI_Val := fPositionY;
+sI_PositionZ.fI_Val := fPositionZ;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="setSubstrateSize" Id="{10ac66b6-6f46-49e7-8374-5947cc7a977d}">
+      <Declaration><![CDATA[METHOD setSubstrateSize
+VAR_INPUT
+  fSizeX : REAL;
+  fSizeY : REAL;
+  fSizeZ : REAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[sI_SizeX.fI_Val := fSizeX;
+sI_SizeY.fI_Val := fSizeY;
+sI_SizeZ.fI_Val := fSizeZ;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="setup" Id="{ae53dba6-3a79-468e-88f6-50b94b8da441}">
+      <Declaration><![CDATA[(*
+  Setup constant ADS Block definitions.
+  HOWTO: in abstract implmentation call
+      init(aVersion:=, aType:=, nType:=, eLayer:=);
+*)
+METHOD  setup]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[init(aVersion:='01.00.04', aType:='Substrate', nType:=ePr_BLK_SUBSTRATE, eLayer:=E_AdsLayer.Structural);]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="sSubstrateName" Id="{788e0100-6b18-4b00-932c-9035840beb8d}">
+      <Declaration><![CDATA[PROPERTY sSubstrateName : T_MaxString]]></Declaration>
+      <Get Name="Get" Id="{281ef99c-9b42-4161-9f64-f788bc6f5253}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sSubstrateName := aI_SubstrateName;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{3cdc01ff-16f4-4020-8d96-eb8bb7b454b5}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[aI_SubstrateName := sSubstrateName;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNEMT">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNEMT.config">
+      <LineId Id="63" Count="29" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNEMT.fSurfaceVelocity.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNEMT.getSubstrateSettings">
+      <LineId Id="26" Count="6" />
+      <LineId Id="14" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNEMT.setSubstratePosition">
+      <LineId Id="5" Count="0" />
+      <LineId Id="9" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNEMT.setSubstrateSize">
+      <LineId Id="5" Count="0" />
+      <LineId Id="9" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNEMT.setup">
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNEMT.sSubstrateName.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNEMT.sSubstrateName.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

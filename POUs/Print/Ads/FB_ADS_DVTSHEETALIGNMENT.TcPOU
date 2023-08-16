@@ -1,0 +1,429 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_ADS_DVTSHEETALIGNMENT" Id="{767ea748-f391-4f32-9fdd-aa405f60b0a7}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ADS_DVTSHEETALIGNMENT EXTENDS FB_AdsBlockBase
+VAR
+  // ---------------------------------
+  // ADS interface block specific
+  sO_Message         : ST_ADS_MSG_IF;
+  
+  bI_Enable          : BOOL := TRUE;    (*Enable processing*)
+
+  bI_UsePrintMark    : BOOL := TRUE;    (*Enable processing of print marks*)
+  sI_PrintMarkSizeX  : ST_VAR_IN_REAL;  (*Print mark X size [mm]*)
+  sI_PrintMarkSizeY  : ST_VAR_IN_REAL;  (*Print mark Y size [mm]*)
+
+  sI_HeadGap         : ST_VAR_IN_REAL;  (*Gap between head and substrate [mm]*)
+
+  lI_SegmentSize     : UDINT;           (*Distance between two images in pixel*)
+  lI_SegmentCount    : UDINT;           (*Number of images*)
+  fI_SegmentAngle    : REAL;            (*Angle between two segments in deg*)
+
+  sI_DeltaX          : ST_VAR_IN_REAL;  (*X offset between camera marks [mm]*)
+
+  bI_IsMaintenanceJob: BOOL;            (*Maintenance job: disable shift and rotation*)
+
+  (*Out*)
+  sO_CurrentAngle    : ST_VAR_OUT_REAL; (*Last measured angle in deg*)
+  lO_CurrentYShift   : UDINT;           (*Last measured Y Shift in Pixel*)
+
+  bO_RangeErrorAngle : BOOL;            (*Measured angle out of range*)
+  bO_RangeErrorShift : BOOL;            (*Measured shift out of range*)
+
+  // ---------------------------------
+END_VAR
+VAR PERSISTENT
+  aR_Pattern         : UDINT;           (*check pattern for rem validity*)
+  bR_Enable          : BOOL;
+  bR_UsePrintMark    : BOOL;
+  fR_HeadGap         : REAL;
+END_VAR ]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Folder Name="Ads" Id="{298afe55-d105-4068-a77b-7734006dad5e}" />
+    <Property Name="bEnable" Id="{9450c399-c0da-463f-8664-2aded51fccca}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY bEnable : BOOL]]></Declaration>
+      <Get Name="Get" Id="{d5ca6d74-a4e3-49e2-9cd3-b2221ff4dd82}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bEnable   := bI_Enable;   // Set ads interface variable
+bR_Enable := bI_Enable;   // Update remanent variable ]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{e32895c2-f853-47bc-b719-07c9c7e44508}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bI_Enable := bEnable;   // set interface variable
+bR_Enable := bEnable;   // update remanent variable ]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="bIsMaintenanceJob" Id="{78601085-31dc-476e-9363-45a2f4f544ec}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY bIsMaintenanceJob : BOOL]]></Declaration>
+      <Get Name="Get" Id="{813f1b74-992a-4167-8f1d-3fa8314069c4}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bIsMaintenanceJob := bI_IsMaintenanceJob;   // Set ads interface variable]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{ce9d9303-9377-4a95-88c5-e7c45c236367}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bI_IsMaintenanceJob := bIsMaintenanceJob;   // Set ads interface variable]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="bRangeErrorAngle" Id="{9097c5f9-4aaa-4522-9f98-4cf174df6d3e}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY bRangeErrorAngle : BOOL]]></Declaration>
+      <Set Name="Set" Id="{7d56cfec-891f-4e37-a4cb-5b16c7c25c7d}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bO_RangeErrorAngle := bRangeErrorAngle;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="bRangeErrorShift" Id="{098fa57a-4512-4eb7-b06b-92fce8602911}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY bRangeErrorShift : BOOL]]></Declaration>
+      <Set Name="Set" Id="{664dcf62-fa37-4b61-848c-c60ff901974d}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bO_RangeErrorShift := bRangeErrorShift;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="bUsePrintMark" Id="{b9565c86-8818-46e9-82b5-08357c08c60b}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY bUsePrintMark : BOOL]]></Declaration>
+      <Get Name="Get" Id="{bf3af2db-46fd-4d34-b128-89617ec23634}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bUsePrintMark   := bI_UsePrintMark;   // Set ads interface variable
+bR_UsePrintMark := bI_UsePrintMark;   // Update remanent variable ]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{d6af134e-8079-4689-b9e7-4800e1e2e8ef}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bI_UsePrintMark := bUsePrintMark;   // set interface variable
+bR_UsePrintMark := bUsePrintMark;   // update remanent variable ]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="config" Id="{310c53a1-bb03-42bc-8be5-9521b96a931e}">
+      <Declaration><![CDATA[METHOD config
+VAR_INPUT
+  bPrintMarkSizeX_Exist : BOOL;
+  aPrintMarkSizeX_Unit  : STRING;
+  fPrintMarkSizeX_Min   : REAL;
+  fPrintMarkSizeX_Max   : REAL;
+  
+  bPrintMarkSizeY_Exist : BOOL;
+  aPrintMarkSizeY_Unit  : STRING;
+  fPrintMarkSizeY_Min   : REAL;
+  fPrintMarkSizeY_Max   : REAL;
+  
+  bHeadGap_Exist        : BOOL;
+  aHeadGap_Unit         : STRING;
+  fHeadGap_Min          : REAL;
+  fHeadGap_Max          : REAL;
+
+  bDeltaX_Exist         : BOOL;
+  aDeltaX_Unit          : STRING;
+  fDeltaX_Min           : REAL;
+  fDeltaX_Max           : REAL;
+  
+  bCurrentAngle_Exist   : BOOL;
+  aCurrentAngle_Unit    : STRING;
+  fCurrentAngle_Min     : REAL;
+  fCurrentAngle_Max     : REAL;
+END_VAR   ]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[sI_PrintMarkSizeX.bC_Exist := bPrintMarkSizeX_Exist;
+sI_PrintMarkSizeX.aC_Unit  := aPrintMarkSizeX_Unit;
+sI_PrintMarkSizeX.fC_Min   := fPrintMarkSizeX_Min;
+sI_PrintMarkSizeX.fC_Max   := fPrintMarkSizeX_Max;
+sI_PrintMarkSizeY.bC_Exist := bPrintMarkSizeY_Exist;
+sI_PrintMarkSizeY.aC_Unit  := aPrintMarkSizeY_Unit;
+sI_PrintMarkSizeY.fC_Min   := fPrintMarkSizeY_Min;
+sI_PrintMarkSizeY.fC_Max   := fPrintMarkSizeY_Max;
+sI_HeadGap.bC_Exist        := bHeadGap_Exist;
+sI_HeadGap.aC_Unit         := aHeadGap_Unit;
+sI_HeadGap.fC_Min          := fHeadGap_Min;
+sI_HeadGap.fC_Max          := fHeadGap_Max;
+sI_DeltaX.bC_Exist         := bDeltaX_Exist;
+sI_DeltaX.aC_Unit          := aDeltaX_Unit;
+sI_DeltaX.fC_Min           := fDeltaX_Min;
+sI_DeltaX.fC_Max           := fDeltaX_Max;
+sO_CurrentAngle.bC_Exist   := bCurrentAngle_Exist;
+sO_CurrentAngle.aC_Unit    := aCurrentAngle_Unit;
+sO_CurrentAngle.fC_Min     := fCurrentAngle_Min;
+sO_CurrentAngle.fC_Max     := fCurrentAngle_Max;
+
+sO_CurrentAngle.bC_Exist   := FALSE;
+
+initRemVar();
+]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="fDeltaX" Id="{cc2c3a05-6041-427e-bc96-aaff9df29975}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY fDeltaX : REAL]]></Declaration>
+      <Get Name="Get" Id="{5311e5a7-89b7-4895-9ebf-7d2daea3e531}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fDeltaX   := sI_HeadGap.fI_Val;   // Set ads interface variable]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="fHeadGap" Id="{e8a54815-d0df-4e0c-900f-5afd2ec6c964}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY fHeadGap : REAL]]></Declaration>
+      <Get Name="Get" Id="{5e61d2ef-dd66-4d21-8268-de3a94d9ae2f}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fHeadGap   := sI_HeadGap.fI_Val;   // Set ads interface variable
+fR_HeadGap := sI_HeadGap.fI_Val;   // Update remanent variable ]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{ff2b860b-9bde-41cd-bbc9-ba2a96f007b3}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sI_HeadGap.fI_Val := fHeadGap;   // set interface variable
+fR_HeadGap        := fHeadGap;   // update remanent variable ]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="fMarkSizeX" Id="{11e9f71d-bd48-4f5c-a55c-d6c22678be31}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY fMarkSizeX : REAL]]></Declaration>
+      <Get Name="Get" Id="{9a187e7b-b4f1-466e-bb14-132ec9c48cd8}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fMarkSizeX   := sI_PrintMarkSizeX.fI_Val;   // Set ads interface variable
+//fR_MarkSizeX := sI_PrintMarkSizeX.fI_Val;   // Update remanent variable ]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="fMarkSizeY" Id="{77596c7f-5509-4b50-b650-6f285d00aee6}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY fMarkSizeY : REAL]]></Declaration>
+      <Get Name="Get" Id="{f9e7a072-d3f1-48d8-8ede-4be6915325c4}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fMarkSizeY   := sI_PrintMarkSizeY.fI_Val;   // Set ads interface variable
+//fR_MarkSizeY := sI_PrintMarkSizeY.fI_Val;   // Update remanent variable ]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="fO_CurrentAngle" Id="{06f18c7c-e634-483d-ace3-7982e879b6ba}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY fO_CurrentAngle : REAL]]></Declaration>
+      <Set Name="Set" Id="{befcecb7-6770-45a6-8073-e06ce493ff7b}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sO_CurrentAngle.fO_Val := fO_CurrentAngle;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="fSegmentAngle" Id="{6ff6dcb2-1300-4275-aab3-407a4825a282}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY fSegmentAngle : REAL]]></Declaration>
+      <Get Name="Get" Id="{cc15a034-12b1-48ce-8450-9942dd4ab675}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fSegmentAngle := fI_SegmentAngle;   // Set ads interface variable
+]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="initRemVar" Id="{a397f808-fb60-4152-b71a-46f5708a7161}">
+      <Declaration><![CDATA[METHOD PROTECTED initRemVar]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(*load default initial values if pattern was invalid*)
+IF aR_Pattern <> 16#ABCD THEN
+  aR_Pattern  := 16#ABCD;  
+  bR_Enable   := TRUE;
+  fR_HeadGap  := 2;
+END_IF
+
+bI_Enable := bR_Enable;
+sI_HeadGap.fI_Val := fR_HeadGap;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="nO_CurrentYShift" Id="{b4a6da06-f36a-40f8-a531-162fe31d94de}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY nO_CurrentYShift : UDINT]]></Declaration>
+      <Set Name="Set" Id="{401c5b63-184a-46de-9d43-e502627f11b1}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[lO_CurrentYShift := nO_CurrentYShift;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="nSegmentCount" Id="{5a3c98a2-4c14-4585-9e8c-1bff18f71632}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY nSegmentCount : UDINT]]></Declaration>
+      <Get Name="Get" Id="{0def26bd-50c5-4bee-a092-9299d20f14d9}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[nSegmentCount := lI_SegmentCount;   // Set ads interface variable
+]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="nSegmentSize" Id="{75eedc24-9be1-47a3-8b12-44901a98b7ef}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY nSegmentSize : UDINT]]></Declaration>
+      <Get Name="Get" Id="{c2f16be4-d134-41bc-baaf-1bc0997893eb}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[nSegmentSize := lI_SegmentSize;   // Set ads interface variable
+]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="setup" Id="{ae53dba6-3a79-468e-88f6-50b94b8da441}">
+      <Declaration><![CDATA[(*
+  Setup constant ADS Block definitions.
+  HOWTO: in abstract implmentation call
+      init(aVersion:=, aType:=, nType:=, eLayer:=);
+*)
+METHOD  setup]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[init(aVersion:='01.00.10', aType:='DvtSheetAlignment', nType:=ePr_BLK_SA, eLayer:=E_AdsLayer.Structural);]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="sMsgInterface" Id="{3007b5f4-968d-44ed-a66b-c0ffb62b246d}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY sMsgInterface : POINTER TO ST_ADS_MSG_IF]]></Declaration>
+      <Get Name="Get" Id="{4e5925a9-bdb0-4bf9-8e26-de5a5ded8c3b}">
+        <Declaration><![CDATA[]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sMsgInterface := ADR(sO_Message);]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.bEnable.Get">
+      <LineId Id="2" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.bEnable.Set">
+      <LineId Id="6" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.bIsMaintenanceJob.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.bIsMaintenanceJob.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.bRangeErrorAngle.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.bRangeErrorShift.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.bUsePrintMark.Get">
+      <LineId Id="2" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.bUsePrintMark.Set">
+      <LineId Id="6" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.config">
+      <LineId Id="178" Count="11" />
+      <LineId Id="218" Count="3" />
+      <LineId Id="223" Count="2" />
+      <LineId Id="216" Count="0" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="128" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.fDeltaX.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.fHeadGap.Get">
+      <LineId Id="2" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.fHeadGap.Set">
+      <LineId Id="6" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.fMarkSizeX.Get">
+      <LineId Id="2" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.fMarkSizeY.Get">
+      <LineId Id="2" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.fO_CurrentAngle.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.fSegmentAngle.Get">
+      <LineId Id="5" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.initRemVar">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="30" Count="2" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.nO_CurrentYShift.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.nSegmentCount.Get">
+      <LineId Id="5" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.nSegmentSize.Get">
+      <LineId Id="5" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.setup">
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.sMsgInterface.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -4,7 +4,7 @@
     <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Camera EXTENDS FB_WorkerDefGrid IMPLEMENTS I_CameraSink
 VAR
   // references
-  _pAdsCam        : POINTER TO ST_ADS_CAMERA;
+  _pAdsCam        : POINTER TO FB_ADS_CAMERA;
   _iParamMediator : I_ParamMediator;
   _fPrintUnitWidth : LREAL;
   
@@ -297,15 +297,15 @@ IF pMsgConfig = 0 THEN LogError('Init: invalid message config given'); END_IF
 _pMsgConfig := pMsgConfig;
 
 fbMsg_CamNotAvailable.pI_MsgConfig := _pMsgConfig;
-fbMsg_CamNotAvailable.iI_MsgLocation := ePr_BLK_CAMERA;
+fbMsg_CamNotAvailable.iI_MsgLocation := TO_INT(ePr_BLK_CAMERA);
 fbMsg_CamNotAvailable.iI_MsgNumber := eC_DMAX_CAM_NOTAVAIL;
 
 fbMsg_CamModeNotSupported.pI_MsgConfig := _pMsgConfig;
-fbMsg_CamModeNotSupported.iI_MsgLocation := ePr_BLK_CAMERA;
+fbMsg_CamModeNotSupported.iI_MsgLocation := TO_INT(ePr_BLK_CAMERA);
 fbMsg_CamModeNotSupported.iI_MsgNumber := eC_DMAX_CAM_MODE_NOTSUPPORTED; // camera not available
 
 fbMsg_CamNoConnection.pI_MsgConfig := _pMsgConfig;
-fbMsg_CamNoConnection.iI_MsgLocation := ePr_BLK_CAMERA;
+fbMsg_CamNoConnection.iI_MsgLocation := TO_INT(ePr_BLK_CAMERA);
 fbMsg_CamNoConnection.iI_MsgNumber := eCMa_TCPIP_COMM_ERROR;    // tcpip connection error
 
 _bConnectionOk := TRUE;
@@ -316,7 +316,7 @@ _bSetInitCam := TRUE; // request a default camera
     <Method Name="InitWorkerCamera" Id="{d420bbaf-dc4a-4caf-9bae-af7a97686b3a}">
       <Declaration><![CDATA[METHOD InitWorkerCamera
 VAR_INPUT
-  pAdsIf  : POINTER TO ST_ADS_CAMERA;
+  pAdsIf  : POINTER TO FB_ADS_CAMERA;
   iDefGridParamMediator : I_ParamMediator;
   fPrintUnitWidth   : LREAL;     // print unit width [m]
 END_VAR
@@ -353,6 +353,7 @@ VAR_INPUT
 END_VAR
 VAR
   iNewCam : I_Camera;
+  pCorrPointsInd : POINTER TO ARRAY[1..4] OF ST_CORRECTION_POINT;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF _pAdsCam <> 0 THEN
@@ -361,9 +362,9 @@ END_VAR]]></Declaration>
   bCamModeNotSupported := FALSE;
 
   // activate matching camera
-  iNewCam := selectCamera(eNewCam:=_pAdsCam^.eI_CameraDevice);    // get camera settings from ADS
+  iNewCam := selectCamera(eNewCam:=_pAdsCam^.eCameraDevice);    // get camera settings from ADS
   IF NOT ActivateCamera(iCam:=iNewCam) THEN
-    LogError(F_Concat2('Could not activate camera: ', TO_STRING(_pAdsCam^.eI_CameraDevice)));
+    LogError(F_Concat2('Could not activate camera: ', TO_STRING(_pAdsCam^.eCameraDevice)));
     bCamNotAvailable := TRUE;
   ELSE
     // config camera from job
@@ -372,7 +373,7 @@ END_VAR]]></Declaration>
     _iActiveCam.fImageLength     := sJobDef.fImageDepth  / 1000;  // [mm] -> [m]
     _iActiveCam.fImageWidth      := sJobDef.fImageWidth  / 1000;  // [mm] -> [m]
     _iActiveCam.fFrameLength     := _fFeatureGrid;                // [px]
-    bCamModeNotSupported := NOT _iActiveCam.setCameraMode(eCameraMode := _pAdsCam^.eI_CameraMode);     // set camera mode
+    bCamModeNotSupported := NOT _iActiveCam.setCameraMode(eCameraMode := _pAdsCam^.eCameraMode);     // set camera mode
     _iActiveCam.bEnableTrigger   := TRUE;    
     _iActiveCam.bManualTeach     := FALSE;
     _iActiveCam.mJobStart();
@@ -388,14 +389,17 @@ END_VAR]]></Declaration>
   END_IF
   
   // set correction ref points
-  _pAdsCam^.sI_CorrectionPointIndication[1].posx := 0;
-  _pAdsCam^.sI_CorrectionPointIndication[1].posy := LREAL_TO_REAL(((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2);
-  _pAdsCam^.sI_CorrectionPointIndication[2].posx := LREAL_TO_REAL(sJobDef.fImageDepth);
-  _pAdsCam^.sI_CorrectionPointIndication[2].posy := LREAL_TO_REAL(((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2);
-  _pAdsCam^.sI_CorrectionPointIndication[3].posx := 0;
-  _pAdsCam^.sI_CorrectionPointIndication[3].posy := LREAL_TO_REAL((((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2) + sJobDef.fImageWidth);
-  _pAdsCam^.sI_CorrectionPointIndication[4].posx := LREAL_TO_REAL(sJobDef.fImageDepth);
-  _pAdsCam^.sI_CorrectionPointIndication[4].posy := LREAL_TO_REAL((((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2) + sJobDef.fImageWidth);
+  pCorrPointsInd := _pAdsCam^.pCorrectionPointsIndication;
+  IF pCorrPointsInd <> 0  THEN
+    pCorrPointsInd^[1].posx := 0;
+    pCorrPointsInd^[1].posy := LREAL_TO_REAL(((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2);
+    pCorrPointsInd^[2].posx := LREAL_TO_REAL(sJobDef.fImageDepth);
+    pCorrPointsInd^[2].posy := LREAL_TO_REAL(((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2);
+    pCorrPointsInd^[3].posx := 0;
+    pCorrPointsInd^[3].posy := LREAL_TO_REAL((((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2) + sJobDef.fImageWidth);
+    pCorrPointsInd^[4].posx := LREAL_TO_REAL(sJobDef.fImageDepth);
+    pCorrPointsInd^[4].posy := LREAL_TO_REAL((((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2) + sJobDef.fImageWidth);
+  END_IF
 END_IF
 
 _bJobActive := TRUE;]]></ST>
@@ -440,7 +444,7 @@ END_VAR]]></Declaration>
 IF _bJobActive AND _iActiveCam <> 0 THEN
 
   // -> mode less than desired
-  IF _pAdsCam^.eI_CameraMode < _iActiveCam.eCameraMode THEN
+  IF _pAdsCam^.eCameraMode < _iActiveCam.eCameraMode THEN
     bModeLowerThanRequested := TRUE;
   END_IF
 
@@ -492,7 +496,7 @@ END_FOR
 
 IF NOT bFound THEN
   IF _iActiveCam <> 0 THEN sOld := _iActiveCam.sName; END_IF
-  IF _pAdsCam <> 0 THEN sNew := TO_STRING(_pAdsCam^.eI_CameraDevice); END_IF
+  IF _pAdsCam <> 0 THEN sNew := TO_STRING(_pAdsCam^.eCameraDevice); END_IF
   
   LogError(F_Concat4('Unavailable camera selected=', sNew, ', use cam=', sOld));
   selectCamera  := _iActiveCam; // return camera to before
@@ -783,26 +787,7 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.mJobStart">
-      <LineId Id="90" Count="0" />
-      <LineId Id="194" Count="0" />
-      <LineId Id="91" Count="0" />
-      <LineId Id="176" Count="0" />
-      <LineId Id="154" Count="0" />
-      <LineId Id="92" Count="4" />
-      <LineId Id="144" Count="0" />
-      <LineId Id="97" Count="4" />
-      <LineId Id="136" Count="0" />
-      <LineId Id="102" Count="0" />
-      <LineId Id="152" Count="0" />
-      <LineId Id="137" Count="0" />
-      <LineId Id="115" Count="0" />
-      <LineId Id="168" Count="0" />
-      <LineId Id="163" Count="4" />
-      <LineId Id="103" Count="3" />
-      <LineId Id="201" Count="0" />
-      <LineId Id="203" Count="7" />
-      <LineId Id="202" Count="0" />
-      <LineId Id="107" Count="1" />
+      <LineId Id="228" Count="45" />
       <LineId Id="11" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.mJobStop">

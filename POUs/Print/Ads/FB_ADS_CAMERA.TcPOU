@@ -1,0 +1,231 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_ADS_CAMERA" Id="{19330aac-119e-47f4-910c-196782e94b3a}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ADS_CAMERA EXTENDS FB_AdsBlockBase
+VAR
+  sAdsStruct : ST_ADS_CAMERA;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+
+// Todo redirect PucPath to internal sAdsStruct instead of fb Instance
+// - write InstanceName
+// - or override getPucPath() (but is PRIVATE)
+
+// The output variables are not used, please add eaccessors if needed
+(*
+ (*Out*)
+  iO_MaxNbMarksQV           : INT := GVL_Camera.cC_QUALIVISION_MAX_NB_MARKS; 
+  sO_PointsReadQV           : ST_COMMAND_PLC;    (*New points read by QualiVision*)
+  iO_AvailableNbReadPointQV : INT; 
+  sO_ReadPointsQV           : ARRAY[1..GVL_Camera.cC_QUALIVISION_MAX_NB_MARKS] OF ST_CAMERA_CORRECTION_QV;
+*)]]></ST>
+    </Implementation>
+    <Folder Name="Ads" Id="{54730f1b-423f-4690-bea0-a250fdacbd30}" />
+    <Property Name="aName" Id="{f28f4095-3cd9-48a3-9e84-d89746b178bc}" FolderPath="Ads\">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'call'}
+(*
+  Name of the block. 
+  A friendly name (which is used in the PUC to show the element (only for some blocks/apps))
+*)
+PROPERTY aName : T_MaxString]]></Declaration>
+      <Set Name="Set" Id="{62382c0e-999b-4fb4-b4ee-ef61bef8a90a}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[aO_Name := aName;
+
+sAdsStruct.aO_Name    := aO_Name;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="bEnable" Id="{b6aed005-c5f4-4179-9bb7-604707b1d09d}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY bEnable : BOOL]]></Declaration>
+      <Get Name="Get" Id="{5ab39d2e-eead-4ad9-aaac-d34c08739fd8}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bEnable   := sAdsStruct.bI_Enable;   // Set ads interface variable]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{ac2c63b0-1693-4ea6-9c41-8297b4eec2c4}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sAdsStruct.bI_Enable := bEnable;   // set interface variable]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="config" Id="{52de9062-328f-46bf-89b9-aa93271e499f}">
+      <Declaration><![CDATA[METHOD config
+VAR_INPUT
+
+END_VAR   ]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+//initRemVar();
+]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="eCameraDevice" Id="{626d17fb-0b68-4a92-8877-8e00e3ee2031}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY eCameraDevice : E_CameraDevice]]></Declaration>
+      <Get Name="Get" Id="{ad3c7d11-b19b-4c88-8d2f-40d41d3a143c}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[eCameraDevice := sAdsStruct.eI_CameraDevice;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{fd60a492-3c4e-4b92-8ebd-886106e63114}">
+        <Declaration><![CDATA[
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sAdsStruct.eI_CameraDevice := eCameraDevice;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="eCameraMode" Id="{ee69af58-1408-4b18-bc29-7432b7433bd3}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY eCameraMode : E_CameraMode]]></Declaration>
+      <Get Name="Get" Id="{6700eb6b-e55b-42da-8923-08be24785fa0}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[eCameraMode := sAdsStruct.eI_CameraMode;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{68ccd15a-3244-4499-9912-4b98892f2354}">
+        <Declaration><![CDATA[
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sAdsStruct.eI_CameraMode := eCameraMode;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="eTeachProgress" Id="{3076ebd4-2d9b-4411-9b9d-116615919886}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY eTeachProgress : EN_CAMERA_TEACH]]></Declaration>
+      <Get Name="Get" Id="{aa12269c-1efb-4c47-ba8b-6c3754445d9b}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[eTeachProgress := sAdsStruct.eI_TeachProgress;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="pCorrectionPointsIndication" Id="{25cd1b7a-7221-45a1-b906-690758f96618}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY pCorrectionPointsIndication : POINTER TO ARRAY[1..4] OF ST_CORRECTION_POINT;]]></Declaration>
+      <Get Name="Get" Id="{9ad2cc44-b22a-43e5-a00c-df5b0b0a4c6a}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[pCorrectionPointsIndication := ADR(sAdsStruct.sI_CorrectionPointIndication);]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="pTeachPointsQV" Id="{a3b77820-cada-437d-944c-35a78d711843}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY pTeachPointsQV : POINTER TO ARRAY[1..GVL_Camera.cC_QUALIVISION_MAX_NB_MARKS] OF ST_CAMERA_TEACH_QV;]]></Declaration>
+      <Get Name="Get" Id="{24c5d808-ceb3-4080-a2c4-e32c50a954a9}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[pTeachPointsQV := ADR(sAdsStruct.sI_TeachPointsQV);]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="setup" Id="{64df0548-1b08-4e9a-bf43-44acfe43b0ef}">
+      <Declaration><![CDATA[(*
+  Setup constant ADS Block definitions.
+  HOWTO: in abstract implmentation call
+      init(aVersion:=, aType:=, nType:=, eLayer:=);
+*)
+METHOD  setup]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[init(aVersion:='01.03.00', aType:='Camera', nType:=ePr_BLK_CAMERA, eLayer:=E_AdsLayer.Structural);
+
+// setup data in struct from init
+sAdsStruct.iO_Version := iO_Version;
+sAdsStruct.aO_Type    := aO_Type;
+sAdsStruct.aO_Name    := aO_Name;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="sMsgInterface" Id="{01d19590-9787-42a7-9216-27c225c735f9}" FolderPath="Ads\">
+      <Declaration><![CDATA[PROPERTY sMsgInterface : POINTER TO ST_ADS_MSG_IF]]></Declaration>
+      <Get Name="Get" Id="{d6b10973-1e30-4177-b4c4-2ff4894a4917}">
+        <Declaration><![CDATA[]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sMsgInterface := ADR(sAdsStruct.sO_Message);]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <LineIds Name="FB_ADS_CAMERA">
+      <LineId Id="35" Count="1" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="37" Count="1" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="44" Count="3" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="42" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CAMERA.aName.Set">
+      <LineId Id="2" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CAMERA.bEnable.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CAMERA.bEnable.Set">
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CAMERA.config">
+      <LineId Id="192" Count="0" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="128" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CAMERA.eCameraDevice.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CAMERA.eCameraDevice.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CAMERA.eCameraMode.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CAMERA.eCameraMode.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CAMERA.eTeachProgress.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CAMERA.pCorrectionPointsIndication.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CAMERA.pTeachPointsQV.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CAMERA.setup">
+      <LineId Id="7" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="16" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CAMERA.sMsgInterface.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
