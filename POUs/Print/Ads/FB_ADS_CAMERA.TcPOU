@@ -157,7 +157,10 @@ METHOD  setup]]></Declaration>
 // setup data in struct from init
 sAdsStruct.iO_Version := iO_Version;
 sAdsStruct.aO_Type    := aO_Type;
-sAdsStruct.aO_Name    := aO_Name;]]></ST>
+sAdsStruct.aO_Name    := aO_Name;
+
+// redirect puc (auto-generated in base) to internal structure
+_aPucPath := F_Concat2(getPucPath(), '.sAdsStruct');]]></ST>
       </Implementation>
     </Method>
     <Property Name="sMsgInterface" Id="{01d19590-9787-42a7-9216-27c225c735f9}" FolderPath="Ads\">
@@ -223,6 +226,9 @@ sAdsStruct.aO_Name    := aO_Name;]]></ST>
       <LineId Id="14" Count="0" />
       <LineId Id="13" Count="0" />
       <LineId Id="16" Count="1" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="28" Count="0" />
     </LineIds>
     <LineIds Name="FB_ADS_CAMERA.sMsgInterface.Get">
       <LineId Id="2" Count="0" />
