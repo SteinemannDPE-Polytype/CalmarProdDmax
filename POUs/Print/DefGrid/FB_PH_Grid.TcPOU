@@ -122,7 +122,7 @@ VAR_INPUT
   sPhDef                : ST_PH_DEF;                           (*ph definition structure*)
   tTempMonitor          : TIME;                                (*ph temperature monitoring timeout (warning after elapsed time)*)
   iFoeHandler           : I_FoeHandler;
-  iChannel              : INT;  
+  iChannel              : UDINT;  
   sCfgFolder            : T_MaxString;                          // path to config folder (where relative file name points to), keep='' if you have absolute paths in ads 
 
   bPositionX_Exist      : BOOL := TRUE; 

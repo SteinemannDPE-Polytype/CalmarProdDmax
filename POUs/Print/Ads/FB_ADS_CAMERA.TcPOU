@@ -23,14 +23,14 @@ END_VAR
 *)]]></ST>
     </Implementation>
     <Folder Name="Ads" Id="{54730f1b-423f-4690-bea0-a250fdacbd30}" />
-    <Property Name="aName" Id="{f28f4095-3cd9-48a3-9e84-d89746b178bc}" FolderPath="Ads\">
+    <Property Name="aName" Id="{9e20f850-a9f3-4379-8d9a-536d58558b9f}" FolderPath="Ads\">
       <Declaration><![CDATA[{attribute 'monitoring' := 'call'}
 (*
   Name of the block. 
   A friendly name (which is used in the PUC to show the element (only for some blocks/apps))
 *)
 PROPERTY aName : T_MaxString]]></Declaration>
-      <Set Name="Set" Id="{62382c0e-999b-4fb4-b4ee-ef61bef8a90a}">
+      <Set Name="Set" Id="{01005d8e-2691-487e-8d76-a31fb07fbd74}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -160,7 +160,7 @@ sAdsStruct.aO_Type    := aO_Type;
 sAdsStruct.aO_Name    := aO_Name;
 
 // redirect puc (auto-generated in base) to internal structure
-_aPucPath := F_Concat2(getPucPath(), '.sAdsStruct');]]></ST>
+//_aPucPath := F_Concat2(getPucPath(), '.sAdsStruct');]]></ST>
       </Implementation>
     </Method>
     <Property Name="sMsgInterface" Id="{01d19590-9787-42a7-9216-27c225c735f9}" FolderPath="Ads\">
