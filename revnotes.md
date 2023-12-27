@@ -10,6 +10,9 @@
 Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 
 ---
+### changes `2.0.2.17` HOA
+* FIX: _VISU_PowerControl
+
 ### changes `2.0.2.16` HOA
 * FIX: FB_PH_Grid INT_TO_UDINT conversion
 
