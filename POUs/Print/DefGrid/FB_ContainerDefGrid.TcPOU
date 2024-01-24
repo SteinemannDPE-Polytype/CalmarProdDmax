@@ -96,6 +96,17 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
+    <Property Name="fPrintLengthEffective" Id="{fc4e2877-6a77-41c5-8f15-21a5e29b64d2}">
+      <Declaration><![CDATA[PROPERTY fPrintLengthEffective : LREAL]]></Declaration>
+      <Get Name="Get" Id="{3635365e-9f81-49d8-b457-62cabb39356f}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fPrintLengthEffective := fBImageDeformation.fPrintLengthEffective;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
     <Method Name="getDeformationPoint" Id="{2c7c8e7c-37b2-43e1-90a8-ea784d68621e}">
       <Declaration><![CDATA[(*
   get a deformation point.
@@ -212,11 +223,12 @@ VAR_INPUT
   sDefGridSettings : ST_DefGridSettings;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[fBImageDeformation.sDefGridSettings := sDefGridSettings;
-fBImageDeformation.fPrintLengthEffective := pJob^.fSubstrateDepth;
-fBImageDeformation.startDeformation(
-  fStartDefPos:=DINT_TO_LREAL(GetPos(nPosDomain:=E_PosDomain.pos_px))    // reference position at current position [Px]
-);]]></ST>
+        <ST><![CDATA[fBImageDeformation.fPrintLengthEffective := pJob^.fSubstrateDepth;                           // update with intended length 
+fBImageDeformation.sDefGridSettings := sDefGridSettings;                  // apply grid setting
+fBImageDeformation.startDeformation(                                      // start deformation process
+  fStartDefPos:=DINT_TO_LREAL(GetPos(nPosDomain:=E_PosDomain.pos_px))     // reference position at current position [Px]
+);
+]]></ST>
       </Implementation>
     </Method>
     <Method Name="StartScript" Id="{b42a5bf2-aedf-44f3-9b19-80a8065b52ca}">
@@ -268,6 +280,9 @@ END_IF]]></ST>
     <LineIds Name="FB_ContainerDefGrid.fDyShift.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
+    <LineIds Name="FB_ContainerDefGrid.fPrintLengthEffective.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
     <LineIds Name="FB_ContainerDefGrid.getDeformationPoint">
       <LineId Id="5" Count="0" />
     </LineIds>
@@ -299,10 +314,11 @@ END_IF]]></ST>
       <LineId Id="86" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.StartDeformation">
+      <LineId Id="107" Count="0" />
       <LineId Id="97" Count="0" />
-      <LineId Id="101" Count="0" />
       <LineId Id="91" Count="1" />
       <LineId Id="88" Count="0" />
+      <LineId Id="105" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.StartScript">
       <LineId Id="14" Count="0" />

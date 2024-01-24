@@ -10,7 +10,7 @@ TYPE E_DeformationType :
   NoDeformation   := 0,   // NoCorrection
   ScriptGrid      := 1,   // Py script (live)
   ScriptGridTrend := 2,   // Py script (live with trend)
-  LocalMarks1D    := 3    // Plc with 1D marks
+  LocalMarks1D    := 3    // Plc generated with 1D marks
 );
 END_TYPE
 ]]></Declaration>

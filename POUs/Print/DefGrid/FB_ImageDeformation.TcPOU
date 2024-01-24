@@ -603,6 +603,7 @@ IF fTrig_Done.Q THEN
     sTmpPoint := _sCamPoints[_nCamPoints-ct].sPoint;     // get last valid point
     IF sTmpPoint.valid THEN
       // update effective printing length
+      {warning 'TODO: calc effective length based on deformations'}
       _fPrintLengthEffective := sTmpPoint.x_ref/(sTmpPoint.x_ref + sTmpPoint.dx) * _fPrintLengthEffective;
       EXIT;
     END_IF
@@ -810,6 +811,7 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="303" Count="1" />
       <LineId Id="307" Count="0" />
       <LineId Id="311" Count="0" />
+      <LineId Id="362" Count="0" />
       <LineId Id="308" Count="0" />
       <LineId Id="310" Count="0" />
       <LineId Id="309" Count="0" />

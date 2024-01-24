@@ -31,6 +31,7 @@ VAR
   _CamBufferPoints : ARRAY[1..GVL_Camera.cMaxNbMarks] OF ST_DeformationPointAccurate;
   
   // deformation status
+  _eDeformationType            : E_DeformationType;
   _eDeformStep                 : E_DeformationStep;   // status deformation of ct
   _nX0                         : DINT;   // detected sheet/repeat position [SubPx]              
   
@@ -378,6 +379,9 @@ END_VAR]]></Declaration>
     _iActiveCam.bManualTeach     := FALSE;
     _iActiveCam.mJobStart();
 
+    // set deformation type based on camera
+    _eDeformationType := selectDeformationType(_iActiveCam);
+    
     // check settings
     IF _iActiveCam.fSubstrateLength = 0 THEN LogError('mJobStart() invalid SubstrateLength'); END_IF
     IF _iActiveCam.fSubstrateWidth = 0 THEN LogError('mJobStart() invalid SubstrateWidth'); END_IF
@@ -463,6 +467,7 @@ END_VAR
           <ST><![CDATA[sCameraGridSettings.bValid := _bCamValid;
 IF _bCamValid THEN
   sCameraGridSettings.eCameraMode := SEL(_iActiveCam<>0, E_CameraMode.NoCorrection, _iActiveCam.eCameraMode);
+  sCameraGridSettings.eDeformationType := _eDeformationType;
   sCameraGridSettings.fGridFeaturePitch := _fFeatureGrid;
   sCameraGridSettings.fDetectToCam := _iActiveCam.fDetectToCameraOffset;
 END_IF]]></ST>
@@ -502,6 +507,47 @@ IF NOT bFound THEN
   selectCamera  := _iActiveCam; // return camera to before
 END_IF
 ]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="selectDeformationType" Id="{9c418b5a-fd52-4940-86d3-822ae28f8d03}">
+      <Declaration><![CDATA[(*
+  Select deformation type (mode) based on selected camera device and camera mode.
+*)
+METHOD selectDeformationType : E_DeformationType
+VAR_INPUT
+  iCam : I_Camera;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF    ( iCam.eCameraMode = E_CameraMode.Auto OR 
+        iCam.eCameraMode = E_CameraMode.Live OR 
+        iCam.eCameraMode = E_CameraMode.Trend
+      ) AND ( 
+        iCam.eDeviceType = E_CameraDevice.PrintMark
+      )
+THEN
+  // local plc generated deformation, based on print marks
+  selectDeformationType := E_DeformationType.LocalMarks1D;
+  
+ELSIF ( iCam.eCameraMode = E_CameraMode.Auto OR 
+        iCam.eCameraMode = E_CameraMode.Live OR 
+        iCam.eCameraMode = E_CameraMode.Trend 
+      ) AND (
+        iCam.eDeviceType = E_CameraDevice.Scanner OR 
+        iCam.eDeviceType = E_CameraDevice.ScannerWithoutBackground
+      ) 
+THEN
+  // live deformation done by py script
+  IF iCam.eCameraMode = E_CameraMode.Trend THEN
+    selectDeformationType := E_DeformationType.ScriptGridTrend;
+  ELSE
+    selectDeformationType := E_DeformationType.ScriptGrid;
+	END_IF
+  
+ELSE
+  // default no deformation
+  selectDeformationType := E_DeformationType.NoDeformation;
+END_IF ]]></ST>
       </Implementation>
     </Method>
     <Method Name="setManualTeach" Id="{2e7801cf-e1ac-475d-9d4e-5dbbc1b969bc}">
@@ -787,7 +833,11 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.mJobStart">
-      <LineId Id="228" Count="45" />
+      <LineId Id="228" Count="20" />
+      <LineId Id="282" Count="0" />
+      <LineId Id="281" Count="0" />
+      <LineId Id="283" Count="0" />
+      <LineId Id="249" Count="24" />
       <LineId Id="11" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.mJobStop">
@@ -816,6 +866,7 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.sCameraGridSettings.Get">
       <LineId Id="26" Count="3" />
+      <LineId Id="35" Count="0" />
       <LineId Id="32" Count="0" />
       <LineId Id="19" Count="0" />
     </LineIds>
@@ -837,6 +888,28 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="19" Count="0" />
       <LineId Id="5" Count="0" />
       <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.selectDeformationType">
+      <LineId Id="5" Count="0" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="32" Count="2" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="25" Count="6" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="9" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.setManualTeach">
       <LineId Id="6" Count="0" />

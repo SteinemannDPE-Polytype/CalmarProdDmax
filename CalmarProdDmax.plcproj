@@ -326,9 +326,6 @@ Fribourg/Switzerland (2021)</Description>
     <Compile Include="POUs\Print\DefGrid\I_ParamMediator.TcIO">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Print\DefGrid\I_PrintPosition.TcIO">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="POUs\Print\DefGrid\I_ProdManager.TcIO">
       <SubType>Code</SubType>
     </Compile>
@@ -567,7 +564,7 @@ Fribourg/Switzerland (2021)</Description>
   </ItemGroup>
   <ItemGroup>
     <PlaceholderResolution Include="CalmarCommons">
-      <Resolution>CalmarCommons, 2.0.0.6 (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCommons, 2.0.0.10 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompDevices">
       <Resolution>CalmarCompDevices, 1.7.2 (WIFAG-Polytype)</Resolution>

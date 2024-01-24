@@ -5,6 +5,7 @@
 STRUCT
   bValid            : BOOL;   // ?
   eCameraMode       : E_CameraMode;
+  eDeformationType  : E_DeformationType;  // selected deformation type based on selecte camera and settings
   fGridFeaturePitch : LREAL;  // feature grid picth (cam frame width) [px]
   fDetectToCam      : LREAL;  // distance between detection and camera [m]
 END_STRUCT

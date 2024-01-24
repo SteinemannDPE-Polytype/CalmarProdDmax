@@ -30,6 +30,8 @@ VAR
   fCtPosition       : LREAL;                          // Container position relative to worker position in [SubPx (E_PosDomain.master_pos)]
   _bForceRelease    : BOOL;                           // Manually force a ct release
 
+  // view
+  nGridRowStart, nGridColStart: UDINT := 0;
 END_VAR
 VAR_STAT
   // static variables, SAME for ALL Workers
