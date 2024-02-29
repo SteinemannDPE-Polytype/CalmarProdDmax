@@ -3,7 +3,7 @@
   <POU Name="FB_ADS_CAMERA" Id="{19330aac-119e-47f4-910c-196782e94b3a}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_ADS_CAMERA EXTENDS FB_AdsBlockBase
 VAR
-  sAdsStruct : ST_ADS_CAMERA;
+  stAds : ST_ADS_CAMERA;
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -23,21 +23,31 @@ END_VAR
 *)]]></ST>
     </Implementation>
     <Folder Name="Ads" Id="{54730f1b-423f-4690-bea0-a250fdacbd30}" />
-    <Property Name="aName" Id="{9e20f850-a9f3-4379-8d9a-536d58558b9f}" FolderPath="Ads\">
+    <Folder Name="Base" Id="{797b6ad5-b4ab-49a9-bbad-20053d4eecd0}" />
+    <Property Name="aName" Id="{9e20f850-a9f3-4379-8d9a-536d58558b9f}" FolderPath="Base\">
       <Declaration><![CDATA[{attribute 'monitoring' := 'call'}
 (*
   Name of the block. 
   A friendly name (which is used in the PUC to show the element (only for some blocks/apps))
 *)
 PROPERTY aName : T_MaxString]]></Declaration>
+      <Get Name="Get" Id="{8fc525bb-5d20-43e8-bd78-fe3473bcfbdc}">
+        <Declaration><![CDATA[
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[aName := aO_Name;
+]]></ST>
+        </Implementation>
+      </Get>
       <Set Name="Set" Id="{01005d8e-2691-487e-8d76-a31fb07fbd74}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
           <ST><![CDATA[aO_Name := aName;
-
-sAdsStruct.aO_Name    := aO_Name;]]></ST>
+stAds.aO_Name := aName; // update in struct as well]]></ST>
         </Implementation>
       </Set>
     </Property>
@@ -48,7 +58,7 @@ sAdsStruct.aO_Name    := aO_Name;]]></ST>
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[bEnable   := sAdsStruct.bI_Enable;   // Set ads interface variable]]></ST>
+          <ST><![CDATA[bEnable   := stAds.bI_Enable;   // Set ads interface variable]]></ST>
         </Implementation>
       </Get>
       <Set Name="Set" Id="{ac2c63b0-1693-4ea6-9c41-8297b4eec2c4}">
@@ -56,7 +66,7 @@ END_VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[sAdsStruct.bI_Enable := bEnable;   // set interface variable]]></ST>
+          <ST><![CDATA[stAds.bI_Enable := bEnable;   // set interface variable]]></ST>
         </Implementation>
       </Set>
     </Property>
@@ -78,7 +88,7 @@ END_VAR   ]]></Declaration>
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[eCameraDevice := sAdsStruct.eI_CameraDevice;]]></ST>
+          <ST><![CDATA[eCameraDevice := stAds.eI_CameraDevice;]]></ST>
         </Implementation>
       </Get>
       <Set Name="Set" Id="{fd60a492-3c4e-4b92-8ebd-886106e63114}">
@@ -87,7 +97,7 @@ VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[sAdsStruct.eI_CameraDevice := eCameraDevice;]]></ST>
+          <ST><![CDATA[stAds.eI_CameraDevice := eCameraDevice;]]></ST>
         </Implementation>
       </Set>
     </Property>
@@ -98,7 +108,7 @@ END_VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[eCameraMode := sAdsStruct.eI_CameraMode;]]></ST>
+          <ST><![CDATA[eCameraMode := stAds.eI_CameraMode;]]></ST>
         </Implementation>
       </Get>
       <Set Name="Set" Id="{68ccd15a-3244-4499-9912-4b98892f2354}">
@@ -107,7 +117,7 @@ VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[sAdsStruct.eI_CameraMode := eCameraMode;]]></ST>
+          <ST><![CDATA[stAds.eI_CameraMode := eCameraMode;]]></ST>
         </Implementation>
       </Set>
     </Property>
@@ -118,10 +128,19 @@ END_VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[eTeachProgress := sAdsStruct.eI_TeachProgress;]]></ST>
+          <ST><![CDATA[eTeachProgress := stAds.eI_TeachProgress;]]></ST>
         </Implementation>
       </Get>
     </Property>
+    <Method Name="getPucPath" Id="{60430d1f-bd1c-4043-ae85-e1be35ea5347}" FolderPath="Base\">
+      <Declaration><![CDATA[METHOD PROTECTED getPucPath : STRING
+VAR
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// apply puc path to struct (instead of fb declaraion)
+getPucPath := F_Concat3(SUPER^.getPucPath(), '.', 'stAds');]]></ST>
+      </Implementation>
+    </Method>
     <Property Name="pCorrectionPointsIndication" Id="{25cd1b7a-7221-45a1-b906-690758f96618}" FolderPath="Ads\">
       <Declaration><![CDATA[PROPERTY pCorrectionPointsIndication : POINTER TO ARRAY[1..4] OF ST_CORRECTION_POINT;]]></Declaration>
       <Get Name="Get" Id="{9ad2cc44-b22a-43e5-a00c-df5b0b0a4c6a}">
@@ -129,7 +148,7 @@ END_VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[pCorrectionPointsIndication := ADR(sAdsStruct.sI_CorrectionPointIndication);]]></ST>
+          <ST><![CDATA[pCorrectionPointsIndication := ADR(stAds.sI_CorrectionPointIndication);]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -140,11 +159,11 @@ END_VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[pTeachPointsQV := ADR(sAdsStruct.sI_TeachPointsQV);]]></ST>
+          <ST><![CDATA[pTeachPointsQV := ADR(stAds.sI_TeachPointsQV);]]></ST>
         </Implementation>
       </Get>
     </Property>
-    <Method Name="setup" Id="{64df0548-1b08-4e9a-bf43-44acfe43b0ef}">
+    <Method Name="setup" Id="{64df0548-1b08-4e9a-bf43-44acfe43b0ef}" FolderPath="Base\">
       <Declaration><![CDATA[(*
   Setup constant ADS Block definitions.
   HOWTO: in abstract implmentation call
@@ -152,15 +171,9 @@ END_VAR
 *)
 METHOD  setup]]></Declaration>
       <Implementation>
-        <ST><![CDATA[init(aVersion:='01.03.00', aType:='Camera', nType:=ePr_BLK_CAMERA, eLayer:=E_AdsLayer.Structural);
-
-// setup data in struct from init
-sAdsStruct.iO_Version := iO_Version;
-sAdsStruct.aO_Type    := aO_Type;
-sAdsStruct.aO_Name    := aO_Name;
-
-// redirect puc (auto-generated in base) to internal structure
-//_aPucPath := F_Concat2(getPucPath(), '.sAdsStruct');]]></ST>
+        <ST><![CDATA[
+init(aVersion:=convertVersionIntToString(stAds.iO_Version), aType:=stAds.aO_Type, nType:=ePr_BLK_CAMERA, eLayer:=E_AdsLayer.Structural);
+]]></ST>
       </Implementation>
     </Method>
     <Property Name="sMsgInterface" Id="{01d19590-9787-42a7-9216-27c225c735f9}" FolderPath="Ads\">
@@ -168,7 +181,7 @@ sAdsStruct.aO_Name    := aO_Name;
       <Get Name="Get" Id="{d6b10973-1e30-4177-b4c4-2ff4894a4917}">
         <Declaration><![CDATA[]]></Declaration>
         <Implementation>
-          <ST><![CDATA[sMsgInterface := ADR(sAdsStruct.sO_Message);]]></ST>
+          <ST><![CDATA[sMsgInterface := ADR(stAds.sO_Message);]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -183,9 +196,12 @@ sAdsStruct.aO_Name    := aO_Name;
       <LineId Id="43" Count="0" />
       <LineId Id="42" Count="0" />
     </LineIds>
-    <LineIds Name="FB_ADS_CAMERA.aName.Set">
-      <LineId Id="2" Count="0" />
+    <LineIds Name="FB_ADS_CAMERA.aName.Get">
       <LineId Id="6" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CAMERA.aName.Set">
+      <LineId Id="9" Count="0" />
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_ADS_CAMERA.bEnable.Get">
@@ -214,6 +230,10 @@ sAdsStruct.aO_Name    := aO_Name;
     <LineIds Name="FB_ADS_CAMERA.eTeachProgress.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
+    <LineIds Name="FB_ADS_CAMERA.getPucPath">
+      <LineId Id="23" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
     <LineIds Name="FB_ADS_CAMERA.pCorrectionPointsIndication.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
@@ -221,13 +241,8 @@ sAdsStruct.aO_Name    := aO_Name;
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ADS_CAMERA.setup">
-      <LineId Id="7" Count="0" />
-      <LineId Id="15" Count="0" />
-      <LineId Id="14" Count="0" />
-      <LineId Id="13" Count="0" />
-      <LineId Id="16" Count="1" />
-      <LineId Id="29" Count="0" />
-      <LineId Id="23" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="35" Count="0" />
       <LineId Id="28" Count="0" />
     </LineIds>
     <LineIds Name="FB_ADS_CAMERA.sMsgInterface.Get">

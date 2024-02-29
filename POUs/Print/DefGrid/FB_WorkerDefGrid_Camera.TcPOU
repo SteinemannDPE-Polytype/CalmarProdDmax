@@ -594,7 +594,6 @@ fPosition := fDetectToCamOffset  + _fPmPosition;]]></ST>
       <Declaration><![CDATA[METHOD PRIVATE streamPoints
 VAR
   i : UDINT;
-  _nAddedPoint : UDINT := 0;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF _nAttachedCTs=0 OR NOT _bCamStarted OR _eDeformStep < E_DeformationStep.cameraStarted THEN

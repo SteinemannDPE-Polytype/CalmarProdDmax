@@ -3899,7 +3899,7 @@
                     </o>
                     <o>
                       <v n="Id">1999528970L</v>
-                      <v n="Value">"m_Inst._pAdsCam^.sAdsStruct.eI_CameraMode &lt;&gt; m_Inst._iActiveCam.eCameraMode"</v>
+                      <v n="Value">"m_Inst._pAdsCam^.stAds.eI_CameraMode &lt;&gt; m_Inst._iActiveCam.eCameraMode"</v>
                     </o>
                     <o>
                       <v n="Id">3719097617L</v>
@@ -5165,7 +5165,7 @@
                     </o>
                     <o>
                       <v n="Id">2477733581L</v>
-                      <v n="Value">"m_Inst._pAdsCam^.sAdsStruct.eI_CameraMode"</v>
+                      <v n="Value">"m_Inst._pAdsCam^.stAds.eI_CameraMode"</v>
                     </o>
                     <o>
                       <v n="Id">823443203L</v>
@@ -5977,10 +5977,10 @@
               <d n="FbMethods" t="CaseInsensitiveHashtable_1" ckt="String" cvt="Guid">
                 <v>FB_Init</v>
                 <v>9a8b3c89-0a37-4764-8b97-692d387a4ee4</v>
-                <v>FB_Reinit</v>
-                <v>f47336a1-f8ac-4be9-aa02-7bad575da4b0</v>
                 <v>FB_Exit</v>
                 <v>30c4e4ec-8570-40cc-b4c7-39e92fdcc270</v>
+                <v>FB_Reinit</v>
+                <v>f47336a1-f8ac-4be9-aa02-7bad575da4b0</v>
               </d>
               <v n="FbName">"NotImportant"</v>
               <v n="FbGuid">{2a9b1294-9cc2-4bb8-93e9-c8564087b95c}</v>
