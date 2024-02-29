@@ -11,7 +11,7 @@ TYPE E_DeformationType :
   ScriptGrid      := 1,   // Py script (live)
   ScriptGridTrend := 2,   // Py script (live with trend)
   LocalMarks1D    := 3    // Plc generated with 1D marks
-);
+)  UINT;
 END_TYPE
 ]]></Declaration>
   </DUT>

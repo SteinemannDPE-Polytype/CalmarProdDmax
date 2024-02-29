@@ -37,8 +37,8 @@ END_VAR
 
 VAR PERSISTENT
   _sDeformationGridSettings  : ST_DefGridSettings := (   // grid definition settings
-                                  nGridPitchX:=GVL_Deformation.nC_GridPitch_X, 
-                                  nGridPitchY:=GVL_Deformation.nC_GridPitch_Y,
+                                  nGridPitchX:=GVL_Deformation.nC_DefaultGridPitch_X,   // this must match the hw config (in fpga)
+                                  nGridPitchY:=GVL_Deformation.nC_DefaultGridPitch_Y,   // this must match the hw config (in fpag)
                                   eDeformationType:=E_DeformationType.NoDeformation
                              );
   _fDistToCam                : LREAL := 0.02;   // distance to cam worker 
@@ -149,8 +149,8 @@ END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[// check and init invalid settings
 IF _iParamMediator = 0 THEN LogError('no parameter mediator'); RETURN; END_IF
-IF _sDeformationGridSettings.nGridPitchX = 0 THEN _sDeformationGridSettings.nGridPitchX:=GVL_Deformation.nC_GridPitch_X; LogError(F_Concat2('nGridPitchX not configured, set default=', TO_STRING(GVL_Deformation.nC_GridPitch_X))); END_IF
-IF _sDeformationGridSettings.nGridPitchY = 0 THEN _sDeformationGridSettings.nGridPitchY:=GVL_Deformation.nC_GridPitch_Y; LogError(F_Concat2('nGridPitchY not configured, set default=', TO_STRING(GVL_Deformation.nC_GridPitch_X))); END_IF
+IF _sDeformationGridSettings.nGridPitchX = 0 THEN _sDeformationGridSettings.nGridPitchX:=GVL_Deformation.nC_DefaultGridPitch_X; LogError(F_Concat2('nGridPitchX not configured, set default=', TO_STRING(GVL_Deformation.nC_DefaultGridPitch_X))); END_IF
+IF _sDeformationGridSettings.nGridPitchY = 0 THEN _sDeformationGridSettings.nGridPitchY:=GVL_Deformation.nC_DefaultGridPitch_Y; LogError(F_Concat2('nGridPitchY not configured, set default=', TO_STRING(GVL_Deformation.nC_DefaultGridPitch_Y))); END_IF
 IF _nPrintUnitWidth = 0 THEN LogError('_nPrintUnitWidth not configured'); END_IF
 IF fPosition = 0 THEN LogError('No valid Worker position: set it to WorkerCamera.fCameraToPrintOffset + 0.05; '); END_IF
 

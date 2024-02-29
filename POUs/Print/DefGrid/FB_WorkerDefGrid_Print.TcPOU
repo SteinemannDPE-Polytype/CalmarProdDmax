@@ -29,7 +29,7 @@ VAR
   nChargedColumns    : UDINT; // Already charged columns
 
   fbDropSpeedComp    : FB_DropSpeedComp;  
-  fbPs               : FB_PS_Grid;
+  fbPs               : FB_PS;
   fbPa               : FB_PA;
   fB_PcAdapter       : FB_PC_Adapter;
 
@@ -47,6 +47,9 @@ VAR
   rTrigSync          : R_TRIG;
   _bForceDefGridOff  : BOOL;    // force deformation grid stream to ph off (send 0)
   _fPrintUnitWidth   : LREAL;   // print unit width [m]
+  // grid settings
+  _iPhGrid           : I_Correction_Grid;
+  _sPhGridHwCfg      : ST_GridHwCfg;
   
   (*grid correction*)
   _fDxGlobalShift    : LREAL;
@@ -238,12 +241,12 @@ END_VAR
 IF fMasterSpeed <> 0 THEN
 
   // - check pre-charge at beginning
-  IF _fColumnsToPrecharge * fC_GRIDPOINT_STREAM_TIME * GVL_Deformation.nC_GridRoiRows >= F_SubPixelToMeter(lPosSubPx:=_nPosDeltaToPrint, fResSubPx:=_fPrintResolution*_fSubPxResolution) / fMasterSpeed  THEN
-       LogError('Machine too fast for grid stream (for pre-charge at attach)');
+  IF _fColumnsToPrecharge * fC_GRIDPOINT_STREAM_TIME * _sPhGridHwCfg.nGridRoiRows >= F_SubPixelToMeter(lPosSubPx:=_nPosDeltaToPrint, fResSubPx:=_fPrintResolution*_fSubPxResolution) / fMasterSpeed  THEN
+    LogError('Machine too fast for grid stream (for pre-charge at attach)');
   END_IF
   
  // - check charge time needed per columns vs machine speed and grid-sizeY
- IF GVL_Deformation.nC_GridRoiRows * fC_GRIDPOINT_STREAM_TIME >= F_SubPixelToMeter(lPosSubPx:=TO_DINT(sDefGridSettings.nGridPitchX), fResSubPx:=_fPrintResolution) / fMasterSpeed THEN
+ IF fC_GRIDPOINT_STREAM_TIME * _sPhGridHwCfg.nGridRoiRows >= F_SubPixelToMeter(lPosSubPx:=TO_DINT(sDefGridSettings.nGridPitchX), fResSubPx:=_fPrintResolution) / fMasterSpeed THEN
    LogError('Machine too fast for grid stream (time rows per column)');
  END_IF
 
@@ -507,7 +510,7 @@ _fCtSecurityReleasePos := F_MeterToSubPixel(fPosMeter:=sJobDef.fImageDepth/1000 
 
 IF NOT bWorkerEnable THEN RETURN; END_IF  // only if enabled
 
-fbPa.jobStart();
+fbPa.jobStart(bEndless:=sJobDef.isEndless());
 
 _bJobActive := TRUE;
 
@@ -520,7 +523,9 @@ _pAdsCam^.sI_CorrectionPointIndication[3].posx := 0;
 _pAdsCam^.sI_CorrectionPointIndication[3].posy := LREAL_TO_REAL((((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2) + sJobDef.fImageWidth);
 _pAdsCam^.sI_CorrectionPointIndication[4].posx := LREAL_TO_REAL(sJobDef.fImageDepth);
 _pAdsCam^.sI_CorrectionPointIndication[4].posy := LREAL_TO_REAL((((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2) + sJobDef.fImageWidth);
-]]></ST>
+
+// grid settings update
+IF _iPhGrid <> 0 THEN _sPhGridHwCfg := _iPhGrid.getGridHwCfg(); END_IF ]]></ST>
       </Implementation>
     </Method>
     <Method Name="mJobStop" Id="{7b748773-8ffd-405a-8e86-372ca4bcfe2a}" FolderPath="I_PrintStatusClient\">
@@ -547,14 +552,14 @@ END_VAR
     <Method Name="registerPh" Id="{51416313-f5aa-4fc6-85d2-7d7463e97995}">
       <Declaration><![CDATA[METHOD registerPh : BOOL
 VAR_INPUT
-    iPH : I_PH;
-    iNewCG : I_Correction_Grid;   // correction grid interface
+  iPH : I_PH;
 END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[//Attach head to print station
 IF iPH <> 0 THEN
-  fbPs.registerCG(iNewPh:=iPH, iNewCG:=iNewCG);
+  fbPs.registerPh(iNewPh:=iPH);
+  _iPhGrid := iPH.iGridCorrection;
 END_IF
 ]]></ST>
       </Implementation>
@@ -667,7 +672,7 @@ IF _pAttachedCt <> 0 AND bWorkerEnable THEN // Work only with attached container
     ELSIF fBStartTimeout.Q THEN //Stop print at timeout to make ready for next container
       _bPaStarted := FALSE;
       _bPaStartRequested := FALSE;
-      fbPa.printStop();
+      fbPa.printStop(bSyncedStop:=FALSE);
       _pAttachedCt^.setError(ErrDef:=EC_Print.ecPaStartErr, Src:=_pEcSrc^);
       Release(_pAttachedCt^);
 		END_IF
@@ -909,7 +914,9 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="59" Count="0" />
       <LineId Id="68" Count="0" />
       <LineId Id="60" Count="7" />
+      <LineId Id="93" Count="0" />
       <LineId Id="81" Count="0" />
+      <LineId Id="94" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.mJobStop">
       <LineId Id="6" Count="0" />
@@ -920,7 +927,9 @@ fB_PcAdapter.LogLevel := LogLevel;
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.registerPh">
       <LineId Id="8" Count="0" />
-      <LineId Id="10" Count="2" />
+      <LineId Id="10" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="12" Count="0" />
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.setupPosition">

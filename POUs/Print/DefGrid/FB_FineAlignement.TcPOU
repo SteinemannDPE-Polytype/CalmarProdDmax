@@ -112,8 +112,8 @@ FOR nCol:=0 TO nC_UT_cols DO
   FOR nRow:=0 TO nC_UT_rows DO
     sPoint.col := nCol;
     sPoint.row := nRow;
-    sPoint.x_ref := nCol * TO_DINT(GVL_Deformation.nC_GridPitch_X);
-    sPoint.y_ref := nRow * TO_DINT(GVL_Deformation.nC_GridPitch_Y);
+    sPoint.x_ref := nCol * TO_DINT(GVL_Deformation.nC_DefaultGridPitch_X);
+    sPoint.y_ref := nRow * TO_DINT(GVL_Deformation.nC_DefaultGridPitch_Y);
     sPoint.dx := 0;   // no previous deformation
     sPoint.dy := 0;   // no previous deformation
     
@@ -182,8 +182,8 @@ FOR nCol:=0 TO nC_UT_cols DO
   FOR nRow:=0 TO nC_UT_rows DO
     sPoint.col := nCol;
     sPoint.row := nRow;
-    sPoint.x_ref := nCol * TO_DINT(GVL_Deformation.nC_GridPitch_X);
-    sPoint.y_ref := nRow * TO_DINT(GVL_Deformation.nC_GridPitch_Y);
+    sPoint.x_ref := nCol * TO_DINT(GVL_Deformation.nC_DefaultGridPitch_X);
+    sPoint.y_ref := nRow * TO_DINT(GVL_Deformation.nC_DefaultGridPitch_Y);
     sPoint.dx := 0;   // no previous deformation
     sPoint.dy := 0;   // no previous deformation
     
