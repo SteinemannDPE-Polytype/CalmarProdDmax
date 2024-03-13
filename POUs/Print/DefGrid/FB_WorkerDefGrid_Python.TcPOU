@@ -28,7 +28,7 @@ END_VAR
       <ST><![CDATA[]]></ST>
     </Implementation>
     <Folder Name="I_DeformationHandler" Id="{ceaf56cc-d085-4a2b-a063-c0fa29cdf9f9}" />
-    <Folder Name="I_PrintStatusClient" Id="{f883ee39-a8eb-4a93-9829-26e2a724ffe3}" />
+    <Folder Name="I_PrintStatusClient" Id="{bce0e74a-fe72-4d58-b223-a5594b94bfcb}" />
     <Method Name="Attach" Id="{42eaf325-ff4e-48df-be91-9b20bce3da44}">
       <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
 VAR_INPUT
@@ -161,7 +161,7 @@ fbPythonInterface.Init(
 );]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStart" Id="{0fd0f7ed-3d4d-47aa-ba8e-6404bd51c209}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mJobStart" Id="{f1d2693b-0ff2-4746-ad00-e04c06aea19e}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD mJobStart
 VAR_INPUT
 	sJobDef	: CalmarCompPrint.I_JobDefinition;
@@ -183,7 +183,7 @@ _bNewJob := TRUE;
 _bJobActive := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mJobStop" Id="{db89a0b9-8d28-4bf7-9778-94d597d27cae}" FolderPath="I_PrintStatusClient\">
+    <Method Name="mJobStop" Id="{f141f2fe-24f0-4307-92e0-3b77187de6c2}" FolderPath="I_PrintStatusClient\">
       <Declaration><![CDATA[METHOD  mJobStop
 VAR_INPUT
 	sStatus	: CalmarCompPrint.I_JobStatus;

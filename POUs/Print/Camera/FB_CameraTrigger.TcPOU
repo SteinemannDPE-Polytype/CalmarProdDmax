@@ -112,8 +112,8 @@ VAR CONSTANT
   cL_WAITSTOP                     : BYTE := 6;       (*Trigger reset*)
 
   (*EL2252 Command*)
-  cL_INACTIVE                     : BYTE := 0;
-  cL_ACTIVE                       : BYTE := 3;
+  nC_EL2252Cmd_INACTIVE           : BYTE := 0;
+  nC_EL2252Cmd_ACTIVE             : BYTE := 3;
 END_VAR
 // TODO: convert all LREAL_TO_ULINT to save functions with range overflow check (add to CalmarCommons) to prevent crashes]]></Declaration>
     <Implementation>
@@ -129,9 +129,20 @@ bTriggerEnabled := bSpeedValid AND bI_HwEnable AND (bI_AutomaticMode OR _bCamMan
 bTriggerArmed :=  NOT bInhibitTrigger AND bTriggerEnabled;
 rT_Sensor(CLK:=bI_Sensor_State);
 
+// apply parameter
 IF bCamValid THEN    // save dynamic changable settings
   _fTriggerDistance := iActiveCam.fTriggerDistance;
   _fTriggerLength   := iActiveCam.fTriggerPulseLength;
+END_IF
+
+// - Release inhibit trigger
+bReleaseInhibitTrigger := bInhibitTrigger AND (iI_CurrentPos - (_nX0 + _nSubstrateLength)) > 0;
+IF bReleaseInhibitTrigger THEN bInhibitTrigger := FALSE; END_IF
+
+// Reset trigger if deactivated - should improve hanging triggers
+IF NOT bTriggerEnabled AND eState > cL_IDLE THEN
+  Reset();
+  RETURN;
 END_IF
 
 
@@ -156,7 +167,7 @@ CASE eState OF
       
     END_IF
     
-    OnTriggerCommand := cL_INACTIVE;
+    OnTriggerCommand := nC_EL2252Cmd_INACTIVE;
     ObTrigger        := FALSE;
 
   cL_SENSOREVENT:     (*Not started*)
@@ -175,7 +186,7 @@ CASE eState OF
         tTrigger_EventTime := (tSensor_TimeStamp + LREAL_TO_ULINT(_fTriggerDistance / fI_ConveyorSpeed * 1E9));
       END_IF;
       
-      OnTriggerCommand := cL_INACTIVE;
+      OnTriggerCommand := nC_EL2252Cmd_INACTIVE;
       ObTrigger         := TRUE;
       bInhibitTrigger   := TRUE;
       bSheetDetected    := TRUE;
@@ -191,12 +202,12 @@ CASE eState OF
       eState             := cL_WAITSTART;
       tTrigger_EventTime := (tSensor_TimeStamp + LREAL_TO_ULINT(fRemDist / fI_ConveyorSpeed * 1E9));    // division save because we are moving to reach this position
       IF _bUseCameraTrigger AND NOT _bManualStart THEN
-        OnTriggerCommand := cL_ACTIVE;  (*Arm EL2252*)
+        OnTriggerCommand := nC_EL2252Cmd_ACTIVE;  (*Arm EL2252*)
       END_IF
       LogTsDiff(aIdent:= 'WAITALMOSTSTART: ', t1:=tTrigger_EventTime, t2:=tCurrentTime);
     ELSE
       eState           := cL_WAITALMOSTSTART;
-      OnTriggerCommand := cL_INACTIVE;
+      OnTriggerCommand := nC_EL2252Cmd_INACTIVE;
     END_IF;
     ObTrigger          := TRUE;
 
@@ -211,12 +222,12 @@ CASE eState OF
         iActiveCam.CamTrigger(bOk:=bTriggerOk, nPos:=iI_CurrentPos, nPosDeviation:=0);
       END_IF
 
-      OnTriggerCommand := cL_INACTIVE; (*Disarm already command to EL2252, trigger generated*)
+      OnTriggerCommand := nC_EL2252Cmd_INACTIVE; (*Disarm already command to EL2252, trigger generated*)
     ELSE
       // position not yet reached
       eState           := cL_WAITSTART;
       IF _bUseCameraTrigger AND NOT _bManualStart THEN
-        OnTriggerCommand := cL_ACTIVE;  (*Arm EL2252*)
+        OnTriggerCommand := nC_EL2252Cmd_ACTIVE;  (*Arm EL2252*)
       END_IF
     END_IF;
 
@@ -258,18 +269,18 @@ CASE eState OF
     // calculate end timestamp of trigger (end of trigger active signal)
     tTrigger_EventTime := (tTrigger_EventTime + LREAL_TO_ULINT(_fTriggerLength * 1E6));
     
-    OnTriggerCommand := cL_INACTIVE;
+    OnTriggerCommand := nC_EL2252Cmd_INACTIVE;
     ObTrigger        := FALSE;
     
   cL_WAITSTOP:  (*Wait until trigger time has elapsed*)
     IF (tTrigger_EventTime < tCurrentTime) THEN (* StopTime elapsed *)
       eState           := cL_IDLE;
-      OnTriggerCommand := cL_INACTIVE; (*Disarm EL2252, trigger generated*)
+      OnTriggerCommand := nC_EL2252Cmd_INACTIVE; (*Disarm EL2252, trigger generated*)
       iActiveCam.CamTriggerDone();
     ELSE
       eState           := cL_WAITSTOP;
       IF _bUseCameraTrigger THEN
-        OnTriggerCommand := cL_ACTIVE;  (*Arm EL2252*)
+        OnTriggerCommand := nC_EL2252Cmd_ACTIVE;  (*Arm EL2252*)
       END_IF
     END_IF;
 
@@ -278,25 +289,13 @@ CASE eState OF
   ELSE  (*Default*)
     eState           := cL_IDLE;
     ObTrigger        := FALSE;
-    OnTriggerCommand := cL_INACTIVE;
+    OnTriggerCommand := nC_EL2252Cmd_INACTIVE;
 END_CASE;
 
-OtTriggerStartTime := tTrigger_EventTime;
+OtTriggerStartTime := tTrigger_EventTime;  // set output
 
 _tMemTriggerFeedback_TimeStampPos := tI_TriggerFeedback_TimeStampPos;
-
-(*Release inhibit trigger*)
-bReleaseInhibitTrigger := bInhibitTrigger AND (iI_CurrentPos - (_nX0 + _nSubstrateLength)) > 0;
-IF bReleaseInhibitTrigger THEN
-  bInhibitTrigger := FALSE;
-END_IF
-
-(*Reset if trigger is deactivated - should improve hanging triggers*)
-IF eState > cL_SENSOREVENT AND NOT bTriggerEnabled THEN
-  Reset();
-END_IF
-
-(********************************* END OF FB *****************************************************)]]></ST>
+]]></ST>
     </Implementation>
     <Folder Name="I_CameraTrigger" Id="{7ab2c00d-c252-46d1-aef8-bb2f16d70605}" />
     <Folder Name="I_StartPosDetect" Id="{c2d6a5aa-7e33-4d73-adbe-d2ef476aecce}" />
@@ -361,7 +360,8 @@ END_VAR
   Disable := TRUE;
 ELSE  
   Disable := FALSE;
-  LogError('disable failed: trigger busy');
+  LogError('disable failed: trigger busy -> reset trigger');
+  Reset();
 END_IF]]></ST>
       </Implementation>
     </Method>
@@ -459,7 +459,7 @@ END_VAR
         <ST><![CDATA[eState              := cL_IDLE;      // reset state
 OtTriggerStartTime  := F_GetCurDcTaskTime64();  // now
 ObTrigger           := FALSE;        // set output = 0
-OnTriggerCommand    := cL_ACTIVE;    // activate command
+OnTriggerCommand    := nC_EL2252Cmd_ACTIVE;    // activate command
 bInhibitTrigger     := FALSE;]]></ST>
       </Implementation>
     </Method>
@@ -478,89 +478,17 @@ _nSubstrateLength := F_MeterToSubPixel(fPosMeter:=_fSubstrateLength, fResoSubPx:
       </Implementation>
     </Method>
     <LineIds Name="FB_CameraTrigger">
-      <LineId Id="2387" Count="3" />
-      <LineId Id="2589" Count="0" />
-      <LineId Id="2391" Count="1" />
-      <LineId Id="2394" Count="0" />
-      <LineId Id="4214" Count="0" />
-      <LineId Id="3492" Count="0" />
-      <LineId Id="3969" Count="0" />
-      <LineId Id="2605" Count="0" />
-      <LineId Id="2395" Count="3" />
-      <LineId Id="2604" Count="0" />
-      <LineId Id="2399" Count="3" />
-      <LineId Id="2610" Count="0" />
-      <LineId Id="2606" Count="0" />
-      <LineId Id="2611" Count="0" />
-      <LineId Id="2403" Count="3" />
-      <LineId Id="3851" Count="0" />
-      <LineId Id="2407" Count="5" />
-      <LineId Id="2415" Count="0" />
-      <LineId Id="3336" Count="0" />
-      <LineId Id="2608" Count="0" />
-      <LineId Id="2416" Count="2" />
-      <LineId Id="2420" Count="0" />
-      <LineId Id="3341" Count="0" />
-      <LineId Id="3337" Count="1" />
-      <LineId Id="3348" Count="4" />
-      <LineId Id="3339" Count="0" />
-      <LineId Id="3334" Count="0" />
-      <LineId Id="2962" Count="0" />
-      <LineId Id="2968" Count="2" />
-      <LineId Id="2448" Count="0" />
-      <LineId Id="2960" Count="0" />
-      <LineId Id="2452" Count="1" />
-      <LineId Id="2455" Count="1" />
-      <LineId Id="3734" Count="0" />
-      <LineId Id="3730" Count="0" />
-      <LineId Id="2457" Count="7" />
-      <LineId Id="2466" Count="0" />
-      <LineId Id="2468" Count="2" />
-      <LineId Id="3097" Count="0" />
-      <LineId Id="2476" Count="4" />
-      <LineId Id="2482" Count="0" />
-      <LineId Id="3359" Count="0" />
-      <LineId Id="3374" Count="0" />
-      <LineId Id="2485" Count="0" />
-      <LineId Id="3355" Count="0" />
-      <LineId Id="2486" Count="8" />
-      <LineId Id="3356" Count="0" />
-      <LineId Id="2495" Count="0" />
-      <LineId Id="3362" Count="1" />
-      <LineId Id="2498" Count="3" />
-      <LineId Id="2503" Count="2" />
-      <LineId Id="2510" Count="1" />
-      <LineId Id="2840" Count="0" />
-      <LineId Id="2847" Count="0" />
-      <LineId Id="2846" Count="0" />
-      <LineId Id="3372" Count="0" />
-      <LineId Id="2841" Count="0" />
-      <LineId Id="2843" Count="1" />
-      <LineId Id="2842" Count="0" />
-      <LineId Id="2513" Count="4" />
-      <LineId Id="3367" Count="0" />
-      <LineId Id="3366" Count="0" />
-      <LineId Id="3610" Count="0" />
-      <LineId Id="3609" Count="0" />
-      <LineId Id="3368" Count="0" />
-      <LineId Id="2519" Count="0" />
-      <LineId Id="2521" Count="0" />
-      <LineId Id="3375" Count="1" />
-      <LineId Id="2523" Count="5" />
-      <LineId Id="3213" Count="0" />
-      <LineId Id="3215" Count="0" />
-      <LineId Id="2529" Count="0" />
-      <LineId Id="3214" Count="0" />
-      <LineId Id="2540" Count="1" />
-      <LineId Id="2544" Count="1" />
-      <LineId Id="2547" Count="11" />
-      <LineId Id="2561" Count="3" />
-      <LineId Id="2566" Count="7" />
-      <LineId Id="4089" Count="2" />
-      <LineId Id="4088" Count="0" />
-      <LineId Id="4211" Count="2" />
-      <LineId Id="4217" Count="1" />
-      <LineId Id="4095" Count="0" />
+      <LineId Id="4740" Count="10" />
+      <LineId Id="4921" Count="0" />
+      <LineId Id="4751" Count="4" />
+      <LineId Id="4922" Count="0" />
+      <LineId Id="4924" Count="2" />
+      <LineId Id="4929" Count="3" />
+      <LineId Id="4935" Count="0" />
+      <LineId Id="4923" Count="0" />
+      <LineId Id="4756" Count="148" />
+      <LineId Id="4934" Count="0" />
+      <LineId Id="4906" Count="0" />
       <LineId Id="1688" Count="0" />
     </LineIds>
     <LineIds Name="FB_CameraTrigger.bManualTeach.Get">
@@ -583,21 +511,11 @@ _nSubstrateLength := F_MeterToSubPixel(fPosMeter:=_fSubstrateLength, fResoSubPx:
       <LineId Id="10" Count="0" />
       <LineId Id="13" Count="0" />
       <LineId Id="12" Count="0" />
+      <LineId Id="16" Count="0" />
       <LineId Id="9" Count="0" />
     </LineIds>
     <LineIds Name="FB_CameraTrigger.Enable">
-      <LineId Id="31" Count="0" />
-      <LineId Id="48" Count="1" />
-      <LineId Id="37" Count="0" />
-      <LineId Id="43" Count="0" />
-      <LineId Id="46" Count="0" />
-      <LineId Id="34" Count="0" />
-      <LineId Id="50" Count="0" />
-      <LineId Id="36" Count="0" />
-      <LineId Id="89" Count="0" />
-      <LineId Id="78" Count="0" />
-      <LineId Id="51" Count="0" />
-      <LineId Id="80" Count="0" />
+      <LineId Id="104" Count="12" />
       <LineId Id="70" Count="0" />
     </LineIds>
     <LineIds Name="FB_CameraTrigger.Init">

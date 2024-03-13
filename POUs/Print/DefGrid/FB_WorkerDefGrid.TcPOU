@@ -57,15 +57,20 @@ VAR
   eStep     : E_DeformationStep;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF getCtInst(iCT:=iCT, pCT=>_pCt) <> 0 THEN  // get specific container
-  
-  // Do generic known aborts on CT
-  // - Deformation
-  _pCt^.getDeformationStatus(eDStep=>eStep);
-  IF eStep >= E_DeformationStep.nothing THEN
-    _pCt^.AbortDeformation(sReason:=sReason, Src:=_pEcSrc^);
-	END_IF
-  
+        <ST><![CDATA[IF iCT = 0 AND _pAttachedCt <> 0 THEN             // no ct given and check if one is attached 
+  _pCt := _pAttachedCt;
+ELSIF getCtInst(iCT:=iCT, pCT=>_pCt) = 0 THEN     // get specific container from given interface
+  RETURN; 
+END_IF
+
+IF _pCt = 0 THEN RETURN; END_IF
+
+// abort CT
+// Do generic known aborts on CT
+// - Deformation
+_pCt^.getDeformationStatus(eDStep=>eStep);
+IF eStep >= E_DeformationStep.nothing THEN
+  _pCt^.AbortDeformation(sReason:=sReason, Src:=_pEcSrc^);
 END_IF]]></ST>
       </Implementation>
     </Method>
@@ -309,11 +314,15 @@ END_IF
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.Abort">
+      <LineId Id="32" Count="0" />
+      <LineId Id="48" Count="0" />
       <LineId Id="10" Count="0" />
-      <LineId Id="14" Count="5" />
-      <LineId Id="11" Count="0" />
-      <LineId Id="20" Count="0" />
-      <LineId Id="5" Count="0" />
+      <LineId Id="49" Count="1" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="51" Count="1" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="39" Count="4" />
+      <LineId Id="37" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.Attach">
       <LineId Id="100" Count="0" />

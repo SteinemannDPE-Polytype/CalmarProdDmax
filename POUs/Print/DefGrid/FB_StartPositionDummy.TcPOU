@@ -97,7 +97,9 @@ END_IF
     <Folder Name="I_Sim" Id="{e8522a98-ea61-4df4-8bb5-1d1a4439111e}" />
     <Folder Name="I_StartPosDetect" Id="{8f1a9dd0-62c6-4436-a157-3d6089c0dda4}" />
     <Property Name="bSimEnable" Id="{4b2735a3-7798-4653-836c-7dbfb5f6eab4}" FolderPath="I_Sim\">
-      <Declaration><![CDATA[PROPERTY bSimEnable : BOOL
+      <Declaration><![CDATA[{attribute 'monitoring' := 'call'}
+(*Simulation is enabled set/get*)
+PROPERTY bSimEnable : BOOL
 ]]></Declaration>
       <Get Name="Get" Id="{28742521-052d-486f-88cb-68f9a257544f}">
         <Declaration><![CDATA[VAR

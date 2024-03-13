@@ -10,6 +10,12 @@
 Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 
 ---
+### changes `2.0.1.12` BRM
+* CHG: adapt WorkerDefGrid.Abort() to be able to do an external abort on current attached CT
+* CHG: Minor adaptation in `FB_CameraTrigger` reset fsm
+* CHG: prepare abort possibilities on ContainerManager
+
+
 ### changes `2.0.1.11` BRM
 * CHG: `FB_PH.init()` according the change in CalmarCompPrint `2.0.4`
 
@@ -33,7 +39,7 @@ Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
     - remove old ReleaseDeformationCT() method from mediator
     - reset data in FB_PythonDeformation
 * FIX: layers in _VISU_PH_Grid 
-* FIX: duplicated variable _bAborted
+* FIX: duplicated variable `_bAborted`
 
 CHG: use & adapt to Commons 1.5.14
 
