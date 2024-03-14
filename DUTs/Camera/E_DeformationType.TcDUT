@@ -2,7 +2,6 @@
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <DUT Name="E_DeformationType" Id="{b41d0dda-4d80-454f-9f6e-5c0967b69836}">
     <Declaration><![CDATA[{attribute 'qualified_only'}
-{attribute 'strict'}
 {attribute 'to_string'}
 //NOTE: this definition must match the textlist "E_DeformationType"
 TYPE E_DeformationType :

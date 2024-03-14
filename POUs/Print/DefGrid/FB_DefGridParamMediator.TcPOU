@@ -40,15 +40,15 @@ END_IF]]></ST>
         </Implementation>
       </Get>
     </Property>
-    <Property Name="sDeformationGridSetttings" Id="{9cf3f096-207d-452b-ace7-3769f0678220}" FolderPath="I_ParamMediator\">
-      <Declaration><![CDATA[PROPERTY sDeformationGridSetttings : ST_DefGridSettings]]></Declaration>
+    <Property Name="sDeformationGridSettings" Id="{9cf3f096-207d-452b-ace7-3769f0678220}" FolderPath="I_ParamMediator\">
+      <Declaration><![CDATA[PROPERTY sDeformationGridSettings : ST_DefGridSettings]]></Declaration>
       <Get Name="Get" Id="{f92cba8c-0a7c-4567-a017-f6ac55645e3a}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
           <ST><![CDATA[IF bInitOk THEN
-  sDeformationGridSetttings := _pDefWorker^.sDeformationGridSettings;
+  sDeformationGridSettings := _pDefWorker^.sDeformationGridSettings;
 END_IF]]></ST>
         </Implementation>
       </Get>
@@ -68,7 +68,7 @@ END_IF]]></ST>
       <LineId Id="7" Count="0" />
       <LineId Id="6" Count="0" />
     </LineIds>
-    <LineIds Name="FB_DefGridParamMediator.sDeformationGridSetttings.Get">
+    <LineIds Name="FB_DefGridParamMediator.sDeformationGridSettings.Get">
       <LineId Id="9" Count="1" />
       <LineId Id="2" Count="0" />
     </LineIds>

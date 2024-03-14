@@ -13,7 +13,7 @@ VAR
   // references
   _iParamMediator : I_ParamMediator;
   
-  // local copy of setttings
+  // local copy of settings
   _bNewJob : BOOL;  // new job was activated
   _CamGridSettings : ST_CameraGridSettings;
   _DefGridSettings : ST_DefGridSettings;
@@ -241,7 +241,7 @@ END_VAR
 
 IF _iParamMediator <> 0 THEN F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); RETURN; END_IF
 _CamGridSettings := _iParamMediator.sCameraGridSettings;
-_DefGridSettings := _iParamMediator.sDeformationGridSetttings;
+_DefGridSettings := _iParamMediator.sDeformationGridSettings;
 
 setupPosition();    // Worker position update
 

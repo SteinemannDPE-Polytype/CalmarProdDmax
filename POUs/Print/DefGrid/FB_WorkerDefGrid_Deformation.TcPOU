@@ -33,6 +33,8 @@ VAR
   _tDeformationExecutionTime  : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF TIME;   // status deformation of ct
   _bAborted                   : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF BOOL;   // status deformation of ct
 
+  // ui
+  eDeformTypeUi : E_DeformationType;
 END_VAR
 
 VAR PERSISTENT
@@ -57,7 +59,6 @@ VAR
   i : UDINT;
   bDeformErr : BOOL;
   eDeformStep : E_DeformationStep;
-  sCamSettings : ST_CameraGridSettings;
   pCt : POINTER TO FB_ContainerDefGrid;
 END_VAR]]></Declaration>
       <Implementation>
@@ -98,9 +99,6 @@ ELSIF pCt^.pJob = 0 OR NOT _bJobActive THEN
 ELSE
   // checks
   IF eDeformStep < E_DeformationStep.cameraStarted THEN LogWarning('Sub-optimal timing, camera did not yet start'); END_IF
-  // set deformation mode
-  sCamSettings := _iParamMediator.sCameraGridSettings;
-  _sDeformationGridSettings.eDeformationType := sCamSettings.eDeformationType;   // apply deformation mode (for ui)
   // start deformation
   pCt^.StartDeformation(sDefGridSettings:=_sDeformationGridSettings);
   Attach := TRUE;
@@ -145,6 +143,9 @@ END_FOR]]></ST>
       <Declaration><![CDATA[METHOD mJobStart
 VAR_INPUT
 	sJobDef	: CalmarCompPrint.I_JobDefinition;
+END_VAR
+VAR
+  sCamSettings : ST_CameraGridSettings;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[// check and init invalid settings
@@ -172,6 +173,10 @@ IF _sDeformationGridSettings.nGridPitchX > 0 AND _sDeformationGridSettings.nGrid
   _sDeformationGridSettings.nGridSizeY := F_Ceil(val:=UDINT_TO_LREAL(_nImageWidthPx + _sDeformationGridSettings.nGridImageOffsetY)/_sDeformationGridSettings.nGridPitchY) + 1;
 END_IF
 _sDeformationGridSettings.nGridPoints :=  _sDeformationGridSettings.nGridSizeX * _sDeformationGridSettings.nGridSizeY;
+
+sCamSettings := _iParamMediator.sCameraGridSettings;
+_sDeformationGridSettings.eDeformationType := sCamSettings.eDeformationType;   // apply deformation mode (for ui)
+eDeformTypeUi := _sDeformationGridSettings.eDeformationType;
 
 _bJobActive := TRUE;]]></ST>
       </Implementation>
@@ -334,9 +339,6 @@ END_FOR
       <LineId Id="119" Count="0" />
       <LineId Id="310" Count="0" />
       <LineId Id="214" Count="0" />
-      <LineId Id="306" Count="0" />
-      <LineId Id="305" Count="0" />
-      <LineId Id="309" Count="0" />
       <LineId Id="307" Count="0" />
       <LineId Id="212" Count="0" />
       <LineId Id="127" Count="0" />
@@ -380,7 +382,10 @@ END_FOR
       <LineId Id="38" Count="0" />
       <LineId Id="23" Count="0" />
       <LineId Id="18" Count="0" />
+      <LineId Id="107" Count="1" />
+      <LineId Id="103" Count="0" />
       <LineId Id="52" Count="0" />
+      <LineId Id="109" Count="0" />
       <LineId Id="51" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Deformation.mJobStop">

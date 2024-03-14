@@ -35,7 +35,11 @@ VAR
   _fPrintLengthEffective : LREAL;           // effective printing length in [m]
   // others
   _nErrorId         : UDINT := 0;
-  _sTempPoint       : ST_DeformationPointAccurate;
+  _sTempPoint       : ST_DeformationPointAccurate; 
+END_VAR
+VAR_STAT
+  // sim
+  nTestGridSelection : UDINT;
 END_VAR
 VAR CONSTANT
   tPYTHON_TIMEOUT   : TIME  := T#500MS;     // python deformation script update response timeout  
@@ -189,7 +193,7 @@ END_VAR
 ]]></Declaration>
         <Implementation>
           <ST><![CDATA[IF eStep > _eDeformationStep THEN
-  LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat4('Change deformation step: ', TO_STRING(_eDeformationStep), '->', TO_STRING(eStep)));
+  LogLvl(Lvl:=E_LogSeverity.Detail, Msg:=F_Concat4('Change deformation step: ', TO_STRING(_eDeformationStep), '->', TO_STRING(eStep)));
   _eDeformationStep := eStep;
 END_IF]]></ST>
         </Implementation>
@@ -527,7 +531,7 @@ THEN
         F_Concat2(' CamP: ', TO_STRING(_nCamPoints)),
         F_Concat2(' maxX: ', TO_STRING(_nCamPoint_MaxRefX)),
         F_Concat2(' GridP: ', TO_STRING(_nGridPoints)),
-        F_Concat2(' atCol: ', TO_STRING(nCurrentCol))
+        F_Concat2(' at Col: ', TO_STRING(nCurrentCol))
     )
   );
 
@@ -556,9 +560,6 @@ VAR
 END_VAR
 VAR_INST
   fTrig_Done : F_TRIG;
-END_VAR
-VAR_STAT
-  nTestSelection : UDINT := 0;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[
@@ -568,9 +569,10 @@ END_VAR]]></Declaration>
 FOR col:=_nLocalGridColsGenerated TO nGridCol DO
   FOR row:=0 TO _sDefGridSettings.nGridSizeY -1 DO
 
-    CASE nTestSelection OF
+    CASE nTestGridSelection OF
       1: dx := 0; dy := SEL(_nCamPoints>0, 0, _sCamPoints[0].sPoint.dy);  // dy of start-mark
       2: dx := 0.1*TO_LREAL(col+row)*10; dy := 0.2*TO_LREAL(col+row)*10;  // a test-grid
+      3: dx := 0.1*TO_LREAL(col+row)*100; dy := 0.2*TO_LREAL(col+row)*100;  // a test-grid
     ELSE
       dx := dy := 0;
     END_CASE
@@ -578,8 +580,8 @@ FOR col:=_nLocalGridColsGenerated TO nGridCol DO
     sTmpPoint.index := TO_DINT(col * _sDefGridSettings.nGridSizeY + row);
     sTmpPoint.x_ref := 0;
     sTmpPoint.y_ref := 0;
-    sTmpPoint.dx    := 0;
-    sTmpPoint.dy    := 0;
+    sTmpPoint.dx    := dx;
+    sTmpPoint.dy    := dy;
     sTmpPoint.col   := TO_DINT(col);
     sTmpPoint.row   := TO_DINT(row);
     sTmpPoint.valid := TRUE;
@@ -805,6 +807,7 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="343" Count="0" />
       <LineId Id="334" Count="1" />
       <LineId Id="346" Count="0" />
+      <LineId Id="378" Count="0" />
       <LineId Id="344" Count="1" />
       <LineId Id="336" Count="0" />
       <LineId Id="271" Count="24" />
