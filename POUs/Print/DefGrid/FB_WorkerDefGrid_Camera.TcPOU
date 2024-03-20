@@ -147,12 +147,12 @@ IF SUPER^.Attach(iCT:=iCT) THEN
 
   // - job is valid?
   ELSIF iCT.pJob = 0 OR NOT _bJobActive THEN
-    _pAttachedCt^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^);
+    _pAttachedCt^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^, bHideLog:=TRUE);
     Release(iCT:=iCT);
 
   // - camera ready
   ELSIF (NOT _bCamValid OR NOT _bCamReady) THEN  // check if cam is ready
-    pCt^.AbortDeformation(sReason:='Camera invalid or not ready for attach', Src:=_pEcSrc^);
+    pCt^.AbortDeformation(sReason:='Camera invalid or not ready for attach', Src:=_pEcSrc^, bHideLog:=FALSE);
     Release(iCT:=iCT);
 
   // OK attach

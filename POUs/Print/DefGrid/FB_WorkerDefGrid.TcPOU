@@ -71,7 +71,7 @@ END_VAR]]></Declaration>
   // - Deformation
   _pCt^.getDeformationStatus(eDStep=>eStep);
   IF eStep >= E_DeformationStep.nothing THEN
-    _pCt^.AbortDeformation(sReason:=sReason, Src:=_pEcSrc^);
+    _pCt^.AbortDeformation(sReason:=sReason, Src:=_pEcSrc^, bHideLog:=FALSE);
 	END_IF
   
 END_IF]]></ST>

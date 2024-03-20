@@ -60,7 +60,7 @@ IF SUPER^.Attach(iCT:=iCT) THEN
   // Additional worker checks
   // - do we have a valid job? used mode?
   IF _CamGridSettings.eCameraMode > E_CameraMode.NoCorrection AND (iCT.pJob = 0 OR NOT _bJobActive) THEN
-    pCt^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^);
+    pCt^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^, bHideLog:=FALSE);
      Release(iCT:=iCT);
      
   ELSIF _CamGridSettings.eCameraMode > E_CameraMode.NoCorrection THEN
@@ -97,7 +97,7 @@ IF _CamGridSettings.eCameraMode >= E_CameraMode.Live THEN
   IF fbPythonInterface.RegisterCT(iCT.pCT^.nMemIndex) THEN
     CreateDefCt := TRUE;
   ELSE
-    _pAttachedCt^.AbortDeformation(sReason:='Could not register to script', Src:=_pEcSrc^);
+    _pAttachedCt^.AbortDeformation(sReason:='Could not register to script', Src:=_pEcSrc^, bHideLog:=FALSE);
   END_IF
 ELSE
   CreateDefCt := TRUE;

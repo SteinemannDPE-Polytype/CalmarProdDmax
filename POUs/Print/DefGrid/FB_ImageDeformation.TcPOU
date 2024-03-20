@@ -40,6 +40,7 @@ END_VAR
 VAR_STAT
   // sim
   nTestGridSelection : UDINT;
+  nTestGridFactor : LREAL := 20;
 END_VAR
 VAR CONSTANT
   tPYTHON_TIMEOUT   : TIME  := T#500MS;     // python deformation script update response timeout  
@@ -570,9 +571,12 @@ FOR col:=_nLocalGridColsGenerated TO nGridCol DO
   FOR row:=0 TO _sDefGridSettings.nGridSizeY -1 DO
 
     CASE nTestGridSelection OF
-      1: dx := 0; dy := SEL(_nCamPoints>0, 0, _sCamPoints[0].sPoint.dy);  // dy of start-mark
-      2: dx := 0.1*TO_LREAL(col+row)*10; dy := 0.2*TO_LREAL(col+row)*10;  // a test-grid
-      3: dx := 0.1*TO_LREAL(col+row)*100; dy := 0.2*TO_LREAL(col+row)*100;  // a test-grid
+      1: dx := 0; dy := SEL(_nCamPoints>0, 0, _sCamPoints[0].sPoint.dy);      // dy of start-mark
+      2: dx := 0.1*TO_LREAL(col+row)*10; dy := 0.2*TO_LREAL(col+row)*10;      // a test-grid dx & dy 10*
+      3: dx := 0.1*TO_LREAL(col+row)*100; dy := 0.2*TO_LREAL(col+row)*100;    // a test-grid dx & dy 100*
+      4: dx := nTestGridFactor; dy := 0;                                      // dx only (Factor)
+      5: dx := 0; dy := nTestGridFactor;                                      // dy only (Factor)
+      6: dx := 0; dy := TO_LREAL(col) * nTestGridFactor;
     ELSE
       dx := dy := 0;
     END_CASE
@@ -808,6 +812,7 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="334" Count="1" />
       <LineId Id="346" Count="0" />
       <LineId Id="378" Count="0" />
+      <LineId Id="391" Count="2" />
       <LineId Id="344" Count="1" />
       <LineId Id="336" Count="0" />
       <LineId Id="271" Count="24" />

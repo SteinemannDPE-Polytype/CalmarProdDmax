@@ -542,14 +542,6 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Content</SubType>
     </Content>
   </ItemGroup>
-  <ItemGroup>
-    <SubObject Include="FB_CTManagerDefGrid.AbortCts" />
-    <SubObject Include="FB_CTManagerDefGrid.GetContainerInstance" />
-    <SubObject Include="FB_CTManagerDefGrid.Init" />
-    <SubObject Include="FB_CTManagerDefGrid.sCTDefGridInstancesPath" />
-    <SubObject Include="FB_CTManagerDefGrid.sCTDefGridInstancesPath.Get" />
-    <SubObject Include="FB_CTManagerDefGrid.updateLogLevels" />
-  </ItemGroup>
   <ProjectExtensions>
     <PlcProjectOptions>
       <XmlArchive>

@@ -17,12 +17,15 @@ fBImageDeformation.LogLevel := LogLevel;    // distribute container logLevel to 
     <Method Name="AbortDeformation" Id="{f4e769e7-fdcb-497a-869a-11c396829281}">
       <Declaration><![CDATA[METHOD AbortDeformation : BOOL
 VAR_INPUT
-  sReason : STRING;
-  Src     : REFERENCE TO T_ErrSrc;
+  sReason   : STRING;
+  Src       : REFERENCE TO T_ErrSrc;
+  bHideLog  : BOOL;
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[LogWarning(F_Concat2('Abort deformation: ', sReason));  // log reason
+        <ST><![CDATA[IF NOT bHideLog THEN
+  LogWarning(F_Concat4('Abort deformation: ', sReason, ' Src: ', Src.aDescr));  // log reason
+END_IF
 setError(ErrDef:=EC_DefGrid.ecDefGrid_DefGridAbort, Src:=Src); // tag ct as error
 fBImageDeformation.abort();  // abort deformation
 StopScript(iCT:=THIS^);]]></ST>
@@ -259,7 +262,9 @@ END_IF]]></ST>
       <LineId Id="18" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.AbortDeformation">
-      <LineId Id="18" Count="2" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="27" Count="1" />
+      <LineId Id="19" Count="1" />
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.AddCamPoint">

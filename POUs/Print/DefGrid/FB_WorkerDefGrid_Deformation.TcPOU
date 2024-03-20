@@ -86,7 +86,7 @@ IF bDeformErr OR eDeformStep = E_DeformationStep.nothing THEN
 
   // - job is valid?
 ELSIF pCt^.pJob = 0 OR NOT _bJobActive THEN
-  pCt^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^);
+  pCt^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^, bHideLog:=FALSE);
   Release(iCT:=iCT);
   
 // - did camera start?  
@@ -283,7 +283,7 @@ FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
     // tag CT with error if deformation had an error
     IF _bDeformationError[i] THEN 
       IF NOT _bAborted[i] THEN
-        pCt^.AbortDeformation(sReason:=F_Concat2('WorkerDeformation: ', EC_DefGrid.ecDefGrid_DefGridError.Desc), Src:=_pEcSrc^);
+        pCt^.AbortDeformation(sReason:=F_Concat2('WorkerDeformation: ', EC_DefGrid.ecDefGrid_DefGridError.Desc), Src:=_pEcSrc^, bHideLog:=FALSE);
       //not needed ELSE
       //  pCt^.setError(ErrDef:=EC_DefGrid.ecDefGrid_DefGridError, Src:=_pEcSrc^);
     END_IF
@@ -293,13 +293,13 @@ FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
 
   // release CT (manually and security)
   ELSIF _bForceRelease THEN
-    pCt^.AbortDeformation(sReason:='Manually realease CT', Src:=_pEcSrc^);
+    pCt^.AbortDeformation(sReason:='Manually realease CT', Src:=_pEcSrc^, bHideLog:=FALSE);
     Release(iCT:=_pAttachedCt^);
   
   // ! 2*SecurityReleasePosition, should work with max. 4 attached CT
   ELSIF 1.5*_fCtSecurityReleasePos > 0 AND (fCtPosition > _fCtSecurityReleasePos) THEN
     LogError(F_Concat2('Security released CTId=', TO_STRING(pCt^.pCT^.iId)));
-    pCt^.AbortDeformation(sReason:='Security released CT', Src:=_pEcSrc^);
+    pCt^.AbortDeformation(sReason:='Security released CT', Src:=_pEcSrc^, bHideLog:=FALSE);
     Release(iCT:=_pAttachedCt^);
   END_IF
   
