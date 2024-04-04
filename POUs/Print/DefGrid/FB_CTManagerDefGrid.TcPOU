@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_CTManagerDefGrid" Id="{64e24f37-1762-4987-94b6-1c2daabf0872}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_CTManagerDefGrid EXTENDS FB_CTManager
 VAR_INPUT
@@ -8,7 +8,6 @@ VAR_OUTPUT
 END_VAR
 VAR
   fbContainerInstances    : ARRAY[0..lC_MAX_CTS-1] OF FB_ContainerDefGrid;   // NOTE: 0 based array like base in library
-  _LogLvl_mem  : E_LogSeverity;
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -26,18 +25,64 @@ WHILE nCtr < nListCount DO
   nCtr := nCtr + 1;
 END_WHILE
 
-// logLevel update from manager to all containers
-IF LogLevel <> _LogLvl_mem THEN 
-  nCtr := 0;
-  WHILE nCtr < lC_MAX_CTS DO
-    fbContainerInstances[nCtr].LogLevel := LogLevel;
-    nCtr := nCtr + 1;
+updateLogLevels();
+  ]]></ST>
+    </Implementation>
+    <Method Name="AbortCts" Id="{887d2e55-f283-4461-92bd-fe8efb68fdd3}">
+      <Declaration><![CDATA[(*
+  Abort CTs
+*)
+METHOD AbortCts : BOOL
+VAR_INPUT
+  iCT : I_CT;     // reference CT 
+  nSel : INT;     // selection: -1=all older (created before reference), 0=current only, 1=all newer (created after reference)
+  Src : REFERENCE TO T_ErrSrc;
+END_VAR
+VAR
+  iIterCt : I_CT;
+  pCtSelected : POINTER TO FB_ContainerDefGrid;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// WARNING: This function is NOT tested!!! 
+//    TODO: remove this comments when tested
+
+IF nSel = 0 THEN
+  // Abort referenced CT
+  pCtSelected := GetContainerInstance(iCT:=iCT);
+  IF pCtSelected <> 0 THEN
+    pCtSelected^.AbortDeformation(sReason:=F_Concat2('CTM Abort CTs Sel=', TO_STRING(nSel)), Src:=Src);
+  END_IF
+  
+ELSIF nSel < 0 THEN
+  // Abort previous
+  iIterCt := iCT;
+  WHILE iIterCt.pListPrev <> 0 DO
+    // get instance and abort
+    pCtSelected := GetContainerInstance(iCT:=iIterCt);
+    IF pCtSelected <> 0 THEN
+      pCtSelected^.AbortDeformation(sReason:=F_Concat2('CTM Abort CTs Sel=', TO_STRING(nSel)), Src:=Src);
+    END_IF
+    // select prev
+    iIterCt := iIterCt.pListPrev;
+  END_WHILE
+  
+ELSIF nSel > 0 THEN  
+  // Abort next
+  iIterCt := iCT;
+  WHILE iIterCt.pListNext <> 0 DO
+    // get instance and abort
+    pCtSelected := GetContainerInstance(iCT:=iIterCt);
+    IF pCtSelected <> 0 THEN
+      pCtSelected^.AbortDeformation(sReason:=F_Concat2('CTM Abort CTs Sel=', TO_STRING(nSel)), Src:=Src);
+    END_IF
+    // select next
+    iIterCt := iIterCt.pListNext;
   END_WHILE
 END_IF
-
-  
-_LogLvl_mem := LogLevel;]]></ST>
-    </Implementation>
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="GetContainerInstance" Id="{4019ff74-9ad2-43f1-90de-a88d411277f4}">
       <Declaration><![CDATA[(*
   Get specific container reference (pointer) from container interface.
@@ -87,25 +132,27 @@ sCTDefGridInstancesPath := F_CONCAT2(THIS^.InstanceName, '.fbContainerInstances[
         </Implementation>
       </Get>
     </Property>
+    <Method Name="updateLogLevels" Id="{c5b2038e-8748-4e32-b316-bccf513e122a}">
+      <Declaration><![CDATA[METHOD PRIVATE updateLogLevels
+VAR_INST
+  _LogLvl_mem  : E_LogSeverity;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// logLevel update from manager to all containers
+IF LogLevel <> _LogLvl_mem THEN 
+  nCtr := 0;
+  WHILE nCtr < lC_MAX_CTS DO
+    fbContainerInstances[nCtr].LogLevel := LogLevel;
+    nCtr := nCtr + 1;
+  END_WHILE
+END_IF
+
+_LogLvl_mem := LogLevel;]]></ST>
+      </Implementation>
+    </Method>
     <LineIds Name="FB_CTManagerDefGrid">
-      <LineId Id="26" Count="0" />
-      <LineId Id="9" Count="0" />
-      <LineId Id="28" Count="0" />
-      <LineId Id="27" Count="0" />
-      <LineId Id="19" Count="2" />
-      <LineId Id="32" Count="0" />
-      <LineId Id="29" Count="2" />
-      <LineId Id="25" Count="0" />
-      <LineId Id="18" Count="0" />
-      <LineId Id="46" Count="0" />
-      <LineId Id="55" Count="1" />
-      <LineId Id="66" Count="0" />
-      <LineId Id="64" Count="0" />
-      <LineId Id="57" Count="0" />
-      <LineId Id="62" Count="1" />
-      <LineId Id="58" Count="0" />
-      <LineId Id="60" Count="0" />
-      <LineId Id="54" Count="0" />
+      <LineId Id="84" Count="14" />
       <LineId Id="44" Count="0" />
     </LineIds>
     <LineIds Name="FB_CTManagerDefGrid.GetContainerInstance">
