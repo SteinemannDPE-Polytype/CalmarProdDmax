@@ -10,11 +10,13 @@
 Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 
 ---
+### changes `2.0.1.13` HOA
+* CHG: `FB_CameraTrigger`: `bI_SensorSupervisionEnable` added.
+
 ### changes `2.0.1.12` BRM
 * CHG: adapt WorkerDefGrid.Abort() to be able to do an external abort on current attached CT
 * CHG: Minor adaptation in `FB_CameraTrigger` reset fsm
 * CHG: prepare abort possibilities on ContainerManager
-
 
 ### changes `2.0.1.11` BRM
 * CHG: `FB_PH.init()` according the change in CalmarCompPrint `2.0.4`
