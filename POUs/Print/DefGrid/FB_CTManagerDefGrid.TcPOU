@@ -51,7 +51,7 @@ IF nSel = 0 THEN
   // Abort referenced CT
   pCtSelected := GetContainerInstance(iCT:=iCT);
   IF pCtSelected <> 0 THEN
-    pCtSelected^.AbortDeformation(sReason:=F_Concat2('CTM Abort CTs Sel=', TO_STRING(nSel)), Src:=Src);
+    pCtSelected^.AbortDeformation(sReason:=F_Concat2('CTM Abort CTs Sel=', TO_STRING(nSel)), Src:=Src, bHideLog:=FALSE);
   END_IF
   
 ELSIF nSel < 0 THEN
@@ -61,7 +61,7 @@ ELSIF nSel < 0 THEN
     // get instance and abort
     pCtSelected := GetContainerInstance(iCT:=iIterCt);
     IF pCtSelected <> 0 THEN
-      pCtSelected^.AbortDeformation(sReason:=F_Concat2('CTM Abort CTs Sel=', TO_STRING(nSel)), Src:=Src);
+      pCtSelected^.AbortDeformation(sReason:=F_Concat2('CTM Abort CTs Sel=', TO_STRING(nSel)), Src:=Src, bHideLog:=FALSE);
     END_IF
     // select prev
     iIterCt := iIterCt.pListPrev;
@@ -74,7 +74,7 @@ ELSIF nSel > 0 THEN
     // get instance and abort
     pCtSelected := GetContainerInstance(iCT:=iIterCt);
     IF pCtSelected <> 0 THEN
-      pCtSelected^.AbortDeformation(sReason:=F_Concat2('CTM Abort CTs Sel=', TO_STRING(nSel)), Src:=Src);
+      pCtSelected^.AbortDeformation(sReason:=F_Concat2('CTM Abort CTs Sel=', TO_STRING(nSel)), Src:=Src, bHideLog:=FALSE);
     END_IF
     // select next
     iIterCt := iIterCt.pListNext;
@@ -155,6 +155,10 @@ _LogLvl_mem := LogLevel;]]></ST>
       <LineId Id="84" Count="14" />
       <LineId Id="44" Count="0" />
     </LineIds>
+    <LineIds Name="FB_CTManagerDefGrid.AbortCts">
+      <LineId Id="3" Count="36" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
     <LineIds Name="FB_CTManagerDefGrid.GetContainerInstance">
       <LineId Id="16" Count="0" />
       <LineId Id="15" Count="0" />
@@ -174,6 +178,10 @@ _LogLvl_mem := LogLevel;]]></ST>
       <LineId Id="6" Count="1" />
       <LineId Id="10" Count="0" />
       <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CTManagerDefGrid.updateLogLevels">
+      <LineId Id="3" Count="8" />
+      <LineId Id="2" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>
