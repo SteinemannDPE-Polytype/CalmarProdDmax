@@ -46,7 +46,7 @@ VAR
 END_VAR
 
 VAR PERSISTENT
-  _fFeatureGrid   : LREAL := 2048;  // feature grid witdh (feature pich in x of cam frames)
+  _fFeatureGrid   : LREAL := 2048;  // feature grid witdh (feature pich in x of cam frames), TODO: could be a normal var now
   _nActiveCam     : UDINT := 1;     // active camera selection
 END_VAR
 
@@ -319,6 +319,7 @@ _bSetInitCam := TRUE; // request a default camera
 VAR_INPUT
   pAdsIf  : POINTER TO FB_ADS_CAMERA;
   iDefGridParamMediator : I_ParamMediator;
+  fFeatureGrid : LREAL;   // feature grid with 
   fPrintUnitWidth   : LREAL;     // print unit width [m]
 END_VAR
 ]]></Declaration>
@@ -330,6 +331,7 @@ IF iDefGridParamMediator = 0 THEN bInitialized := FALSE; LogError('Invalid param
 _pAdsCam := pAdsIf;
 _iParamMediator := iDefGridParamMediator;
 _fPrintUnitWidth := fPrintUnitWidth;
+_fFeatureGrid := fFeatureGrid;
 
 _bCamStarted := FALSE;
 // done by worker (always when cam activated)
@@ -823,6 +825,7 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="5" Count="0" />
       <LineId Id="21" Count="0" />
       <LineId Id="28" Count="0" />
+      <LineId Id="48" Count="0" />
       <LineId Id="36" Count="0" />
       <LineId Id="35" Count="0" />
       <LineId Id="40" Count="0" />
