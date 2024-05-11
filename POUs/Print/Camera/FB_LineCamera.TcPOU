@@ -534,8 +534,6 @@ END_VAR
         <ST><![CDATA[_fCameraWidthNormal     := FC_CONV_SUBPX_TO_M( _nCameraWidth
                                              , LREAL_TO_UDINT(cCameraResolution)
                                              , 1);
-                                             
-// TODO: references (global) vars, move them to a init parameter before moving to a library
 _nPrintUnitWidthNormal  := nPrintUnitWidth;
 _fPrintUnitCalTemp      := fC_PhPixelDistRefTemp;   // reference temperate for real pixel spacing of ph
 _fPrintUnitWidthTC      := (nPrintUnitWidth * fC_PhPixelDistFactorAtRefTemp) / 1000;  // caluclate print unit with at calibration temperature [m]
@@ -689,7 +687,7 @@ REPEAT
       // save & convert cam point
       stCamPoint := saveAuswertungPoint(sCamPoint:=sTmpCamPoint, bOK=>bOk);     
       // stream point (if valid)
-      IF bOk THEN  //AND sTmpCamPoint.valid THEN  {warning 'TODO: remove Point.valid filter'}
+      IF bOk THEN  //AND sTmpCamPoint.valid THEN
         IF _iCameraSink <> 0 THEN
           _iCameraSink.AddCamPoint(stCamPoint);
           IF _bVerbose THEN 
@@ -1615,8 +1613,6 @@ _bTeachOk       := TRUE;]]></ST>
     </LineIds>
     <LineIds Name="FB_LineCamera.InitLineCamera">
       <LineId Id="29" Count="2" />
-      <LineId Id="64" Count="0" />
-      <LineId Id="66" Count="0" />
       <LineId Id="63" Count="0" />
       <LineId Id="68" Count="1" />
       <LineId Id="36" Count="0" />

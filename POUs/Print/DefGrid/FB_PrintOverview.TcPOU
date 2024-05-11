@@ -60,7 +60,7 @@ FOR nCtr := 1 TO nNum DO
   iCT := _pCTM^.getCT(nIdx:=nCtr);
   IF iCT <> 0 THEN
     // set position
-    aCTV[nCtr].setPos(x:=iCT.GetPos(nPosDomain:=e_posdomain.master_pos), y:=0);
+    aCTV[nCtr].setPos(x:=_pCTM^.iTracker.getPosRel(iCT:=iCT), y:=0);
     // display
     aCTV[nCtr].bHide := FALSE;
     aCTV[nCtr](iCT:=iCT, iIdx:=UDINT_TO_UINT(iCT.pCT^.nMemIndex), fPxtoMRatio:=fPxToMRatio, fResSubPx := _fPrintResolution*_fSubPixelResolution);

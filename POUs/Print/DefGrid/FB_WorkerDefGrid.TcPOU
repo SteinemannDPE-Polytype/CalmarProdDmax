@@ -8,9 +8,7 @@ VAR_OUTPUT
 END_VAR
 VAR
   // config
-  _iWorkerParams    : I_WorkerParams;                 // worker ct tracking position
   _pMsgConfigExt    : POINTER TO ST_MSG_CONFIG;       // external message config (puc message interface)
-  _nTrackPosDomain  : E_PosDomain;                    // Tracking position domain
   _fPmPosition      : LREAL := 0;                     // Module's position
   _fPrintResolution : LREAL := 1;                     // print(head) resolution in [dpi]
   _fSubPxResolution : LREAL := 1;                     // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution
@@ -23,11 +21,12 @@ VAR
   // ct
   _bAttached        : BOOL;                           // one ct is attached
   _pAttachedCt      : POINTER TO FB_ContainerDefGrid; // currently attached container (Head)
+  _pNewAttached     : POINTER TO FB_ContainerDefGrid; // last attached container (as return value of Attach() (Tail))
   _bSupportParallelCT : BOOL := FALSE;                // support for parallel CTs (else avoid attach while one connected).
   _nAttachedCTs     : UDINT;                          // Number of currently attached CTs
   _pAttachedCTList  : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF POINTER TO FB_ContainerDefGrid;
   // position control
-  fCtPosition       : LREAL;                          // Container position relative to worker position in [SubPx (E_PosDomain.master_pos)]
+  fCtPosition       : LREAL;     // Container position relative to worker position
   _bForceRelease    : BOOL;                           // Manually force a ct release
 
   // view
@@ -35,6 +34,7 @@ VAR
 END_VAR
 VAR_STAT
   // static variables, SAME for ALL Workers
+  _pCTM             : POINTER TO FB_CTManagerDefGrid;             // "Global" Container Manager
   _fCtSecurityReleasePos : LREAL := 0;                // [SubPx] position where to release current ct at last (security release)
 END_VAR
 VAR PERSISTENT
@@ -90,7 +90,6 @@ VAR_INPUT
 END_VAR
 VAR
   i : UDINT;
-  pNewCt   : POINTER TO FB_ContainerDefGrid;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[Attach := FALSE;
@@ -100,10 +99,10 @@ IF iCT = 0 THEN
   
 ELSIF bWorkerEnable THEN  // worker enabled
   
-  IF getCtInst(iCT:=iCT, pCT=>pNewCt) <> 0 THEN    // get specific container
+  IF getCtInst(iCT:=iCT, pCT=>_pNewAttached) <> 0 THEN    // get specific container
     // add to list ()
-    IF push(pNewCT:=pNewCt) THEN 
-      LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat4('Attach CT[', TO_STRING(_nAttachedCTs), ']: ', pNewCt^.print(0)));
+    IF push(pNewCT:=_pNewAttached) THEN 
+      LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat4('Attach CT[', TO_STRING(_nAttachedCTs), ']: ', _pNewAttached^.print(0)));
       Attach:=TRUE;                                 // attach new
     END_IF
   ELSE
@@ -197,44 +196,48 @@ VAR_OUTPUT
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF NOT bInitialized THEN RETURN; END_IF
+IF _pCTM = 0 THEN RETURN; END_IF
 
 pCT := 0;
-IF _iWorkerParams.pCTManager <> 0 THEN
-  getCtInst := _iWorkerParams.pCTManager^.GetContainerInstance(iCT);   // get real ct fb inst
-  IF getCtInst <> 0 THEN
-    pCT := getCtInst;   // OK all good
-  ELSE
-    LogError(Msg:='specific container not found');
-	END_IF
+getCtInst := _pCTM^.GetContainerInstance(iCT);   // get real ct fb inst
+IF getCtInst <> 0 THEN
+  pCT := getCtInst;   // OK all good
 ELSE
-  LogError(Msg:='no container manager');
-END_IF]]></ST>
+  LogError(Msg:='specific container not found');
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="getPosRelToAttach" Id="{bbe24514-8a31-4018-8f0f-1e46c4dca809}">
+      <Declaration><![CDATA[METHOD getPosRelToAttach : DINT
+VAR_INPUT
+  iCT : I_CT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// relative position to X0 - tracking offset of this worker
+getPosRelToAttach := _iCTTracker.getPosRel(iCT:=iCT)-_nTrackOffset;]]></ST>
       </Implementation>
     </Method>
     <Method Name="Init" Id="{9892d34e-806e-432a-b876-226a7f31ec11}">
       <Declaration><![CDATA[METHOD Init
 VAR_INPUT
-  iWorkerParams : I_WorkerParams;
   pMsgConfig : POINTER TO ST_MSG_CONFIG;         // message config
   fPrintResolution : LREAL := 1;                 // print(head) resolution in [dpi]
   fSubPxResolution : LREAL := 1;                 // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
   bParallelCT : BOOL;                            // Support parallel processing of CTs
 END_VAR
 VAR
-  pCTM : POINTER TO FB_CTManagerDefGrid;
+
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[_bAttached := 0;
 _pAttachedCt := 0;
 _nAttachedCTs := 0;
 
-IF iWorkerParams = 0 OR_ELSE iWorkerParams.pCTManager = 0 THEN
-  LogError(Msg:='Init: invalid parameter');
-  RETURN;
-END_IF
+IF _pCTM = 0 THEN LogError(Msg:='Init: invalid parameter'); RETURN; END_IF
 
 // save config
-_iWorkerParams := iWorkerParams;
 _pMsgConfigExt := pMsgConfig;
 _fPrintResolution := fPrintResolution;
 _fSubPxResolution := fSubPxResolution;
@@ -243,15 +246,11 @@ _bSupportParallelCT := bParallelCT;
 
 setName('');
 
-// register worker CTManager/Tracker event subject
-_nTrackPosDomain := E_PosDomain.master_pos;
-_iWorkerParams.pCTManager^.RegisterPosition(nPosDomain:=_nTrackPosDomain, iPositionEvent:=THIS^);
-
 // init error source reference
 _pEcSrc := ErrorCodes.fbErrCodeMngr.registerErrSource(
- nLocId := 0,
- aInstPath := InstanceName,
- aLocDescr := _name
+  nLocId := 0,
+  aInstPath := InstanceName,
+  aLocDescr := _name
 );
 IF _pEcSrc = 0 THEN LogError('could not register error source'); END_IF
 
@@ -278,13 +277,33 @@ END_VAR
         <ST><![CDATA[]]></ST>
       </Implementation>
     </Method>
+    <Property Name="pCTM" Id="{94eae062-0ad0-4489-9e76-230fab325e73}">
+      <Declaration><![CDATA[PROPERTY pCTM : POINTER TO FB_CTManagerDefGrid]]></Declaration>
+      <Get Name="Get" Id="{9a767bc1-2f28-4654-9da9-7590f4296c7f}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[pCTM := _pCTM;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{73378995-26ab-4925-ad9b-1f6205314d3e}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_pCTM := pCTM;
+]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
     <Method Name="pull" Id="{5e0f29fc-a1aa-456a-98f0-78a2b334b213}" FolderPath="CTList\">
       <Declaration><![CDATA[METHOD PRIVATE pull : BOOL
 VAR_INPUT
   pRemCT : POINTER TO FB_ContainerDefGrid;
 END_VAR
 VAR_OUTPUT
-  nRemIndex : UDINT := 0;
+  nRemIndex : DINT := 0;
 END_VAR
 VAR
   i                : DINT;
@@ -385,7 +404,7 @@ VAR_INPUT
   iCT              : I_CT;                         (*container at triggered event position*)
 END_VAR
 VAR
-  nIdx             : UDINT;
+  nIdx             : DINT;
   pCT              : POINTER TO FB_ContainerDefGrid;
 END_VAR]]></Declaration>
       <Implementation>
@@ -469,7 +488,7 @@ FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
   pCt := _pAttachedCTList[i];
 
   // update CT position
-  fCtPosition := pCt^.GetPos(nPosDomain:=E_PosDomain.master_pos) - _nTrackOffset; 
+  fCtPosition := _iCTTracker.getPosRel(iCT:=pCt^) - _nTrackOffset; 
   
   // release CT (manually and security)
   IF _bForceRelease THEN
@@ -527,25 +546,30 @@ END_FOR
       <LineId Id="7" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.getCtInst">
-      <LineId Id="40" Count="1" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="41" Count="0" />
       <LineId Id="29" Count="0" />
-      <LineId Id="5" Count="0" />
       <LineId Id="8" Count="0" />
       <LineId Id="13" Count="0" />
       <LineId Id="27" Count="1" />
       <LineId Id="14" Count="1" />
-      <LineId Id="25" Count="1" />
       <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.getPosRelToAttach">
+      <LineId Id="7" Count="0" />
+      <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.Init">
       <LineId Id="129" Count="0" />
       <LineId Id="79" Count="0" />
       <LineId Id="142" Count="0" />
-      <LineId Id="80" Count="6" />
-      <LineId Id="119" Count="0" />
+      <LineId Id="80" Count="1" />
+      <LineId Id="85" Count="1" />
       <LineId Id="89" Count="3" />
       <LineId Id="131" Count="0" />
-      <LineId Id="94" Count="14" />
+      <LineId Id="94" Count="1" />
+      <LineId Id="100" Count="8" />
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.mJobStart">
@@ -553,6 +577,13 @@ END_FOR
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.mJobStop">
       <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.pCTM.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.pCTM.Set">
+      <LineId Id="2" Count="0" />
+      <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.pull">
       <LineId Id="114" Count="38" />

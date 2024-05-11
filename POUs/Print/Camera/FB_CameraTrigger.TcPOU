@@ -115,7 +115,7 @@ VAR CONSTANT
   nC_EL2252Cmd_INACTIVE           : BYTE := 0;
   nC_EL2252Cmd_ACTIVE             : BYTE := 3;
 END_VAR
-// TODO: convert all LREAL_TO_ULINT to save functions with range overflow check (add to CalmarCommons) to prevent crashes]]></Declaration>
+]]></Declaration>
     <Implementation>
       <ST><![CDATA[IF NOT bInitOk THEN RETURN; END_IF;
 
@@ -394,7 +394,7 @@ END_IF;]]></ST>
       <Declaration><![CDATA[METHOD Init
 VAR_INPUT
   nResolution                   : INT := 1;        (*Printhead Resolution [e.g. 600] x Subpixel Resolution [e.g. 32]*)
-  bUsePositionTrigger           : BOOL;            (*FALSE: Calculate time with speed and position distance@sensor evont*)
+  bUsePositionTrigger           : BOOL;            (*FALSE: Calculate time with speed and position distance@sensor event*)
 END_VAR
 ]]></Declaration>
       <Implementation>

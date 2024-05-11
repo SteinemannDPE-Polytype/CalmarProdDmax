@@ -13,8 +13,7 @@ END_VAR]]></Declaration>
       <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
 VAR_INPUT
   iCT              : I_CT;                         (*container at triggered event position*)
-END_VAR
-]]></Declaration>
+END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF SUPER^.Attach(iCT:=iCT) THEN
   ;
@@ -51,9 +50,9 @@ END_VAR
         <ST><![CDATA[IF SUPER^.Release(iCT := iCT) THEN
   
   // it's the last worker so distroy attached CT
-  IF _iWorkerParams.pCTManager <> 0 THEN
+  IF _pCTM <> 0 THEN
     LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('DestroyCT: ', TO_STRING(iCT.pCT^.iId)));
-    _iWorkerParams.pCTManager^.DestroyCT(iCT:=iCT);
+    _pCTM^.DestroyCT(iCT:=iCT);
   END_IF
   
 END_IF]]></ST>

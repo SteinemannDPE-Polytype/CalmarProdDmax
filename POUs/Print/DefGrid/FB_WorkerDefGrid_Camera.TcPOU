@@ -33,8 +33,8 @@ VAR
   // deformation status
   _eDeformationType            : E_DeformationType;
   _eDeformStep                 : E_DeformationStep;   // status deformation of ct
-  _nX0                         : DINT;   // detected sheet/repeat position [SubPx]              
-  
+  _nCamDetected_X0             : DINT;   // detected sheet/repeat position [SubPx]              
+
   // Messages
   _pMsgConfig                  : POINTER TO ST_MSG_CONFIG;
   bCamNotAvailable             : BOOL;
@@ -127,7 +127,6 @@ VAR_INPUT
   iCT              : I_CT;                         (*container at triggered event position*)
 END_VAR
 VAR
-  pCt : POINTER TO FB_ContainerDefGrid;
   bDeformErr : BOOL;
   eDeformStep : E_DeformationStep;
 END_VAR]]></Declaration>
@@ -135,31 +134,29 @@ END_VAR]]></Declaration>
         <ST><![CDATA[Attach := FALSE;
 IF SUPER^.Attach(iCT:=iCT) THEN
   // OK, attached (enabled, was ok to be attached)
-  IF getCtInst(iCT:=iCT, pCT=>pCt) = 0 THEN    // get specific container
-    RETURN;
-  END_IF
+  IF _pNewAttached = 0 THEN RETURN; END_IF
   
   // Additional worker checks
-  bDeformErr := pCt^.getDeformationStatus(eDStep=>eDeformStep);   // get latest status 
+  bDeformErr := _pNewAttached^.getDeformationStatus(eDStep=>eDeformStep);   // get latest status 
   // - deformation started? and no deformation error so far
   IF bDeformErr OR eDeformStep = E_DeformationStep.nothing THEN
     Release(iCT:=iCT);  // nothing to do anymore
 
   // - job is valid?
   ELSIF iCT.pJob = 0 OR NOT _bJobActive THEN
-    _pAttachedCt^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^, bHideLog:=TRUE);
+    _pNewAttached^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^, bHideLog:=TRUE);
     Release(iCT:=iCT);
 
   // - camera ready
   ELSIF (NOT _bCamValid OR NOT _bCamReady) THEN  // check if cam is ready
-    pCt^.AbortDeformation(sReason:='Camera invalid or not ready for attach', Src:=_pEcSrc^, bHideLog:=FALSE);
+    _pNewAttached^.AbortDeformation(sReason:='Camera invalid or not ready for attach', Src:=_pEcSrc^, bHideLog:=FALSE);
     Release(iCT:=iCT);
 
   // OK attach
   ELSE
     // start cam on ct
-    LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat4('Start Camera with mode: ', TO_STRING(_iActiveCam.eCameraMode), ' on CT ', pCt^.print(0)));
-    _pAttachedCt^.StartCamera(eCameraMode:=_iActiveCam.eCameraMode, fFeatureGrid:=_fFeatureGrid, bResetDeformation:=TRUE);
+    LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat4('Start Camera with mode: ', TO_STRING(_iActiveCam.eCameraMode), ' on CT ', _pNewAttached^.print(0)));
+    _pNewAttached^.StartCamera(eCameraMode:=_iActiveCam.eCameraMode, fFeatureGrid:=_fFeatureGrid, bResetDeformation:=TRUE);
   
     Attach := TRUE;
 	END_IF
@@ -245,7 +242,7 @@ _nCamBufferPoints := 0;
 MEMSET(destAddr:=ADR(_CamBufferPoints[1]), fillByte:=0, n:=SIZEOF(_CamBufferPoints));
 
 // save x0 for sheet lenght calculation
-_nX0 := nX0;
+_nCamDetected_X0 := nX0;
 
 _bCamStarted := TRUE;
 ]]></ST>
@@ -280,7 +277,6 @@ END_IF]]></ST>
     <Method Name="Init" Id="{476974fc-f01a-47ef-80b5-8dcae46aef5e}">
       <Declaration><![CDATA[METHOD Init
 VAR_INPUT
-  iWorkerParams : I_WorkerParams;
   pMsgConfig : POINTER TO ST_MSG_CONFIG;         // message config
   fPrintResolution : LREAL := 1;                 // print(head) resolution in [dpi]
   fSubPxResolution : LREAL := 1;                 // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution)
@@ -290,7 +286,7 @@ VAR
   lCtr : UDINT;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[SUPER^.Init(iWorkerParams:=iWorkerParams, pMsgConfig:=pMsgConfig, fPrintResolution:=fPrintResolution, fSubPxResolution:=fSubPxResolution, bParallelCT:=bParallelCT);
+        <ST><![CDATA[SUPER^.Init(pMsgConfig:=pMsgConfig, fPrintResolution:=fPrintResolution, fSubPxResolution:=fSubPxResolution, bParallelCT:=bParallelCT);
 
 IF pMsgConfig = 0 THEN LogError('Init: invalid message config given'); END_IF 
 
@@ -324,7 +320,7 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF NOT bInitialized OR _iWorkerParams.pCTManager = 0 THEN LogError('Base Worker not initialized! call init() before'); RETURN; END_IF
+        <ST><![CDATA[IF NOT bInitialized THEN LogError('Base Worker not initialized! call init() before'); RETURN; END_IF
 IF pAdsIf = 0 THEN bInitialized := FALSE; LogError('Invalid parameter, no valid ads interface camera'); RETURN; END_IF
 IF iDefGridParamMediator = 0 THEN bInitialized := FALSE; LogError('Invalid parameter, no valid param mediator'); RETURN; END_IF
 
@@ -610,7 +606,7 @@ WHILE _nAddedPoint < _nCamBufferPoints DO
   
   // apply detected X0 position
   IF _nAddedPoint = 0 THEN 
-    _pAttachedCt^.nPosPrint_X0 := _nX0;   // apply X0 (in print position domain)
+    _pAttachedCt^.nPosPrint_X0 := _nCamDetected_X0;   // apply X0 (in print position domain)
 	END_IF
   // apply cam point to CT
   IF _pAttachedCt^.AddCamPoint(sPoint:=_CamBufferPoints[_nAddedPoint+1]) THEN 
@@ -733,8 +729,7 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="233" Count="0" />
       <LineId Id="154" Count="0" />
       <LineId Id="215" Count="0" />
-      <LineId Id="299" Count="1" />
-      <LineId Id="298" Count="0" />
+      <LineId Id="299" Count="0" />
       <LineId Id="268" Count="0" />
       <LineId Id="262" Count="0" />
       <LineId Id="273" Count="0" />
@@ -782,14 +777,8 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="17" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.CamStarted">
-      <LineId Id="14" Count="0" />
-      <LineId Id="5" Count="0" />
-      <LineId Id="12" Count="0" />
-      <LineId Id="19" Count="0" />
-      <LineId Id="15" Count="0" />
-      <LineId Id="13" Count="0" />
-      <LineId Id="18" Count="0" />
-      <LineId Id="16" Count="1" />
+      <LineId Id="28" Count="7" />
+      <LineId Id="17" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.fCameraToPrintOffset.Get">
       <LineId Id="5" Count="1" />
@@ -928,22 +917,7 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="13" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.streamPoints">
-      <LineId Id="17" Count="2" />
-      <LineId Id="15" Count="1" />
-      <LineId Id="6" Count="0" />
-      <LineId Id="59" Count="1" />
-      <LineId Id="32" Count="0" />
-      <LineId Id="47" Count="0" />
-      <LineId Id="54" Count="0" />
-      <LineId Id="49" Count="2" />
-      <LineId Id="53" Count="0" />
-      <LineId Id="37" Count="0" />
-      <LineId Id="39" Count="2" />
-      <LineId Id="35" Count="0" />
-      <LineId Id="42" Count="0" />
-      <LineId Id="52" Count="0" />
-      <LineId Id="43" Count="0" />
-      <LineId Id="34" Count="0" />
+      <LineId Id="64" Count="23" />
       <LineId Id="11" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.work">

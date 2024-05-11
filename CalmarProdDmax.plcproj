@@ -304,6 +304,7 @@ Fribourg/Switzerland (2021)</Description>
     </Compile>
     <Compile Include="POUs\Print\DefGrid\I_WorkerParams.TcIO">
       <SubType>Code</SubType>
+      <ExcludeFromBuild>true</ExcludeFromBuild>
     </Compile>
     <Compile Include="POUs\Print\DefGrid\ST_CameraGridSettings.TcDUT">
       <SubType>Code</SubType>
@@ -415,16 +416,6 @@ Fribourg/Switzerland (2021)</Description>
     <PlaceholderReference Include="CalmarCompPrint">
       <DefaultResolution>CalmarCompPrint, * (WIFAG-Polytype)</DefaultResolution>
       <Namespace>CalmarCompPrint</Namespace>
-      <Parameters>
-        <Parameter ListName="GVL_PRINTDEF">
-          <Key>ICPR_MAX_NB_POS_DOMAIN</Key>
-          <Value>2</Value>
-        </Parameter>
-        <Parameter ListName="GVL_PRINTDEF">
-          <Key>ICPR_NB_PH_PER_CONTROLLER</Key>
-          <Value>4</Value>
-        </Parameter>
-      </Parameters>
     </PlaceholderReference>
     <PlaceholderReference Include="CalmarCompSystem">
       <DefaultResolution>CalmarCompSystem, * (WIFAG-Polytype)</DefaultResolution>
@@ -523,7 +514,7 @@ Fribourg/Switzerland (2021)</Description>
       <Resolution>CalmarCompDevices, 1.7.2 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompPrint">
-      <Resolution>CalmarCompPrint, 2.2.1.10 (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCompPrint, 2.2.1.11 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompSystem">
       <Resolution>CalmarCompSystem, 2.0.0.4 (WIFAG-Polytype)</Resolution>
@@ -545,8 +536,8 @@ Fribourg/Switzerland (2021)</Description>
   <ProjectExtensions>
     <PlcProjectOptions>
       <XmlArchive>
-  <Data>
-    <o xml:space="preserve" t="OptionKey">
+        <Data>
+          <o xml:space="preserve" t="OptionKey">
       <v n="Name">"&lt;ProjectRoot&gt;"</v>
       <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
         <v>{535658C0-5AF5-460d-99A4-BFFB984A829A}</v>
@@ -709,16 +700,16 @@ Fribourg/Switzerland (2021)</Description>
       </d>
       <d n="Values" t="Hashtable" />
     </o>
-  </Data>
-  <TypeList>
-    <Type n="Boolean">System.Boolean</Type>
-    <Type n="Hashtable">System.Collections.Hashtable</Type>
-    <Type n="Int32">System.Int32</Type>
-    <Type n="NewestVersionConstraintToSave">{af9bafe2-ba31-4b15-a2b9-48a0f2cd09fb}</Type>
-    <Type n="OptionKey">{54dd0eac-a6d8-46f2-8c27-2f43c7e49861}</Type>
-    <Type n="String">System.String</Type>
-  </TypeList>
-</XmlArchive>
+        </Data>
+        <TypeList>
+          <Type n="Boolean">System.Boolean</Type>
+          <Type n="Hashtable">System.Collections.Hashtable</Type>
+          <Type n="Int32">System.Int32</Type>
+          <Type n="NewestVersionConstraintToSave">{af9bafe2-ba31-4b15-a2b9-48a0f2cd09fb}</Type>
+          <Type n="OptionKey">{54dd0eac-a6d8-46f2-8c27-2f43c7e49861}</Type>
+          <Type n="String">System.String</Type>
+        </TypeList>
+      </XmlArchive>
     </PlcProjectOptions>
   </ProjectExtensions>
 </Project>

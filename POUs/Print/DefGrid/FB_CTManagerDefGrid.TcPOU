@@ -2,12 +2,9 @@
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_CTManagerDefGrid" Id="{64e24f37-1762-4987-94b6-1c2daabf0872}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_CTManagerDefGrid EXTENDS FB_CTManager
-VAR_INPUT
-END_VAR
-VAR_OUTPUT
-END_VAR
 VAR
   fbContainerInstances    : ARRAY[0..lC_MAX_CTS-1] OF FB_ContainerDefGrid;   // NOTE: 0 based array like base in library
+  nCtr, nIndx : UDINT;
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -26,7 +23,7 @@ WHILE nCtr < nListCount DO
 END_WHILE
 
 updateLogLevels();
-  ]]></ST>
+]]></ST>
     </Implementation>
     <Method Name="AbortCts" Id="{887d2e55-f283-4461-92bd-fe8efb68fdd3}">
       <Declaration><![CDATA[(*
@@ -53,7 +50,7 @@ IF nSel = 0 THEN
   IF pCtSelected <> 0 THEN
     pCtSelected^.AbortDeformation(sReason:=F_Concat2('CTM Abort CTs Sel=', TO_STRING(nSel)), Src:=Src, bHideLog:=FALSE);
   END_IF
-  
+
 ELSIF nSel < 0 THEN
   // Abort previous
   iIterCt := iCT;
@@ -66,7 +63,7 @@ ELSIF nSel < 0 THEN
     // select prev
     iIterCt := iIterCt.pListPrev;
   END_WHILE
-  
+
 ELSIF nSel > 0 THEN  
   // Abort next
   iIterCt := iCT;
@@ -156,7 +153,9 @@ _LogLvl_mem := LogLevel;]]></ST>
       <LineId Id="44" Count="0" />
     </LineIds>
     <LineIds Name="FB_CTManagerDefGrid.AbortCts">
-      <LineId Id="3" Count="36" />
+      <LineId Id="3" Count="22" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="27" Count="12" />
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_CTManagerDefGrid.GetContainerInstance">

@@ -100,7 +100,10 @@ ELSE
   // checks
   IF eDeformStep < E_DeformationStep.cameraStarted THEN LogWarning('Sub-optimal timing, camera did not yet start'); END_IF
   // start deformation
-  pCt^.StartDeformation(sDefGridSettings:=_sDeformationGridSettings);
+  pCt^.StartDeformation(
+    sDefGridSettings:=_sDeformationGridSettings, 
+    fStartDeformationPos:=getPosRelToAttach(iCT)/_fSubPxResolution   // [px]
+  );
   Attach := TRUE;
 END_IF
 ]]></ST>
@@ -254,6 +257,7 @@ fPosition := sCamSettings.fDetectToCam + _fDistToCam + _fPmPosition;
 VAR
   i : UDINT;
   pCT : POINTER TO FB_ContainerDefGrid;
+  fCtPosition : LREAL;     // Container position relative to worker position in [SubPx (E_PosDomain.master_pos)]
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[//-----------------------------------------------------------
@@ -266,7 +270,9 @@ FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
   pCt := _pAttachedCTList[i];
   
   // update CT position
-  fCtPosition := pCt^.GetPos(nPosDomain:=E_PosDomain.master_pos) - _nTrackOffset; 
+  fCtPosition := getPosRelToAttach(iCT:=pCt^); 
+  // update deformation handler
+  pCT^.UpdateDeformation(fPos:=fCtPosition/_fSubPxResolution);  // pos in [px]
   
   // get status
   _bDeformationError[i] := pCt^.getDeformationStatus(eDStep => _eDeformStep[i], 
@@ -341,6 +347,7 @@ END_FOR
       <LineId Id="214" Count="0" />
       <LineId Id="307" Count="0" />
       <LineId Id="212" Count="0" />
+      <LineId Id="320" Count="2" />
       <LineId Id="127" Count="0" />
       <LineId Id="102" Count="0" />
       <LineId Id="8" Count="0" />
@@ -421,7 +428,9 @@ END_FOR
       <LineId Id="392" Count="1" />
       <LineId Id="341" Count="0" />
       <LineId Id="399" Count="1" />
-      <LineId Id="398" Count="0" />
+      <LineId Id="411" Count="0" />
+      <LineId Id="410" Count="0" />
+      <LineId Id="409" Count="0" />
       <LineId Id="342" Count="26" />
       <LineId Id="384" Count="1" />
       <LineId Id="370" Count="3" />

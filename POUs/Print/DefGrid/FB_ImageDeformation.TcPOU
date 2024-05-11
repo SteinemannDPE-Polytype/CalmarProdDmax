@@ -2,9 +2,6 @@
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_ImageDeformation" Id="{441e42f8-e2de-4298-af7d-148639a86403}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_ImageDeformation EXTENDS FB_PythonDeformation
-VAR_INPUT
-  fPos              : LREAL;                // current ct position in [px]
-END_VAR
 VAR
   _eDeformationStep : E_DeformationStep;    // current active deformation step (handler)
   _eCameraMode      : E_CameraMode;         // active deformation mode
@@ -52,11 +49,6 @@ END_VAR]]></Declaration>
       <ST><![CDATA[IF NOT bInitialized THEN
   init();
 END_IF
-
-IF eStep >= E_DeformationStep.gridStarted AND NOT bDone THEN
-  updateDeformation(fPos := fPos);    // update deformation process (py or local)
-END_IF
-
 
 IF bUsePy THEN
   ExecPy();       // call python deformation handler
@@ -507,7 +499,7 @@ END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[// cyclic call and update deformation script
 // - parameter checks
-IF eStep < E_DeformationStep.gridStarted THEN RETURN; END_IF  // nothing to do if deformation was not started
+IF eStep < E_DeformationStep.gridStarted OR bDone THEN RETURN; END_IF  // nothing to do if deformation was not started
 IF _sDefGridSettings.nGridSizeX = 0 THEN RETURN; END_IF
 IF fFeatureGrid = 0 THEN fFeatureGrid := 1024; END_IF         // set some valid default (prevents division crash)
 
@@ -621,9 +613,6 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
     </Method>
     <LineIds Name="FB_ImageDeformation">
       <LineId Id="263" Count="2" />
-      <LineId Id="335" Count="0" />
-      <LineId Id="337" Count="2" />
-      <LineId Id="336" Count="0" />
       <LineId Id="282" Count="0" />
       <LineId Id="266" Count="1" />
       <LineId Id="288" Count="0" />

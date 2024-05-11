@@ -16,7 +16,8 @@ VAR PERSISTENT
   _fWorkerToRefPos  : LREAL := 1.1;    (*Distance between master PM and this worker, mechanisch, CT Create X0*)
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[]]></ST>
+      <ST><![CDATA[
+]]></ST>
     </Implementation>
     <Folder Name="I_PrintStatusClient" Id="{23849181-f341-4a97-883d-05a0394fe9c7}" />
     <Method Name="Attach" Id="{ed09302e-2885-443a-873e-e5493c07daba}">
@@ -144,6 +145,7 @@ END_IF]]></ST>
       </Implementation>
     </Method>
     <LineIds Name="FB_WorkerDefGrid_Verify">
+      <LineId Id="23" Count="0" />
       <LineId Id="9" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Verify.Attach">

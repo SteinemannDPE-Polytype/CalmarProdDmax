@@ -11,7 +11,7 @@ VAR
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[fBImageDeformation(fPos := DINT_TO_LREAL(GetPos(nPosDomain:=E_PosDomain.pos_px)));  // call run cyclic image deformation
+      <ST><![CDATA[fBImageDeformation();                       // call run cyclic image deformation
 fBImageDeformation.LogLevel := LogLevel;    // distribute container logLevel to image deformation fb]]></ST>
     </Implementation>
     <Method Name="AbortDeformation" Id="{f4e769e7-fdcb-497a-869a-11c396829281}">
@@ -224,12 +224,13 @@ fBImageDeformation.eStep := E_DeformationStep.cameraStarted;]]></ST>
       <Declaration><![CDATA[METHOD StartDeformation
 VAR_INPUT
   sDefGridSettings : ST_DefGridSettings;
+  fStartDeformationPos : LREAL;   // reference start position in [px]
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[fBImageDeformation.fPrintLengthEffective := pJob^.fSubstrateDepth;                           // update with intended length 
 fBImageDeformation.sDefGridSettings := sDefGridSettings;                  // apply grid setting
 fBImageDeformation.startDeformation(                                      // start deformation process
-  fStartDefPos:=DINT_TO_LREAL(GetPos(nPosDomain:=E_PosDomain.pos_px))     // reference position at current position [Px]
+  fStartDefPos:=fStartDeformationPos     // reference position at current position [Px]
 );
 ]]></ST>
       </Implementation>
@@ -255,6 +256,15 @@ END_VAR
   fBImageDeformation.iDeformationHandler.DeleteCachedCt(iCT:=iCT);
   fBImageDeformation.iDeformationHandler := 0; // remove handler after stopping (prevent further calls on same CT)
 END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="UpdateDeformation" Id="{ca2f28fa-632e-448d-aace-7cab62296cdd}">
+      <Declaration><![CDATA[METHOD UpdateDeformation
+VAR_INPUT
+  fPos : LREAL; // relative deformation position in [px]
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fBImageDeformation.updateDeformation(fPos:=fPos); ]]></ST>
       </Implementation>
     </Method>
     <LineIds Name="FB_ContainerDefGrid">
@@ -332,6 +342,9 @@ END_IF]]></ST>
     <LineIds Name="FB_ContainerDefGrid.StopScript">
       <LineId Id="3" Count="2" />
       <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ContainerDefGrid.UpdateDeformation">
+      <LineId Id="91" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>
