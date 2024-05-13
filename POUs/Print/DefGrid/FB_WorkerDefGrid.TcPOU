@@ -9,7 +9,6 @@ END_VAR
 VAR
   // config
   _pMsgConfigExt    : POINTER TO ST_MSG_CONFIG;       // external message config (puc message interface)
-  _fPmPosition      : LREAL := 0;                     // Module's position
   _fPrintResolution : LREAL := 1;                     // print(head) resolution in [dpi]
   _fSubPxResolution : LREAL := 1;                     // SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=>Output resolution
   _name             : STRING;                         // Worker name
@@ -141,26 +140,6 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Property Name="fPmPosition" Id="{d92b9b16-90aa-4c5b-b19e-b5474bf3230c}">
-      <Declaration><![CDATA[(* Module's position (added to Worker distance)*)
-PROPERTY fPmPosition : LREAL]]></Declaration>
-      <Get Name="Get" Id="{241798c3-d525-48bd-860d-9157cfcc0d8a}">
-        <Declaration><![CDATA[VAR
-END_VAR
-]]></Declaration>
-        <Implementation>
-          <ST><![CDATA[fPmPosition := _fPmPosition;]]></ST>
-        </Implementation>
-      </Get>
-      <Set Name="Set" Id="{6dc92f85-1c40-4919-ade8-3bf32e481b01}">
-        <Declaration><![CDATA[VAR
-END_VAR
-]]></Declaration>
-        <Implementation>
-          <ST><![CDATA[_fPmPosition := fPmPosition;]]></ST>
-        </Implementation>
-      </Set>
-    </Property>
     <Property Name="fPosition" Id="{9e6d5cd4-bcef-45e7-9eee-8ae16a558520}">
       <Declaration><![CDATA[{attribute 'monitoring':='call'}
 PROPERTY fPosition : LREAL]]></Declaration>
@@ -209,7 +188,10 @@ END_IF
       </Implementation>
     </Method>
     <Method Name="getPosRelToAttach" Id="{bbe24514-8a31-4018-8f0f-1e46c4dca809}">
-      <Declaration><![CDATA[METHOD getPosRelToAttach : DINT
+      <Declaration><![CDATA[(*
+  Get relative position to this worker (relative to track position)
+*)
+METHOD getPosRelToAttach : DINT
 VAR_INPUT
   iCT : I_CT;
 END_VAR
@@ -447,13 +429,6 @@ END_IF
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="setupPosition" Id="{9ff8ca00-2108-4d66-ac77-a2dd30739e0e}">
-      <Declaration><![CDATA[METHOD ABSTRACT setupPosition
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[(*implement in child class*)]]></ST>
-      </Implementation>
-    </Method>
     <Method Name="StartCT" Id="{28400007-7a5d-4fce-a93d-03d5259530e3}">
       <Declaration><![CDATA[METHOD PROTECTED StartCT
 VAR_INPUT
@@ -531,12 +506,6 @@ END_FOR
     <LineIds Name="FB_WorkerDefGrid.bAttached.Get">
       <LineId Id="2" Count="0" />
       <LineId Id="7" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_WorkerDefGrid.fPmPosition.Get">
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_WorkerDefGrid.fPmPosition.Set">
-      <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.fPosition.Get">
       <LineId Id="2" Count="0" />
@@ -635,9 +604,6 @@ END_FOR
     <LineIds Name="FB_WorkerDefGrid.setName">
       <LineId Id="3" Count="12" />
       <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_WorkerDefGrid.setupPosition">
-      <LineId Id="3" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.StartCT">
       <LineId Id="5" Count="0" />

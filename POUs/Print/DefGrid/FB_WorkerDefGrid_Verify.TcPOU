@@ -11,9 +11,6 @@ VAR
   
   // print manager reference
   _pPm : POINTER TO FB_ProdManager_DMAX;
-END_VAR
-VAR PERSISTENT
-  _fWorkerToRefPos  : LREAL := 1.1;    (*Distance between master PM and this worker, mechanisch, CT Create X0*)
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[
@@ -106,16 +103,6 @@ END_VAR
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="setupPosition" Id="{ba790993-47df-42cc-8f54-d5be88ee8b37}">
-      <Declaration><![CDATA[METHOD setupPosition
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[IF _pAttachedCt <> 0 THEN RETURN; END_IF    // Update only without attached container
-
-fPosition := _fWorkerToRefPos + _fPmPosition;     // generic module specific "offset" + configurative offset
-]]></ST>
-      </Implementation>
-    </Method>
     <Method Name="work" Id="{f3293130-827d-4f71-beb2-d681c617967b}">
       <Declaration><![CDATA[METHOD  work
 VAR_INST
@@ -124,8 +111,6 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[SUPER^.work();
-
-setupPosition();    // Worker position update
 
 IF _pAttachedCt <> 0 THEN
   tpEjectPulse(Q=>bWateGateActive);
@@ -190,16 +175,8 @@ END_IF]]></ST>
       <LineId Id="6" Count="0" />
       <LineId Id="16" Count="1" />
     </LineIds>
-    <LineIds Name="FB_WorkerDefGrid_Verify.setupPosition">
-      <LineId Id="4" Count="0" />
-      <LineId Id="8" Count="0" />
-      <LineId Id="6" Count="0" />
-      <LineId Id="3" Count="0" />
-    </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Verify.work">
       <LineId Id="65" Count="0" />
-      <LineId Id="67" Count="0" />
-      <LineId Id="72" Count="0" />
       <LineId Id="91" Count="0" />
       <LineId Id="73" Count="13" />
       <LineId Id="45" Count="0" />

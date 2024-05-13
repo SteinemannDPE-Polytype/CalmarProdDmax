@@ -14,10 +14,6 @@ VAR
   _nPrintUnitWidth            : UDINT;  // default print unit width [px]  
   _nImageWidthPx              : UDINT;  // size of the image (width)
   _nImageDepthPx              : UDINT;  // size of the image (depth)
-
-  // - current CTs
-  //_nMultiAttachedCTs          : UDINT;
-  //_pMultiAttachedCTs          : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF POINTER TO FB_ContainerDefGrid;
   
   // -
   _bNewJob                    : BOOL;   // new job started 
@@ -35,7 +31,7 @@ VAR
 
   // ui
   eDeformTypeUi : E_DeformationType;
-END_VAR
+END_VAR 
 
 VAR PERSISTENT
   _sDeformationGridSettings  : ST_DefGridSettings := (   // grid definition settings
@@ -248,7 +244,7 @@ END_VAR]]></Declaration>
         <ST><![CDATA[IF _pAttachedCt <> 0 THEN RETURN; END_IF    // Update only without attached container
 
 sCamSettings := _iParamMediator.sCameraGridSettings;
-fPosition := sCamSettings.fDetectToCam + _fDistToCam + _fPmPosition;
+fPosition := sCamSettings.fDetectToCam + _fDistToCam;
 ]]></ST>
       </Implementation>
     </Method>
