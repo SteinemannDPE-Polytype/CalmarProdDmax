@@ -209,8 +209,8 @@
                       <v n="Id">135947015L</v>
                       <l n="Value" t="ArrayList" cet="NamedStyleColor">
                         <o>
-                          <v n="Color">-65536</v>
-                          <v n="CanonicalName">"BasicElement-Alarm-Frame-Color"</v>
+                          <v n="Color">-16777216</v>
+                          <v n="CanonicalName">"BasicElement-Frame-Color"</v>
                         </o>
                       </l>
                     </o>
@@ -218,8 +218,8 @@
                       <v n="Id">493260384L</v>
                       <l n="Value" t="ArrayList" cet="NamedStyleColor">
                         <o>
-                          <v n="Color">-12337</v>
-                          <v n="CanonicalName">"BasicElement-Alarm-Fill-Color"</v>
+                          <v n="Color">-360334</v>
+                          <v n="CanonicalName">"Lightred"</v>
                         </o>
                       </l>
                     </o>
@@ -257,7 +257,7 @@
                     </o>
                     <o>
                       <v n="Id">1999528970L</v>
-                      <v n="Value">"&lt;toggle/tap variable&gt;"</v>
+                      <v n="Value">"m_Inst._nTrackOffset = 0"</v>
                     </o>
                     <o>
                       <v n="Id">3719097617L</v>
@@ -873,7 +873,7 @@
                   <l n="VisualElemMemberList" t="VisualElemMemberCollection" cet="VisualElemMember">
                     <o>
                       <v n="Id">571893170L</v>
-                      <v n="Value">""</v>
+                      <v n="Value">"%s"</v>
                     </o>
                     <o>
                       <v n="Id">494569607L</v>
@@ -1015,7 +1015,15 @@
                       <v n="Value">"m_Inst._iCTTracker.aName"</v>
                     </o>
                     <o>
+                      <v n="Id">4168582468L</v>
+                      <v n="Value">"m_Inst._iCTTracker.aName"</v>
+                    </o>
+                    <o>
                       <v n="Id">823443203L</v>
+                      <v n="Value">"27"</v>
+                    </o>
+                    <o>
+                      <v n="Id">3438453433L</v>
                       <v n="Value">"27"</v>
                     </o>
                   </l>
@@ -2688,10 +2696,10 @@
               <d n="FbMethods" t="CaseInsensitiveHashtable" ckt="String" cvt="Guid">
                 <v>FB_Init</v>
                 <v>ac38fd2e-6e22-4cb3-aa39-22eafeee7865</v>
-                <v>FB_Reinit</v>
-                <v>a2a2ccf6-7e20-4c8b-95b3-2fb70b1798d2</v>
                 <v>FB_Exit</v>
                 <v>f504c478-421f-4fba-acb6-d73c585ccfc6</v>
+                <v>FB_Reinit</v>
+                <v>a2a2ccf6-7e20-4c8b-95b3-2fb70b1798d2</v>
               </d>
               <v n="FbName">"NotImportant"</v>
               <v n="FbGuid">{5b91d11f-f619-4912-bb11-78e77b9d2869}</v>

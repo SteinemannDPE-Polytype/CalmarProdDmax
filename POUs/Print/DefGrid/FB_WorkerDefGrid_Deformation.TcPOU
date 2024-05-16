@@ -244,7 +244,10 @@ END_VAR]]></Declaration>
         <ST><![CDATA[IF _pAttachedCt <> 0 THEN RETURN; END_IF    // Update only without attached container
 
 sCamSettings := _iParamMediator.sCameraGridSettings;
+
+// set tracking offset
 fPosition := sCamSettings.fDetectToCam + _fDistToCam;
+_nTrackOffset := F_MeterToSubPixel(fPosMeter:=fPosition, fResoSubPx:=_fPrintResolution*_fSubPxResolution);  // [pos domain] save position
 ]]></ST>
       </Implementation>
     </Method>
@@ -253,7 +256,6 @@ fPosition := sCamSettings.fDetectToCam + _fDistToCam;
 VAR
   i : UDINT;
   pCT : POINTER TO FB_ContainerDefGrid;
-  fCtPosition : LREAL;     // Container position relative to worker position in [SubPx (E_PosDomain.master_pos)]
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[//-----------------------------------------------------------
@@ -288,7 +290,7 @@ FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
         pCt^.AbortDeformation(sReason:=F_Concat2('WorkerDeformation: ', EC_DefGrid.ecDefGrid_DefGridError.Desc), Src:=_pEcSrc^, bHideLog:=FALSE);
       //not needed ELSE
       //  pCt^.setError(ErrDef:=EC_DefGrid.ecDefGrid_DefGridError, Src:=_pEcSrc^);
-    END_IF
+      END_IF
     END_IF
     LogLvl(Lvl:=E_LogSeverity.Detail, Msg:=F_Concat4('Done with: CamP=',  TO_STRING(pCT^.nRegisteredCameraPoints), ' GridP=', TO_STRING(pCt^.nAvailableGridPoints)));
     Release(pCt^);
@@ -411,7 +413,9 @@ END_FOR
       <LineId Id="13" Count="0" />
       <LineId Id="16" Count="0" />
       <LineId Id="12" Count="0" />
+      <LineId Id="22" Count="1" />
       <LineId Id="10" Count="0" />
+      <LineId Id="24" Count="0" />
       <LineId Id="3" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Deformation.work">

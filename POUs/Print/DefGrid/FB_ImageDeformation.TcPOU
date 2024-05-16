@@ -509,9 +509,8 @@ fPosRel_CamFeature := fPosRel_Deform / _fFeatureGrid;
 fPosRel_GridCol    := fPosRel_Deform / _sDefGridSettings.nGridPitchX;
 
 // - check available cam points --> current feature
-IF _nCamPoints > 2 AND 
-   //FLOOR(fPosRel_GridCol) > _nUpdatedGridCol        // by Grid Pitch  // AND _nUpdatedGridCol <= _sDefGridSettings.nGridSizeX
-   FLOOR(fPosRel_CamFeature) > _nUpdatedFeature   // by CameraFeature pitch (to sync with reception of cam points)
+IF FLOOR(fPosRel_CamFeature) > _nUpdatedFeature   // by CameraFeature pitch (to sync with reception of cam points)
+   //FLOOR(fPosRel_GridCol) > _nUpdatedGridCol    // by Grid Pitch  // AND _nUpdatedGridCol <= _sDefGridSettings.nGridSizeX
 THEN
 
   nCurrentCol := TO_UDINT(FLOOR(fPosRel_GridCol));;
@@ -530,14 +529,18 @@ THEN
 
   // - update Grid (py or local) with desired position
   IF bUsePy THEN
-    UpdatePy(fPosition:=fPosRel_Deform);
+    IF _nCamPoints > 2 THEN
+      UpdatePy(fPosition:=fPosRel_Deform);
+      _nUpdatedGridCol := nCurrentCol;
+      _nUpdatedFeature := nCurrentFeature;
+    END_IF
   ELSIF _sDefGridSettings.eDeformationType = E_DeformationType.LocalMarks1D THEN
     UpdateLocal_1D_Marks(nGridCol:=nCurrentCol, nFeatureCt:=nCurrentFeature);
+    _nUpdatedGridCol := nCurrentCol;
+    _nUpdatedFeature := nCurrentFeature;
   END_IF
-
-  _nUpdatedGridCol := nCurrentCol;
-  _nUpdatedFeature := nCurrentFeature;
-END_IF]]></ST>
+END_IF
+]]></ST>
       </Implementation>
     </Method>
     <Method Name="UpdateLocal_1D_Marks" Id="{fad2ef48-fad2-4c52-b1ee-769494717330}">
@@ -782,15 +785,21 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
     <LineIds Name="FB_ImageDeformation.updateDeformation">
       <LineId Id="215" Count="2" />
       <LineId Id="273" Count="0" />
-      <LineId Id="218" Count="11" />
+      <LineId Id="218" Count="9" />
+      <LineId Id="229" Count="0" />
       <LineId Id="271" Count="0" />
       <LineId Id="270" Count="0" />
       <LineId Id="272" Count="0" />
       <LineId Id="259" Count="0" />
-      <LineId Id="230" Count="17" />
-      <LineId Id="269" Count="0" />
-      <LineId Id="249" Count="0" />
+      <LineId Id="230" Count="13" />
+      <LineId Id="289" Count="0" />
+      <LineId Id="287" Count="1" />
+      <LineId Id="290" Count="0" />
+      <LineId Id="244" Count="1" />
+      <LineId Id="285" Count="1" />
+      <LineId Id="284" Count="0" />
       <LineId Id="52" Count="0" />
+      <LineId Id="291" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.UpdateLocal_1D_Marks">
       <LineId Id="331" Count="0" />

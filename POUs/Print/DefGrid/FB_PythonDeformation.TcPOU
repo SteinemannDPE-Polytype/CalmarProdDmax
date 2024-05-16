@@ -140,19 +140,19 @@ END_VAR
         <ST><![CDATA[IF bPythonBusy THEN // Pending job
   UpdatePy:=FALSE;
   LogLvl(Lvl:=E_LogSeverity.Debug, Msg:='Python was still busy during updateDeformation');
-  
+
 ELSE // Job done
-    
+
   IF NOT bPythonDeformationDone AND NOT bPythonAbort THEN // Sample input
     // start a update
     fPythonPosition := fPosition * GVL_Deformation.nC_GridSubReso;
     bPythonBusy := TRUE;
     bPythonError := FALSE;
-    
+
     // Start script
     bPythonStartUpdate := TRUE;      
   END_IF
-  
+
   UpdatePy:=TRUE;
 END_IF]]></ST>
       </Implementation>

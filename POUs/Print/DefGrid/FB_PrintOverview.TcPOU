@@ -63,7 +63,11 @@ FOR nCtr := 1 TO nNum DO
     aCTV[nCtr].setPos(x:=_pCTM^.iTracker.getPosRel(iCT:=iCT), y:=0);
     // display
     aCTV[nCtr].bHide := FALSE;
-    aCTV[nCtr](iCT:=iCT, iIdx:=UDINT_TO_UINT(iCT.pCT^.nMemIndex), fPxtoMRatio:=fPxToMRatio, fResSubPx := _fPrintResolution*_fSubPixelResolution);
+    aCTV[nCtr]( iCT:=iCT, 
+                iIdx:=UDINT_TO_UINT(iCT.pCT^.nMemIndex), 
+                fPxtoMRatio:=fPxToMRatio, 
+                fPosToMFactor := 0.0254 / (_fPrintResolution*_fSubPixelResolution), 
+                iTracker:=_pCTM^.iTracker);
   END_IF
 END_FOR
 
@@ -195,7 +199,12 @@ bInit := TRUE;]]></ST>
       </Implementation>
     </Method>
     <LineIds Name="FB_PrintOverview">
-      <LineId Id="573" Count="49" />
+      <LineId Id="573" Count="12" />
+      <LineId Id="671" Count="3" />
+      <LineId Id="586" Count="0" />
+      <LineId Id="678" Count="0" />
+      <LineId Id="587" Count="0" />
+      <LineId Id="589" Count="33" />
       <LineId Id="424" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintOverview.checkConfig">

@@ -11,8 +11,7 @@ VAR
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[fBImageDeformation();                       // call run cyclic image deformation
-fBImageDeformation.LogLevel := LogLevel;    // distribute container logLevel to image deformation fb]]></ST>
+      <ST><![CDATA[fBImageDeformation();                       // call run cyclic image deformation]]></ST>
     </Implementation>
     <Method Name="AbortDeformation" Id="{f4e769e7-fdcb-497a-869a-11c396829281}">
       <Declaration><![CDATA[METHOD AbortDeformation : BOOL
@@ -156,6 +155,27 @@ bAborted := fBImageDeformation.bAborted;
 ]]></ST>
       </Implementation>
     </Method>
+    <Property Name="LogLevel" Id="{6da142c4-2927-48a5-bf2d-7c92ac17257e}">
+      <Declaration><![CDATA[PROPERTY LogLevel : E_LogSeverity
+]]></Declaration>
+      <Get Name="Get" Id="{af22db1f-f37b-4270-8a86-db0b24381a58}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[LogLevel := SUPER^.LogLevel;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{91e587a8-a7c8-4ad5-958d-75e401c184d9}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fBImageDeformation.LogLevel := LogLevel;
+SUPER^.LogLevel := LogLevel;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
     <Property Name="nAvailableGridCols" Id="{61be60fa-e3b9-4821-925e-23b920d7bfd3}">
       <Declaration><![CDATA[PROPERTY nAvailableGridCols : UDINT]]></Declaration>
       <Get Name="Get" Id="{8f97e19b-db85-4e14-95e2-7bc242c47118}">
@@ -269,7 +289,6 @@ END_VAR]]></Declaration>
     </Method>
     <LineIds Name="FB_ContainerDefGrid">
       <LineId Id="9" Count="0" />
-      <LineId Id="18" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.AbortDeformation">
       <LineId Id="18" Count="0" />
@@ -304,6 +323,13 @@ END_VAR]]></Declaration>
     <LineIds Name="FB_ContainerDefGrid.getDeformationStatus">
       <LineId Id="167" Count="7" />
       <LineId Id="13" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ContainerDefGrid.LogLevel.Get">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ContainerDefGrid.LogLevel.Set">
+      <LineId Id="2" Count="0" />
+      <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.nAvailableGridCols.Get">
       <LineId Id="2" Count="0" />

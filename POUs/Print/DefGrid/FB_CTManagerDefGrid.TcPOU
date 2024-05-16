@@ -109,6 +109,7 @@ END_VAR
         <ST><![CDATA[// init FB_CTManager(base) list (interface I_CT) with specific Container instances (FBs) 
 FOR nCtr := 0 TO lC_MAX_CTS-1 DO
   iContainerList[nCtr] := fbContainerInstances[nCtr];
+  fbContainerInstances[nCtr].LogLevel := E_LogSeverity.Info;
 END_FOR
 
 // call parent init
@@ -168,7 +169,9 @@ _LogLvl_mem := LogLevel;]]></ST>
     <LineIds Name="FB_CTManagerDefGrid.Init">
       <LineId Id="16" Count="0" />
       <LineId Id="5" Count="0" />
-      <LineId Id="7" Count="1" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="8" Count="0" />
       <LineId Id="11" Count="0" />
       <LineId Id="10" Count="0" />
       <LineId Id="9" Count="0" />

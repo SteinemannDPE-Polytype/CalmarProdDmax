@@ -157,7 +157,7 @@ END_VAR
 ]]></Declaration>
         <Implementation>
           <ST><![CDATA[_fWorkerPosition := fPosition;  // [m] save position
-_nTrackOffset := F_MeterToSubPixel(fPosMeter:=fPosition, fResoSubPx:=_fPrintResolution*_fSubPxResolution);  // [pos domain] save position]]></ST>
+]]></ST>
         </Implementation>
       </Set>
     </Property>
@@ -349,7 +349,7 @@ END_VAR
 IF pNewCT = 0 THEN LogError('push: invalid pointer'); RETURN; END_IF
 // - list full
 IF _nAttachedCTs >= nUpperIndexCTList THEN  // list overflow no free element for processing
-  LogError('Deformation processing list full, ignore new CT');
+  LogError('Worker processing list full, ignore new CT');
   Abort(iCT:=pNewCT^, sReason:='attach failed: too many attached');  // abort new CT (no release because not yet attached)
   RETURN;
 END_IF
@@ -456,21 +456,25 @@ VAR
   pCt : POINTER TO FB_ContainerDefGrid;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[//Work only with attached container
+        <ST><![CDATA[// set tracking offset
+_nTrackOffset := F_MeterToSubPixel(fPosMeter:=fPosition, fResoSubPx:=_fPrintResolution*_fSubPxResolution);  // [pos domain] save position
+
+//Work only with attached container
 IF _nAttachedCTs = 0 THEN RETURN; END_IF
   
 FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
   pCt := _pAttachedCTList[i];
 
   // update CT position
-  fCtPosition := _iCTTracker.getPosRel(iCT:=pCt^) - _nTrackOffset; 
+  fCtPosition := getPosRelToAttach(iCT:=pCt);
   
-  // release CT (manually and security)
+  // release CT (manually)
   IF _bForceRelease THEN
     //Abort(iCT:=pCt^, sReason:='Manually realease CT');
     LogWarning(F_Concat2('Manually realease CT Id=', TO_STRING(pCt^.pCT^.iId)));
     Release(iCT:=pCt^);
-    
+
+  // security release 
   ELSIF _fCtSecurityReleasePos > 0 AND (fCtPosition > _fCtSecurityReleasePos) THEN
     //Abort(iCT:=pCt^, sReason:=F_Concat2('Security released CT Id=', TO_STRING(pCt^.pCT^.iId)));
     LogError(F_Concat2('Security released CT Id=', TO_STRING(pCt^.pCT^.iId)));
@@ -612,15 +616,22 @@ END_FOR
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.work">
+      <LineId Id="68" Count="0" />
+      <LineId Id="66" Count="1" />
       <LineId Id="19" Count="0" />
       <LineId Id="3" Count="0" />
       <LineId Id="28" Count="1" />
       <LineId Id="52" Count="0" />
       <LineId Id="54" Count="0" />
-      <LineId Id="41" Count="4" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="45" Count="0" />
       <LineId Id="60" Count="0" />
       <LineId Id="46" Count="1" />
       <LineId Id="59" Count="0" />
+      <LineId Id="69" Count="0" />
       <LineId Id="48" Count="0" />
       <LineId Id="61" Count="0" />
       <LineId Id="49" Count="2" />
