@@ -198,7 +198,7 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[// relative position to X0 - tracking offset of this worker
-getPosRelToAttach := _iCTTracker.getPosRel(iCT:=iCT)-_nTrackOffset;]]></ST>
+getPosRelToAttach := iCT.GetPosRel(iTracker:=_iCTTracker) - _nTrackOffset;]]></ST>
       </Implementation>
     </Method>
     <Method Name="Init" Id="{9892d34e-806e-432a-b876-226a7f31ec11}">
@@ -466,7 +466,7 @@ FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
   pCt := _pAttachedCTList[i];
 
   // update CT position
-  fCtPosition := getPosRelToAttach(iCT:=pCt);
+  fCtPosition := getPosRelToAttach(iCT:=pCt^);
   
   // release CT (manually)
   IF _bForceRelease THEN

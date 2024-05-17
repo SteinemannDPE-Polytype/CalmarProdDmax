@@ -60,7 +60,8 @@ FOR nCtr := 1 TO nNum DO
   iCT := _pCTM^.getCT(nIdx:=nCtr);
   IF iCT <> 0 THEN
     // set position
-    aCTV[nCtr].setPos(x:=_pCTM^.iTracker.getPosRel(iCT:=iCT), y:=0);
+    aCTV[nCtr].setPos(x:=iCT.GetPosRel(iTracker:=_pCTM^.iTracker), y:=0);
+
     // display
     aCTV[nCtr].bHide := FALSE;
     aCTV[nCtr]( iCT:=iCT, 
@@ -199,7 +200,10 @@ bInit := TRUE;]]></ST>
       </Implementation>
     </Method>
     <LineIds Name="FB_PrintOverview">
-      <LineId Id="573" Count="12" />
+      <LineId Id="573" Count="8" />
+      <LineId Id="682" Count="0" />
+      <LineId Id="681" Count="0" />
+      <LineId Id="583" Count="2" />
       <LineId Id="671" Count="3" />
       <LineId Id="586" Count="0" />
       <LineId Id="678" Count="0" />
