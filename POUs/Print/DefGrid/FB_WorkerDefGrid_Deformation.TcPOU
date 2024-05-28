@@ -267,7 +267,7 @@ FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
   pCt := _pAttachedCTList[i];
  
   // update deformation handler
-  pCT^.UpdateDeformation(fPos:=_fAttachedCTRelPos[i]/_fSubPxResolution);  // pos in [px]
+  pCT^.UpdateDeformation(fPos:=_stAttachedCTData[i].fPosRelToAttach/_fSubPxResolution);  // pos in [px]
   
   // get status
   _bDeformationError[i] := pCt^.getDeformationStatus(eDStep => _eDeformStep[i], 

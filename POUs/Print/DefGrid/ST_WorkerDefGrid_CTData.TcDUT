@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_WorkerDefGrid_CTData" Id="{b523f7ce-8a04-47a4-9901-6f142f1b1afc}">
+    <Declaration><![CDATA[// workers additional data for all attached CTs
+TYPE ST_WorkerDefGrid_CTData :
+STRUCT
+  fPosRelToAttach : LREAL;
+  nData1 : UDINT;
+  nData2 : DINT;
+  fData1 : LREAL;
+  fData2 : LREAL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

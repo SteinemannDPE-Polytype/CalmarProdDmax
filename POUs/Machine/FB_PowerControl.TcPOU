@@ -60,7 +60,7 @@ FOR i:=1 TO nFuseInputsRegistered DO
 END_FOR       
 
 // output
-bO_AllFuseOk := bO_AllEpsitronOk AND bO_AllFuseOk;
+bO_AllFuseOk := bO_AllEpsitronOk AND bO_AllInputOk;
  
 // Acknowledge error
 IF bAckMsg THEN  bAckMsg := FALSE;

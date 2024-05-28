@@ -24,7 +24,7 @@ VAR
   _bSupportParallelCT : BOOL := FALSE;                // support for parallel CTs (else avoid attach while one connected).
   _nAttachedCTs     : UDINT;                          // Number of currently attached CTs
   _pAttachedCTList  : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF POINTER TO FB_ContainerDefGrid;    // current attached CTs
-  _fAttachedCTRelPos: ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF LREAL;     // relative position to attach (per attached CT)
+  _stAttachedCTData : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF ST_WorkerDefGrid_CTData;           // additional "handling" data per attached CT
   // position control
   fCtPosition       : LREAL;     // Container position relative to worker position
   _bForceRelease    : BOOL;                           // Manually force a ct release
@@ -310,22 +310,24 @@ IF Index = TO_DINT(nLowerIndexCTList) THEN StopCT(pCtDefGrid:=pRemCT); END_IF
 
 // compress list
 IF Index >= TO_DINT(nLowerIndexCTList) AND Index < TO_DINT(nUpperIndexCTList) THEN
+  // - ct references
   MEMMOVE(              // shift all above entries down
     destAddr := ADR( _pAttachedCTList[Index] ), 
     srcAddr  := ADR( _pAttachedCTList[Index + 1] ), 
     n        := DINT_TO_UDINT(SIZEOF(_pAttachedCTList[LowerIndex]) * (UDINT_TO_DINT(_nAttachedCTs) - Index - 1 + LowerIndex))
   );
   _pAttachedCTList[nUpperIndexCTList] := 0;     // erase last(compressed) list entry
+  // - ct handling data
   MEMMOVE(              // shift all above entries down
-    destAddr := ADR( _fAttachedCTRelPos[Index] ), 
-    srcAddr  := ADR( _fAttachedCTRelPos[Index + 1] ), 
-    n        := DINT_TO_UDINT(SIZEOF(_fAttachedCTRelPos[LowerIndex]) * (UDINT_TO_DINT(_nAttachedCTs) - Index - 1 + LowerIndex))
+    destAddr := ADR( _stAttachedCTData[Index] ), 
+    srcAddr  := ADR( _stAttachedCTData[Index + 1] ), 
+    n        := DINT_TO_UDINT(SIZEOF(_stAttachedCTData[LowerIndex]) * (UDINT_TO_DINT(_nAttachedCTs) - Index - 1 + LowerIndex))
   );
-  _fAttachedCTRelPos[nUpperIndexCTList] := 0;   // erase last(compressed) list entry
+  MEMSET(destAddr:=ADR(_stAttachedCTData[nUpperIndexCTList]), fillByte:=0, n:=SIZEOF(_stAttachedCTData[1]));  // erase last(compressed) list entry
 END_IF
 _pAttachedCTList[_nAttachedCTs] := 0;   // erase last element
-_fAttachedCTRelPos[_nAttachedCTs] := 0;   // erase last element
-
+MEMSET(destAddr:=ADR(_stAttachedCTData[_nAttachedCTs]), fillByte:=0, n:=SIZEOF(_stAttachedCTData[1]));  // erase last element
+  
 // remove
 _nAttachedCTs := _nAttachedCTs - 1;   // remove one element
 
@@ -369,8 +371,7 @@ END_IF
 // add to list
 _nAttachedCTs := _nAttachedCTs + 1;
 _pAttachedCTList[_nAttachedCTs] := pNewCT;
-_fAttachedCTRelPos[_nAttachedCTs] := 0;
-
+MEMSET(destAddr:=ADR(_stAttachedCTData[_nAttachedCTs]), fillByte:=0, n:=SIZEOF(_stAttachedCTData[1]));  // clear additional data
 
 // apply head
 IF _nAttachedCTs = 1 THEN
@@ -475,7 +476,7 @@ FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
   pCt := _pAttachedCTList[i];
 
   // update CT position
-  _fAttachedCTRelPos[i] := getPosRelToAttach(iCT:=pCt^);
+  _stAttachedCTData[i].fPosRelToAttach := getPosRelToAttach(iCT:=pCt^);
   
   // release CT (manually)
   IF _bForceRelease THEN
@@ -485,7 +486,7 @@ FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
     Release(iCT:=pCt^);
 
   // security release 
-  ELSIF _fCtSecurityReleasePos > 0 AND (_fAttachedCTRelPos[i] > _fCtSecurityReleasePos) THEN
+  ELSIF _fCtSecurityReleasePos > 0 AND (_stAttachedCTData[i].fPosRelToAttach > _fCtSecurityReleasePos) THEN
     //Abort(iCT:=pCt^, sReason:=F_Concat2('Security released CT Id=', TO_STRING(pCt^.pCT^.iId)));
     //LogError(F_Concat2('Security released CT Id=', TO_STRING(pCt^.pCT^.iId)));
     pCt^.AbortDeformation(sReason:='Security released CT', Src:=_pEcSrc^, bHideLog:=FALSE);
@@ -570,13 +571,16 @@ END_FOR
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid.pull">
-      <LineId Id="114" Count="22" />
+      <LineId Id="114" Count="16" />
+      <LineId Id="173" Count="0" />
+      <LineId Id="131" Count="5" />
+      <LineId Id="174" Count="0" />
       <LineId Id="169" Count="3" />
       <LineId Id="168" Count="0" />
-      <LineId Id="167" Count="0" />
-      <LineId Id="137" Count="1" />
-      <LineId Id="166" Count="0" />
-      <LineId Id="139" Count="13" />
+      <LineId Id="175" Count="0" />
+      <LineId Id="137" Count="2" />
+      <LineId Id="177" Count="0" />
+      <LineId Id="140" Count="12" />
       <LineId Id="154" Count="0" />
       <LineId Id="153" Count="0" />
       <LineId Id="39" Count="0" />
@@ -598,8 +602,7 @@ END_FOR
       <LineId Id="19" Count="0" />
       <LineId Id="22" Count="0" />
       <LineId Id="18" Count="0" />
-      <LineId Id="49" Count="0" />
-      <LineId Id="48" Count="0" />
+      <LineId Id="50" Count="0" />
       <LineId Id="33" Count="0" />
       <LineId Id="30" Count="1" />
       <LineId Id="29" Count="0" />
@@ -643,7 +646,7 @@ END_FOR
       <LineId Id="52" Count="0" />
       <LineId Id="54" Count="0" />
       <LineId Id="41" Count="0" />
-      <LineId Id="71" Count="0" />
+      <LineId Id="84" Count="0" />
       <LineId Id="43" Count="0" />
       <LineId Id="70" Count="0" />
       <LineId Id="77" Count="1" />

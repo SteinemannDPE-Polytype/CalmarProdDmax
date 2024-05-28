@@ -17,7 +17,7 @@
     <Implicit_Jitter_Distribution>{16d81fa0-13c7-4d29-a136-833127f063f5}</Implicit_Jitter_Distribution>
     <LibraryReferences>{ba6a19c6-5744-48f5-a170-b3a0509f6030}</LibraryReferences>
     <Released>false</Released>
-    <ProjectVersion>2.0.2.17</ProjectVersion>
+    <ProjectVersion>2.0.2.19</ProjectVersion>
     <Company>WIFAG-Polytype</Company>
     <Title>CalmarProdDmax</Title>
     <Author>Wifag//Polytype</Author>
@@ -313,6 +313,9 @@ Fribourg/Switzerland (2021)</Description>
     <Compile Include="POUs\Print\DefGrid\ST_DeformationPointTbl.TcDUT">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
+    </Compile>
+    <Compile Include="POUs\Print\DefGrid\ST_WorkerDefGrid_CTData.TcDUT">
+      <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\Print\DefGrid\_VISU_Templates\E_DeformationType.TcTLO">
       <SubType>Code</SubType>

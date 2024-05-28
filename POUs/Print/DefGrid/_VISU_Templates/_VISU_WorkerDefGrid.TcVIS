@@ -1865,7 +1865,7 @@
                     </o>
                     <o>
                       <v n="Id">2477733581L</v>
-                      <v n="Value">"m_Inst._fAttachedCTRelPos[1]"</v>
+                      <v n="Value">"m_Inst._stAttachedCTData[1].fPosRelToAttach"</v>
                     </o>
                     <o>
                       <v n="Id">823443203L</v>
@@ -2696,10 +2696,10 @@
               <d n="FbMethods" t="CaseInsensitiveHashtable" ckt="String" cvt="Guid">
                 <v>FB_Init</v>
                 <v>ac38fd2e-6e22-4cb3-aa39-22eafeee7865</v>
-                <v>FB_Exit</v>
-                <v>f504c478-421f-4fba-acb6-d73c585ccfc6</v>
                 <v>FB_Reinit</v>
                 <v>a2a2ccf6-7e20-4c8b-95b3-2fb70b1798d2</v>
+                <v>FB_Exit</v>
+                <v>f504c478-421f-4fba-acb6-d73c585ccfc6</v>
               </d>
               <v n="FbName">"NotImportant"</v>
               <v n="FbGuid">{5b91d11f-f619-4912-bb11-78e77b9d2869}</v>
