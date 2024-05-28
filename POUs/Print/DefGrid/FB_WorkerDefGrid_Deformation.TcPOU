@@ -18,7 +18,7 @@ VAR
   // -
   _bNewJob                    : BOOL;   // new job started 
 
-  //Deformation status
+  //Deformation status (per attached CT)
   _nDeformationProcPoints     : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF UDINT;  // available grid points on ct
   _nDeformationProcCols       : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF UDINT;  // number of already generated grid columns
   _eDeformStep                : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF E_DeformationStep;   // status deformation of ct
@@ -247,7 +247,6 @@ sCamSettings := _iParamMediator.sCameraGridSettings;
 
 // set tracking offset
 fPosition := sCamSettings.fDetectToCam + _fDistToCam;
-_nTrackOffset := F_MeterToSubPixel(fPosMeter:=fPosition, fResoSubPx:=_fPrintResolution*_fSubPxResolution);  // [pos domain] save position
 ]]></ST>
       </Implementation>
     </Method>
@@ -259,18 +258,16 @@ VAR
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[//-----------------------------------------------------------
-//NOTE: over written parent (we call AbortDeformation instead just releasing CT) SUPER^.work();    // update pos and do error releases
+SUPER^.work();      // Parent implementation
 
 setupPosition();    // Worker position update
 
-// Work only with attached container
+// Work only with attached container (additional work to Base class)
 FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
   pCt := _pAttachedCTList[i];
-  
-  // update CT position
-  fCtPosition := getPosRelToAttach(iCT:=pCt^); 
+ 
   // update deformation handler
-  pCT^.UpdateDeformation(fPos:=fCtPosition/_fSubPxResolution);  // pos in [px]
+  pCT^.UpdateDeformation(fPos:=_fAttachedCTRelPos[i]/_fSubPxResolution);  // pos in [px]
   
   // get status
   _bDeformationError[i] := pCt^.getDeformationStatus(eDStep => _eDeformStep[i], 
@@ -294,17 +291,6 @@ FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
     END_IF
     LogLvl(Lvl:=E_LogSeverity.Detail, Msg:=F_Concat4('Done with: CamP=',  TO_STRING(pCT^.nRegisteredCameraPoints), ' GridP=', TO_STRING(pCt^.nAvailableGridPoints)));
     Release(pCt^);
-
-  // release CT (manually and security)
-  ELSIF _bForceRelease THEN
-    pCt^.AbortDeformation(sReason:='Manually realease CT', Src:=_pEcSrc^, bHideLog:=FALSE);
-    Release(iCT:=_pAttachedCt^);
-  
-  // ! 2*SecurityReleasePosition, should work with max. 4 attached CT
-  ELSIF 1.5*_fCtSecurityReleasePos > 0 AND (fCtPosition > _fCtSecurityReleasePos) THEN
-    LogError(F_Concat2('Security released CTId=', TO_STRING(pCt^.pCT^.iId)));
-    pCt^.AbortDeformation(sReason:='Security released CT', Src:=_pEcSrc^, bHideLog:=FALSE);
-    Release(iCT:=_pAttachedCt^);
   END_IF
   
 END_FOR
@@ -415,25 +401,20 @@ END_FOR
       <LineId Id="12" Count="0" />
       <LineId Id="22" Count="1" />
       <LineId Id="10" Count="0" />
-      <LineId Id="24" Count="0" />
       <LineId Id="3" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Deformation.work">
       <LineId Id="332" Count="0" />
-      <LineId Id="382" Count="0" />
-      <LineId Id="403" Count="0" />
+      <LineId Id="416" Count="1" />
       <LineId Id="402" Count="0" />
       <LineId Id="390" Count="0" />
       <LineId Id="333" Count="0" />
       <LineId Id="392" Count="1" />
-      <LineId Id="341" Count="0" />
-      <LineId Id="399" Count="1" />
+      <LineId Id="400" Count="0" />
       <LineId Id="411" Count="0" />
       <LineId Id="410" Count="0" />
       <LineId Id="409" Count="0" />
-      <LineId Id="342" Count="26" />
-      <LineId Id="384" Count="1" />
-      <LineId Id="370" Count="3" />
+      <LineId Id="342" Count="21" />
       <LineId Id="375" Count="2" />
       <LineId Id="6" Count="0" />
     </LineIds>
