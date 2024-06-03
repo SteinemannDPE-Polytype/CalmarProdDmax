@@ -55,7 +55,6 @@ VAR
   i : UDINT;
   bDeformErr : BOOL;
   eDeformStep : E_DeformationStep;
-  pCt : POINTER TO FB_ContainerDefGrid;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[(*Please do enable externally in PrintModule
@@ -73,22 +72,24 @@ IF NOT SUPER^.Attach(iCT:=iCT) THEN
   RETURN;
 END_IF
 
+// Additional worker checks
+IF _pNewAttached = 0 THEN RETURN; END_IF
 
 // - Additional worker checks
-bDeformErr := pCt^.getDeformationStatus(eDStep=>eDeformStep);   // get latest status 
+bDeformErr := _pNewAttached^.getDeformationStatus(eDStep=>eDeformStep);   // get latest status 
   
 // - deformation started? and no deformation error so far
 IF bDeformErr OR eDeformStep = E_DeformationStep.nothing THEN
   Release(iCT:=iCT);  // nothing to do anymore
 
   // - job is valid?
-ELSIF pCt^.pJob = 0 OR NOT _bJobActive THEN
-  pCt^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^, bHideLog:=FALSE);
+ELSIF _pNewAttached^.pJob = 0 OR NOT _bJobActive THEN
+  _pNewAttached^.AbortDeformation(sReason:='No valid job', Src:=_pEcSrc^, bHideLog:=FALSE);
   Release(iCT:=iCT);
   
 // - did camera start?  
 (*ELSIF eDeformStep < E_DeformationStep.cameraStarted THEN
-  pCt^.AbortDeformation(sReason:='Prio steps did not start', Src:=_pEcSrc^);
+  _pNewAttached^.AbortDeformation(sReason:='Prio steps did not start', Src:=_pEcSrc^);
   Release(iCT:=iCT);
 *)
   
@@ -97,7 +98,7 @@ ELSE
   // checks
   IF eDeformStep < E_DeformationStep.cameraStarted THEN LogWarning('Sub-optimal timing, camera did not yet start'); END_IF
   // start deformation
-  pCt^.StartDeformation(
+  _pNewAttached^.StartDeformation(
     sDefGridSettings:=_sDeformationGridSettings, 
     fStartDeformationPos:=getPosRelToAttach(iCT)/_fSubPxResolution   // [px]
   );
@@ -313,7 +314,8 @@ END_FOR
       <LineId Id="271" Count="0" />
       <LineId Id="210" Count="0" />
       <LineId Id="269" Count="1" />
-      <LineId Id="190" Count="0" />
+      <LineId Id="344" Count="1" />
+      <LineId Id="343" Count="0" />
       <LineId Id="95" Count="0" />
       <LineId Id="104" Count="0" />
       <LineId Id="109" Count="0" />
