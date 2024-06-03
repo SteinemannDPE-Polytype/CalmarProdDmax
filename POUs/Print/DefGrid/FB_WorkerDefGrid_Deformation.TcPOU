@@ -58,14 +58,15 @@ VAR
   pCt : POINTER TO FB_ContainerDefGrid;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF getCtInst(iCT:=iCT, pCT=>pCt) = 0 THEN    // get specific container
+        <ST><![CDATA[(*Please do enable externally in PrintModule
+IF getCtInst(iCT:=iCT, pCT=>pCt) = 0 THEN    // get specific container
   RETURN;
 END_IF
 
 //-- (auto-) enable / disable worker based on mode (do before parent Attach(), is checked inside)
 bWorkerEnable := _sDeformationGridSettings.eDeformationType <> E_DeformationType.NoDeformation 
                      AND SEL(pCt^.eCamMode > E_CameraMode.NoCorrection, FALSE, TRUE);
-
+*)
 
 // -- Attach
 IF NOT SUPER^.Attach(iCT:=iCT) THEN
@@ -302,6 +303,7 @@ END_FOR
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Deformation.Attach">
       <LineId Id="272" Count="0" />
+      <LineId Id="332" Count="0" />
       <LineId Id="286" Count="0" />
       <LineId Id="263" Count="0" />
       <LineId Id="291" Count="1" />
