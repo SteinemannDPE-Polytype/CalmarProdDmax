@@ -509,6 +509,7 @@ fPosRel_CamFeature := fPosRel_Deform / _fFeatureGrid;
 fPosRel_GridCol    := fPosRel_Deform / _sDefGridSettings.nGridPitchX;
 
 // - check available cam points --> current feature
+//    Is this blocking when position is retracting?
 IF FLOOR(fPosRel_CamFeature) > _nUpdatedFeature   // by CameraFeature pitch (to sync with reception of cam points)
    //FLOOR(fPosRel_GridCol) > _nUpdatedGridCol    // by Grid Pitch  // AND _nUpdatedGridCol <= _sDefGridSettings.nGridSizeX
 THEN
@@ -785,7 +786,9 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
     <LineIds Name="FB_ImageDeformation.updateDeformation">
       <LineId Id="215" Count="2" />
       <LineId Id="273" Count="0" />
-      <LineId Id="218" Count="9" />
+      <LineId Id="218" Count="7" />
+      <LineId Id="302" Count="0" />
+      <LineId Id="226" Count="1" />
       <LineId Id="229" Count="0" />
       <LineId Id="271" Count="0" />
       <LineId Id="270" Count="0" />
