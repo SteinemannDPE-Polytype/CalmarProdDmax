@@ -19,9 +19,6 @@ VAR
   lastCreatedCT       : I_CT;                           (*last created container*)
 
   (*lists*)
-  (*--list implementations*)
-  prodList            : FB_ListPointerDyn;              (*list fb [pointer to I_CT] - current production elements*)
-  _prodMem            : ARRAY[1..lNUM_LIST_SIZE] OF PVOID;   (*list memory for prodList*)
   (*--job trace list*)
   _currJobId          : STRING;                         (*id of current started job*)
 
@@ -156,11 +153,6 @@ END_VAR]]></Declaration>
 IF NOT bInitialized THEN RETURN; END_IF                             // exit if no production is active
 IF sCT = 0 THEN LogError(aC_Dbg_InvPtrCT); RETURN; END_IF  // log invalid pointer 
 
-// remove from production list
-IF NOT prodList.RemoveIndex(prodList.FindIndex(sCT.instance)) THEN
-  LogError('CT_Finish: could not find CT in prodList'); 
-END_IF
-
 // tag machine errors on CT
 IF sCT.pCT^.bValid AND NOT bSuccess THEN  
     sCT.setError(EC_Print.ecPMCTMachineErr, Src:=_pEcSrc^);            // tag CT with: error from machine 
@@ -278,12 +270,6 @@ END_VAR]]></Declaration>
 // ask pu for a next page
 bErr := NOT _pPU^.getPage(sCT:=sCT, lPagesLeft=>lRemainingPages);
 
-// add to producing list
-IF NOT prodList.AddItem(Item := sCT.instance) THEN 
-  LogError('getNext: could not add CT to prodList');
-  bErr := TRUE;
-END_IF
-
 getNext := NOT bErr;]]></ST>
       </Implementation>
     </Method>
@@ -302,10 +288,6 @@ END_IF
 
 // register external references
 _pPU := pPU;
-
-// init lists
-prodList(List:=_prodMem);  // initial call for list setup and init
-prodList.Clear();
 
 // init error source
 _pEcSrc := ErrorCodes.fbErrCodeMngr.registerErrSource(
@@ -448,7 +430,8 @@ END_VAR
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ProdManager_DMAX.CT_Finish">
-      <LineId Id="3" Count="30" />
+      <LineId Id="3" Count="2" />
+      <LineId Id="11" Count="22" />
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ProdManager_DMAX.CT_Produce">
@@ -466,13 +449,12 @@ END_VAR
       <LineId Id="16" Count="0" />
     </LineIds>
     <LineIds Name="FB_ProdManager_DMAX.getNext">
-      <LineId Id="3" Count="9" />
+      <LineId Id="3" Count="3" />
       <LineId Id="36" Count="0" />
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ProdManager_DMAX.init">
       <LineId Id="3" Count="7" />
-      <LineId Id="16" Count="3" />
       <LineId Id="37" Count="5" />
       <LineId Id="36" Count="0" />
       <LineId Id="48" Count="0" />
