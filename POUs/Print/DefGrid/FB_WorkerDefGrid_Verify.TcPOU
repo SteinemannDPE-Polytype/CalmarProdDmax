@@ -7,7 +7,7 @@ VAR_OUTPUT
 END_VAR
 VAR
   lastEjected   : BOOL;   // stores state if last CT was ejected 
-  tpEjectPulse  : TP := (PT:=T#100MS);
+  tpEjectPulse  : TP := (PT:=T#80MS);
   
   // print manager reference
   _pPm : POINTER TO FB_ProdManager_DMAX;
@@ -38,7 +38,7 @@ END_VAR]]></Declaration>
 
   // finish CT in production
   IF _pPm <> 0 THEN 
-    _pPm^.CT_Finish(sCT:=iCT, bSuccess:=bSuccess);
+    _pPm^.CT_Finish(sCT:=iCT, bSuccess:=bSuccess);      // report to job status
   ELSE
     LogError('PrintManager not set');
 	END_IF
@@ -48,6 +48,7 @@ END_VAR]]></Declaration>
     // create eject trigger
     tpEjectPulse(IN:=TRUE);
     lastEjected := TRUE;
+    LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('Eject CT: ', _pAttachedCt^.print(0)));
   ELSE
     tpEjectPulse(IN:=FALSE);
     lastEjected := FALSE;
@@ -112,20 +113,19 @@ END_VAR
       <Implementation>
         <ST><![CDATA[SUPER^.work();
 
-IF _pAttachedCt <> 0 THEN
-  tpEjectPulse(Q=>bWateGateActive);
-  fT_Pulse(CLK:=bWateGateActive);
-  
-  // release
-  IF tpEjectPulse.IN THEN
-    IF fT_Pulse.Q THEN  
-      tpEjectPulse(IN:=FALSE);
-      LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('Eject CT: ', _pAttachedCt^.print(0)));
-      Release(iCT:=_pAttachedCt^);
-    END_IF
-  ELSE
-    Release(iCT:=_pAttachedCt^);
+// output signal handling
+tpEjectPulse(Q=>bWateGateActive);
+fT_Pulse(CLK:=bWateGateActive);
+
+// release
+IF tpEjectPulse.IN THEN
+  IF fT_Pulse.Q THEN  
+    tpEjectPulse(IN:=FALSE);
   END_IF
+END_IF
+
+IF _pAttachedCt <> 0 THEN   // just release any attached container in this cycle
+  Release(iCT:=_pAttachedCt^);
 END_IF]]></ST>
       </Implementation>
     </Method>
@@ -151,12 +151,10 @@ END_IF]]></ST>
       <LineId Id="60" Count="1" />
       <LineId Id="36" Count="0" />
       <LineId Id="38" Count="1" />
-      <LineId Id="42" Count="1" />
-      <LineId Id="40" Count="0" />
-      <LineId Id="44" Count="0" />
-      <LineId Id="70" Count="0" />
-      <LineId Id="45" Count="0" />
-      <LineId Id="41" Count="0" />
+      <LineId Id="79" Count="2" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="82" Count="2" />
+      <LineId Id="42" Count="0" />
       <LineId Id="37" Count="0" />
       <LineId Id="8" Count="0" />
     </LineIds>
@@ -177,8 +175,13 @@ END_IF]]></ST>
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Verify.work">
       <LineId Id="65" Count="0" />
+      <LineId Id="96" Count="1" />
+      <LineId Id="99" Count="6" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="110" Count="0" />
       <LineId Id="91" Count="0" />
-      <LineId Id="73" Count="13" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="85" Count="0" />
       <LineId Id="45" Count="0" />
     </LineIds>
   </POU>
