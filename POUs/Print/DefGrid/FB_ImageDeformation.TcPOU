@@ -573,6 +573,8 @@ FOR col:=_nLocalGridColsGenerated TO nGridCol DO
       4: dx := nTestGridFactor; dy := 0;                                      // dx only (Factor)
       5: dx := 0; dy := nTestGridFactor;                                      // dy only (Factor)
       6: dx := 0; dy := TO_LREAL(col) * nTestGridFactor;
+      7: dx := TO_LREAL(col) * nTestGridFactor; dy := 0;
+      8: dx := SEL(row=1, 0, nTestGridFactor ); dy := 0;
     ELSE
       dx := dy := 0;
     END_CASE
@@ -814,6 +816,7 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="346" Count="0" />
       <LineId Id="378" Count="0" />
       <LineId Id="391" Count="2" />
+      <LineId Id="406" Count="1" />
       <LineId Id="344" Count="1" />
       <LineId Id="336" Count="0" />
       <LineId Id="271" Count="24" />

@@ -467,7 +467,7 @@ IF _bCamValid THEN
   sCameraGridSettings.eCameraMode := SEL(_iActiveCam<>0, E_CameraMode.NoCorrection, _iActiveCam.eCameraMode);
   sCameraGridSettings.eDeformationType := _eDeformationType;
   sCameraGridSettings.fGridFeaturePitch := _fFeatureGrid;
-  sCameraGridSettings.fDetectToCam := _iActiveCam.fDetectToCameraOffset;
+  sCameraGridSettings.fDetectToCam := SEL(_iActiveCam<>0,0,_iActiveCam.fDetectToCameraOffset);
 END_IF]]></ST>
         </Implementation>
       </Get>
@@ -483,7 +483,6 @@ END_VAR
 VAR
   bFound : BOOL;
   i : UDINT;
-  sOld, sNew : STRING :='';
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[// select related camera (choose first matching)
@@ -498,11 +497,19 @@ FOR i :=1 TO _nRegisteredCam DO
 END_FOR
 
 IF NOT bFound THEN
-  IF _iActiveCam <> 0 THEN sOld := _iActiveCam.sName; END_IF
-  IF _pAdsCam <> 0 THEN sNew := TO_STRING(_pAdsCam^.eCameraDevice); END_IF
+  IF _iActiveCam <> 0 THEN
+    // keep old if new was not found 
+    LogError(F_Concat4('Try to select unavailable cam=', TO_STRING(eNewCam), ', use old cam=', TO_STRING(_iActiveCam.eDeviceType)));
+  ELSIF _pAdsCam <> 0 THEN
+    IF _iCamList[1] <> 0 THEN
+      _iActiveCam := _iCamList[1];
+      LogError(F_Concat4('Try to select unavailable cam=', TO_STRING(eNewCam), ', use other cam=', TO_STRING(_iActiveCam.eDeviceType)));
+    ELSE
+      LogError(F_Concat4('Try to select unavailable cam=', TO_STRING(eNewCam), ', no camera registered',''));
+		END_IF
+  END_IF
   
-  LogError(F_Concat4('Unavailable camera selected=', sNew, ', use cam=', sOld));
-  selectCamera  := _iActiveCam; // return camera to before
+  selectCamera  := _iActiveCam; // return fallback camera 
 END_IF
 ]]></ST>
       </Implementation>
@@ -874,8 +881,14 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="25" Count="0" />
       <LineId Id="23" Count="0" />
       <LineId Id="11" Count="0" />
-      <LineId Id="50" Count="1" />
-      <LineId Id="12" Count="0" />
+      <LineId Id="65" Count="1" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="73" Count="2" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="51" Count="0" />
       <LineId Id="19" Count="0" />
       <LineId Id="5" Count="0" />
       <LineId Id="16" Count="0" />

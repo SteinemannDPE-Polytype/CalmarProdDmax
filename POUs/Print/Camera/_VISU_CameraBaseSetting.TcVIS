@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <Visu Name="_VISU_CameraBaseSetting" Id="{9f91569e-5850-41c5-8c2a-6e99eea6673b}">
     <XmlArchive>
       <Data>
@@ -808,7 +808,7 @@
                     </o>
                     <o>
                       <v n="Id">1999528970L</v>
-                      <v n="Value">"&lt;toggle/tap variable&gt;"</v>
+                      <v n="Value">"m_Inst._bActivated &lt;&gt; 0"</v>
                     </o>
                     <o>
                       <v n="Id">3719097617L</v>
@@ -816,7 +816,7 @@
                     </o>
                     <o>
                       <v n="Id">1649127785L</v>
-                      <v n="Value">20</v>
+                      <v n="Value" t="Int16">20</v>
                     </o>
                     <o>
                       <v n="Id">357335551L</v>
@@ -879,7 +879,7 @@
                     </o>
                     <o>
                       <v n="Id">1782330054L</v>
-                      <v n="Value">"BS_HOLLOW"</v>
+                      <v n="Value">"BS_SOLID"</v>
                     </o>
                     <o>
                       <v n="Id">2827249010L</v>
@@ -1172,10 +1172,10 @@
               <d n="FbMethods" t="CaseInsensitiveHashtable" ckt="String" cvt="Guid">
                 <v>FB_Init</v>
                 <v>e0511b1f-2031-491d-a0e0-a381160338ce</v>
-                <v>FB_Reinit</v>
-                <v>447c2651-adf8-4c3a-bda6-9f5d2f5c0881</v>
                 <v>FB_Exit</v>
                 <v>90a90826-3b19-4cb2-bc6a-ede6ff6d3ae6</v>
+                <v>FB_Reinit</v>
+                <v>447c2651-adf8-4c3a-bda6-9f5d2f5c0881</v>
               </d>
               <v n="FbName">"NotImportant"</v>
               <v n="FbGuid">{a643e148-4f22-435e-9a8f-a1268aadd4fc}</v>
@@ -1285,7 +1285,7 @@
         <Type n="Hashtable">System.Collections.Hashtable</Type>
         <Type n="HotkeyConfiguration">{6b108d46-58af-4e41-a3f4-174d8f160cc4}</Type>
         <Type n="InputBoxInputAction">{e8e7e747-f76f-4dee-ab1c-b9637e41ac26}</Type>
-        <Type n="InputBoxInputAction[]">_3S.CoDeSys.VisualElem.InputBoxInputAction[], VisualElem.plugin, Version=3.5.13.30, Culture=neutral, PublicKeyToken=null</Type>
+        <Type n="InputBoxInputAction[]">_3S.CoDeSys.VisualElem.InputBoxInputAction[], VisualElem.plugin, Version=3.5.13.32, Culture=neutral, PublicKeyToken=null</Type>
         <Type n="Int16">System.Int16</Type>
         <Type n="Int32">System.Int32</Type>
         <Type n="Int64">System.Int64</Type>
