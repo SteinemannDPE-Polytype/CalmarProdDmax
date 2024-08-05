@@ -10,6 +10,9 @@
 Repository: [GIT repo](http://git.polytype.com/BonoboGit/plc_product_dmax.git)
 
 ---
+### changes `2.0.1.14` HOA
+* ADD: `FB_SheetDetectSupervision`, `ST_SheetDetectSupervisionPar`
+
 ### changes `2.0.1.13` HOA
 * CHG: `FB_CameraTrigger`: `bI_SensorSupervisionEnable` added.
 

@@ -1,0 +1,164 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_SheetDetectSupervision" Id="{6103565e-dc2f-4de7-98c0-bdecb6f9478a}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SheetDetectSupervision
+VAR_INPUT
+  IbSensorSheetCalender                   AT%I* : BOOL;            // Sensor signal B250
+  IbSensorSheetInlet                      AT%I* : BOOL;            // Sensor signal B257
+  IbSensorSheetOutlet                     AT%I* : BOOL;            // Sensor signal B254
+
+  InCurrentPos                                  : DINT;            // Current position in [SubPx]
+  IbMachineStopped                              : BOOL;            // Machine stopped
+  IbInhibitSheetTrigger                         : BOOL;            // inhibit trigger signals for substrate length
+  IbCameraTrigger                               : BOOL;            // Camera trigger
+END_VAR
+
+VAR_OUTPUT
+  ObSheetJamPrintingSystem                AT%Q* : BOOL;            // Sheet jam in printing system detected
+
+  ObCameraTriggerEnable                         : BOOL;            // Camera trigger enable
+  ObCameraTriggerIncorrect                      : BOOL;            // Camera trigger incorrect
+  ObCameraTriggerSupervison                     : BOOL;            // Camera trigger supervision for sheet jam
+  ObSheetDetectFree                             : BOOL;            // sheet detect sensors are free
+END_VAR
+
+VAR
+  _PrintSubPixelResolution                      : UDINT := 600 * 32;           // Print sub pixel resolution
+
+  fbSheetDetectRingbuffer01                     : FB_RINGBUFFER;
+  fbSheetDetectRingbuffer02                     : FB_RINGBUFFER;
+
+  rfTrig_CameraTriggerSupervison                : RF_TRIG;
+  bCameraTriggerSupervisonOn                    : BOOL;
+  
+  rfTrig_MachineStopped                         : RF_TRIG;
+
+  // jam event
+  rTrig_SheetJam                                : R_TRIG;
+  _bSheetJamEvent                               : BOOL;
+END_VAR
+
+VAR PERSISTENT
+  RemSheetDetectSupervisionPar                  : ST_SheetDetectSupervisionPar;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[rfTrig_MachineStopped(CLK := IbMachineStopped);
+
+(*B250 => B256*)
+fbSheetDetectRingbuffer01.pI_ConversionErr      := ADR(PRG_SYSTEMBASE.lI_ConversionErr);
+fbSheetDetectRingbuffer01.bI_Reset              := IbMachineStopped;
+fbSheetDetectRingbuffer01.bI_Sensor             := NOT IbSensorSheetCalender;
+fbSheetDetectRingbuffer01.iI_CurrentPos         := DINT_TO_UDINT(InCurrentPos);
+fbSheetDetectRingbuffer01.iI_Pg_Offset          := 0;
+fbSheetDetectRingbuffer01.iI_Offset_X0          := fbSheetDetectRingbuffer01.iI_CurrentPos + DINT_TO_UDINT(F_MeterToSubPixel(RemSheetDetectSupervisionPar.fR_SheetDetectDistance01, UDINT_TO_LREAL(_PrintSubPixelResolution)));           
+fbSheetDetectRingbuffer01.iI_Resolution         := UDINT_TO_INT(_PrintSubPixelResolution);
+fbSheetDetectRingbuffer01.fI_ShiftDistance      := 0 - RemSheetDetectSupervisionPar.fR_SheetDetectRange01_m;
+fbSheetDetectRingbuffer01();
+
+(*B256 => B254*)
+fbSheetDetectRingbuffer02.pI_ConversionErr      := ADR(PRG_SYSTEMBASE.lI_ConversionErr);
+fbSheetDetectRingbuffer02.bI_Reset              := IbMachineStopped;
+fbSheetDetectRingbuffer02.bI_Sensor             := IbCameraTrigger;
+fbSheetDetectRingbuffer02.iI_CurrentPos         := DINT_TO_UDINT(InCurrentPos);
+fbSheetDetectRingbuffer02.iI_Pg_Offset          := 0;
+fbSheetDetectRingbuffer02.iI_Offset_X0          := fbSheetDetectRingbuffer02.iI_CurrentPos + DINT_TO_UDINT(F_MeterToSubPixel(RemSheetDetectSupervisionPar.fR_SheetDetectDistance02, UDINT_TO_LREAL(_PrintSubPixelResolution)));           
+fbSheetDetectRingbuffer02.iI_Resolution         := UDINT_TO_INT(_PrintSubPixelResolution);
+fbSheetDetectRingbuffer02.fI_ShiftDistance      := 0 - RemSheetDetectSupervisionPar.fR_SheetDetectRange02_m;
+fbSheetDetectRingbuffer02();
+
+RemSheetDetectSupervisionPar.nR_SheetDetectRange01_SubPx := F_MeterToSubPixel(REAL_TO_LREAL(RemSheetDetectSupervisionPar.fR_SheetDetectRange01_m), UDINT_TO_LREAL(_PrintSubPixelResolution));
+RemSheetDetectSupervisionPar.nR_SheetDetectRange02_SubPx := F_MeterToSubPixel(REAL_TO_LREAL(RemSheetDetectSupervisionPar.fR_SheetDetectRange02_m), UDINT_TO_LREAL(_PrintSubPixelResolution));
+
+IF RemSheetDetectSupervisionPar.bR_Enable THEN
+  (*Masking sheet detection of camera system*)
+  ObCameraTriggerEnable     :=     (InCurrentPos > (fbSheetDetectRingbuffer01.iO_ShiftOffset_X0 - RemSheetDetectSupervisionPar.nR_SheetDetectRange01_SubPx)) 
+                               AND (InCurrentPos < (fbSheetDetectRingbuffer01.iO_ShiftOffset_X0 + RemSheetDetectSupervisionPar.nR_SheetDetectRange01_SubPx));
+  (*Sheet trigger was incorrect because of faulty detection*)
+  IF NOT ObCameraTriggerEnable AND IbSensorSheetInlet AND NOT IbInhibitSheetTrigger THEN
+    ObCameraTriggerIncorrect := TRUE;
+  END_IF
+
+  (*Sheet jam supervision*)
+  ObCameraTriggerSupervison :=     (InCurrentPos > (fbSheetDetectRingbuffer02.iO_ShiftOffset_X0 - RemSheetDetectSupervisionPar.nR_SheetDetectRange02_SubPx)) 
+                               AND (InCurrentPos < (fbSheetDetectRingbuffer02.iO_ShiftOffset_X0 + RemSheetDetectSupervisionPar.nR_SheetDetectRange02_SubPx));
+  rfTrig_CameraTriggerSupervison(CLK := ObCameraTriggerSupervison);
+  IF rfTrig_CameraTriggerSupervison.RT THEN
+    bCameraTriggerSupervisonOn := TRUE;
+  END_IF
+  IF bCameraTriggerSupervisonOn AND IbSensorSheetOutlet THEN
+    bCameraTriggerSupervisonOn := FALSE;
+  END_IF
+  IF rfTrig_CameraTriggerSupervison.FT AND bCameraTriggerSupervisonOn THEN
+    ObSheetJamPrintingSystem   := TRUE;
+    bCameraTriggerSupervisonOn := FALSE;
+  END_IF
+
+  ObSheetDetectFree := TRUE;
+  IF IbMachineStopped THEN
+    ObCameraTriggerIncorrect   := FALSE;
+    bCameraTriggerSupervisonOn := FALSE;
+
+    IF NOT IbSensorSheetCalender OR IbSensorSheetInlet OR IbSensorSheetOutlet THEN
+      ObSheetDetectFree := FALSE;
+    END_IF
+  END_IF
+  IF rfTrig_MachineStopped.FT THEN
+    ObSheetJamPrintingSystem   := FALSE;
+  END_IF
+ELSE
+  ObCameraTriggerEnable     := TRUE;
+  ObCameraTriggerIncorrect  := FALSE;
+  ObSheetJamPrintingSystem  := FALSE;
+  ObSheetDetectFree         := TRUE;
+END_IF
+
+rTrig_SheetJam(CLK:=ObSheetJamPrintingSystem);
+IF rTrig_SheetJam.Q THEN _bSheetJamEvent := TRUE; END_IF
+]]></ST>
+    </Implementation>
+    <Property Name="bSheetJamEvent" Id="{ad7a4af7-09cd-43f1-8ac4-cee04ecc265d}">
+      <Declaration><![CDATA[PROPERTY bSheetJamEvent : BOOL]]></Declaration>
+      <Get Name="Get" Id="{27b6b2b2-efc3-492e-b044-3393c5fdb8ab}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bSheetJamEvent := _bSheetJamEvent;
+_bSheetJamEvent := FALSE;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="PrintSubPixelResolution" Id="{b927e851-d8c9-4790-b312-efd17aefd84f}">
+      <Declaration><![CDATA[PROPERTY PrintSubPixelResolution : UDINT]]></Declaration>
+      <Set Name="Set" Id="{9ad0549b-92c7-4ad0-ace5-a1dc5f13c86a}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_PrintSubPixelResolution := PrintSubPixelResolution;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <LineIds Name="FB_SheetDetectSupervision">
+      <LineId Id="546" Count="1" />
+      <LineId Id="370" Count="29" />
+      <LineId Id="507" Count="0" />
+      <LineId Id="401" Count="20" />
+      <LineId Id="423" Count="5" />
+      <LineId Id="548" Count="0" />
+      <LineId Id="550" Count="0" />
+      <LineId Id="556" Count="0" />
+      <LineId Id="429" Count="5" />
+      <LineId Id="469" Count="2" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SheetDetectSupervision.bSheetJamEvent.Get">
+      <LineId Id="5" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SheetDetectSupervision.PrintSubPixelResolution.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
