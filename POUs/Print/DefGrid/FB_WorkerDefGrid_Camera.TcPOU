@@ -613,7 +613,9 @@ WHILE _nAddedPoint < _nCamBufferPoints DO
   
   // apply detected X0 position
   IF _nAddedPoint = 0 THEN 
-    _pAttachedCt^.nPosPrint_X0 := _nCamDetected_X0;   // apply X0 (in print position domain)
+    IF _pAttachedCt^.nPosPrint_X0 <> _nCamDetected_X0 THEN
+      LogWarning(F_Concat5('streamPoints: CamDetected X0=', TO_STRING(_nCamDetected_X0), '<>CT X0', TO_STRING(_pAttachedCt^.nPosPrint_X0), '!'));
+    END_IF
 	END_IF
   // apply cam point to CT
   IF _pAttachedCt^.AddCamPoint(sPoint:=_CamBufferPoints[_nAddedPoint+1]) THEN 
@@ -930,7 +932,9 @@ fbMsg_CamNoConnection    (bI_Status:=bConnError);
       <LineId Id="13" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.streamPoints">
-      <LineId Id="64" Count="23" />
+      <LineId Id="64" Count="11" />
+      <LineId Id="91" Count="2" />
+      <LineId Id="77" Count="10" />
       <LineId Id="11" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.work">

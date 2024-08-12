@@ -34,9 +34,12 @@ VAR
 END_VAR
 VAR PERSISTENT
   aR_Pattern         : UDINT;           (*check pattern for rem validity*)
-  bR_Enable          : BOOL;
-  bR_UsePrintMark    : BOOL;
-  fR_HeadGap         : REAL;
+  bR_Enable          : BOOL;            (*remanent: *)
+  bR_UsePrintMark    : BOOL;            (*remanent: *)
+  fR_PrintMarkSize_X : REAL;            (*remanent: *)
+  fR_PrintMarkSize_Y : REAL;            (*remanent: *)
+  fR_HeadGap         : REAL;            (*remanent: head gap in [mm]*)
+  fR_DeltaX          : REAL;            (*remanent: *)
 END_VAR ]]></Declaration>
     <Implementation>
       <ST><![CDATA[]]></ST>
@@ -188,12 +191,14 @@ initRemVar();
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[fDeltaX   := sI_HeadGap.fI_Val;   // Set ads interface variable]]></ST>
+          <ST><![CDATA[fDeltaX   := sI_DeltaX.fI_Val;   // Set ads interface variable
+fR_DeltaX := sI_DeltaX.fI_Val;]]></ST>
         </Implementation>
       </Get>
     </Property>
     <Property Name="fHeadGap" Id="{e8a54815-d0df-4e0c-900f-5afd2ec6c964}" FolderPath="Ads\">
-      <Declaration><![CDATA[PROPERTY fHeadGap : REAL]]></Declaration>
+      <Declaration><![CDATA[// HeadGap in [mm]
+PROPERTY fHeadGap : LREAL]]></Declaration>
       <Get Name="Get" Id="{5e61d2ef-dd66-4d21-8268-de3a94d9ae2f}">
         <Declaration><![CDATA[VAR
 END_VAR
@@ -208,8 +213,8 @@ fR_HeadGap := sI_HeadGap.fI_Val;   // Update remanent variable ]]></ST>
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[sI_HeadGap.fI_Val := fHeadGap;   // set interface variable
-fR_HeadGap        := fHeadGap;   // update remanent variable ]]></ST>
+          <ST><![CDATA[sI_HeadGap.fI_Val := TO_REAL(fHeadGap);   // set interface variable
+fR_HeadGap        := TO_REAL(fHeadGap);   // update remanent variable ]]></ST>
         </Implementation>
       </Set>
     </Property>
@@ -220,8 +225,8 @@ fR_HeadGap        := fHeadGap;   // update remanent variable ]]></ST>
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[fMarkSizeX   := sI_PrintMarkSizeX.fI_Val;   // Set ads interface variable
-//fR_MarkSizeX := sI_PrintMarkSizeX.fI_Val;   // Update remanent variable ]]></ST>
+          <ST><![CDATA[fMarkSizeX         := sI_PrintMarkSizeX.fI_Val;   // Set ads interface variable
+fR_PrintMarkSize_X := sI_PrintMarkSizeX.fI_Val;   // Update remanent variable ]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -232,19 +237,19 @@ END_VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[fMarkSizeY   := sI_PrintMarkSizeY.fI_Val;   // Set ads interface variable
-//fR_MarkSizeY := sI_PrintMarkSizeY.fI_Val;   // Update remanent variable ]]></ST>
+          <ST><![CDATA[fMarkSizeY         := sI_PrintMarkSizeY.fI_Val;   // Set ads interface variable
+fR_PrintMarkSize_Y := sI_PrintMarkSizeY.fI_Val;   // Update remanent variable ]]></ST>
         </Implementation>
       </Get>
     </Property>
     <Property Name="fO_CurrentAngle" Id="{06f18c7c-e634-483d-ace3-7982e879b6ba}" FolderPath="Ads\">
-      <Declaration><![CDATA[PROPERTY fO_CurrentAngle : REAL]]></Declaration>
+      <Declaration><![CDATA[PROPERTY fO_CurrentAngle : LREAL]]></Declaration>
       <Set Name="Set" Id="{befcecb7-6770-45a6-8073-e06ce493ff7b}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[sO_CurrentAngle.fO_Val := fO_CurrentAngle;]]></ST>
+          <ST><![CDATA[sO_CurrentAngle.fO_Val := tO_REAL(fO_CurrentAngle);]]></ST>
         </Implementation>
       </Set>
     </Property>
@@ -267,11 +272,19 @@ END_VAR
 IF aR_Pattern <> 16#ABCD THEN
   aR_Pattern  := 16#ABCD;  
   bR_Enable   := TRUE;
+  bR_UsePrintMark := 0;
+  fR_PrintMarkSize_X := 0;
+  fR_PrintMarkSize_Y := 0;
   fR_HeadGap  := 2;
+  fR_DeltaX := 0;
 END_IF
 
 bI_Enable := bR_Enable;
+bI_UsePrintMark := bR_UsePrintMark;
+sI_PrintMarkSizeX.fI_Val := fR_PrintMarkSize_X;
+sI_PrintMarkSizeY.fI_Val := fR_PrintMarkSize_Y;
 sI_HeadGap.fI_Val := fR_HeadGap;
+sI_DeltaX.fI_Val := fR_DeltaX;
 ]]></ST>
       </Implementation>
     </Method>
@@ -374,6 +387,7 @@ METHOD  setup]]></Declaration>
     </LineIds>
     <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.fDeltaX.Get">
       <LineId Id="2" Count="0" />
+      <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.fHeadGap.Get">
       <LineId Id="2" Count="0" />
@@ -403,9 +417,15 @@ METHOD  setup]]></Declaration>
       <LineId Id="5" Count="0" />
       <LineId Id="27" Count="0" />
       <LineId Id="23" Count="0" />
+      <LineId Id="33" Count="2" />
       <LineId Id="29" Count="0" />
+      <LineId Id="36" Count="0" />
       <LineId Id="8" Count="0" />
-      <LineId Id="30" Count="2" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="39" Count="1" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="41" Count="0" />
       <LineId Id="16" Count="0" />
     </LineIds>
     <LineIds Name="FB_ADS_DVTSHEETALIGNMENT.nO_CurrentYShift.Set">

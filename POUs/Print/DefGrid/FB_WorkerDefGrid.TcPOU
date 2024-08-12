@@ -480,16 +480,12 @@ FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
   
   // release CT (manually)
   IF _bForceRelease THEN
-    //Abort(iCT:=pCt^, sReason:='Manually realease CT');
-    //LogWarning(F_Concat2('Manually realease CT Id=', TO_STRING(pCt^.pCT^.iId)));
     pCt^.AbortDeformation(sReason:='Manually realease CT', Src:=_pEcSrc^, bHideLog:=FALSE);
     Release(iCT:=pCt^);
 
   // security release 
   ELSIF _fCtSecurityReleasePos > 0 AND (_stAttachedCTData[i].fPosRelToAttach > _fCtSecurityReleasePos) THEN
-    //Abort(iCT:=pCt^, sReason:=F_Concat2('Security released CT Id=', TO_STRING(pCt^.pCT^.iId)));
-    //LogError(F_Concat2('Security released CT Id=', TO_STRING(pCt^.pCT^.iId)));
-    pCt^.AbortDeformation(sReason:='Security released CT', Src:=_pEcSrc^, bHideLog:=FALSE);
+    pCt^.AbortDeformation(sReason:=F_Concat2('Security released CT Id=', TO_STRING(pCt^.pCT^.iId)), Src:=_pEcSrc^, bHideLog:=FALSE);
     Release(iCT:=pCt^);
   END_IF
 
@@ -649,14 +645,11 @@ END_FOR
       <LineId Id="84" Count="0" />
       <LineId Id="43" Count="0" />
       <LineId Id="70" Count="0" />
-      <LineId Id="77" Count="1" />
       <LineId Id="46" Count="0" />
       <LineId Id="76" Count="0" />
       <LineId Id="47" Count="0" />
       <LineId Id="59" Count="0" />
       <LineId Id="69" Count="0" />
-      <LineId Id="48" Count="0" />
-      <LineId Id="61" Count="0" />
       <LineId Id="49" Count="0" />
       <LineId Id="79" Count="0" />
       <LineId Id="50" Count="1" />
