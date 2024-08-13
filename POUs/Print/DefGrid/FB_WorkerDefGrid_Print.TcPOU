@@ -150,7 +150,7 @@ IF SUPER^.Attach(iCT:=iCT) THEN
   
   // Ignore start due to hardware hold  
   ELSIF bHardwareHold THEN
-    _pAttachedCt^.setError(ErrDef:=EC_Print.ecPaAbortHold, Src:=_pEcSrc^);
+    _pNewAttached^.AbortDeformation(sReason:=EC_Print.ecPaAbortHold.Desc, Src:=_pEcSrc^, bHideLog:=TRUE);
     Release(iCT:=iCT);
     RETURN;   // do not print
   
@@ -648,7 +648,7 @@ IF _pAttachedCt <> 0 AND bWorkerEnable THEN // Work only with attached container
   // check for generic error
   IF _pAttachedCt^.bValid AND bHardwareHold THEN
     // abort during printing
-    _pAttachedCt^.setError(ErrDef:=EC_Print.ecPaAbortHold, Src:=_pEcSrc^);
+    _pNewAttached^.AbortDeformation(sReason:=EC_Print.ecPaAbortHold.Desc, Src:=_pEcSrc^, bHideLog:=TRUE);
   END_IF
 
   // Grid update
@@ -673,7 +673,7 @@ IF _pAttachedCt <> 0 AND bWorkerEnable THEN // Work only with attached container
       _bPaStarted := FALSE;
       _bPaStartRequested := FALSE;
       fbPa.printStop(bSyncedStop:=FALSE);
-      _pAttachedCt^.setError(ErrDef:=EC_Print.ecPaStartErr, Src:=_pEcSrc^);
+      _pNewAttached^.AbortDeformation(sReason:=EC_Print.ecPaStartErr.Desc, Src:=_pEcSrc^, bHideLog:=FALSE);
       Release(_pAttachedCt^);
 		END_IF
   ELSIF _bPaStarted THEN
@@ -682,7 +682,7 @@ IF _pAttachedCt <> 0 AND bWorkerEnable THEN // Work only with attached container
       _bPaStarted := FALSE;
       Release(_pAttachedCt^);
     (*ELSIF fbpa.bError THEN
-      _pAttachedCt^.setError(ErrDef:=EC_Print.ecPaPrintErr, Ident:=0);
+      _pNewAttached^.AbortDeformation(sReason:=EC_Print.ecPaPrintErr.Desc, Src:=_pEcSrc^, bHideLog:=FALSE);
       Release(_pAttachedCt^);*)
     END_IF 
 	END_IF
@@ -737,7 +737,7 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="176" Count="2" />
       <LineId Id="211" Count="0" />
       <LineId Id="207" Count="0" />
-      <LineId Id="275" Count="0" />
+      <LineId Id="313" Count="0" />
       <LineId Id="209" Count="0" />
       <LineId Id="208" Count="0" />
       <LineId Id="163" Count="0" />
@@ -961,9 +961,15 @@ fB_PcAdapter.LogLevel := LogLevel;
     <LineIds Name="FB_WorkerDefGrid_Print.work">
       <LineId Id="427" Count="0" />
       <LineId Id="345" Count="0" />
-      <LineId Id="356" Count="28" />
+      <LineId Id="356" Count="23" />
+      <LineId Id="442" Count="0" />
+      <LineId Id="381" Count="3" />
       <LineId Id="435" Count="1" />
-      <LineId Id="385" Count="36" />
+      <LineId Id="385" Count="17" />
+      <LineId Id="445" Count="0" />
+      <LineId Id="404" Count="7" />
+      <LineId Id="443" Count="0" />
+      <LineId Id="413" Count="8" />
       <LineId Id="10" Count="0" />
     </LineIds>
   </POU>
