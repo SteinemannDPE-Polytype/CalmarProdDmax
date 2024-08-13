@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_ExhaustSystemPrint" Id="{9d3ade69-02c3-47ed-bd02-3517b9357a0c}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ExhaustSystemPrint
+VAR_INPUT
+  bI_FUReady                         AT %I* : BOOL;   (*FU ready*)
+  iI_VacuumMeasurement               AT %I* : UINT;   (*Analog input: vacuum measurement*)
+  bPrintActive                              : BOOL;   (*Printing active*)
+END_VAR
+VAR_OUTPUT
+  bO_FUActivate                      AT %Q* : BOOL;   (*FU activation*)
+  bExhaustError                             : BOOL;   (*Exhaust system ok and ready*)
+  // detailed status (for messages)
+  bFUReady                                  : BOOL;   (*FU ready*)
+  bVacuumWarningLevel                       : BOOL;   (*Vacuum warning level reached*)
+  bVacuumErrorLevel                         : BOOL;   (*Vacuum error level reached*)
+END_VAR
+
+VAR
+  iL_Counter                                : INT;    (*Basic counter*)
+  bMappingChecked                           : BOOL;   (*Checked mapped variable status*)
+  bMapping_FUReady_Done                     : BOOL;   (*FUReady is mapped*)
+  
+  fb_TofFUOffDelay                          : TOF;    (*FU off delay*)
+  fb_TonVacuumCheckDelay                    : TON;    (*Vacuum check delay*)
+
+  fL_VacuumAnalogLevelMBar                  : REAL;   (*Actual value analog-input in mBar*)
+END_VAR
+
+VAR PERSISTENT
+  tR_FUOffDelay                             : TIME := T#3M;   (*FU off delay time*)
+  tR_VacuumCheckDelay                       : TIME := T#10S;  (*Vacuum check delay time*)
+
+  iR_VacuumAnalogMinDigit                   : UINT := 0;      (*Min value analog-input in digit*)
+  iR_VacuumAnalogMaxDigit                   : UINT := 32737;  (*Max value analog-input in digit*)
+  fR_VacuumAnalogMinMBar                    : REAL := 0;      (*Min value analog-input in mBar*)
+  fR_VacuumAnalogMaxMBar                    : REAL := 50.0;   (*Max value analog-input in mBar*)
+  fR_VacuumWarningLevelMBar                 : REAL := 20.0;   (*Warning level in mBar*)
+  fR_VacuumErrorLevelMBar                   : REAL := 10.0;   (*Error level in mBar*)
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// mapping check
+IF NOT bMappingChecked THEN checkMapping(); END_IF
+IF NOT bMapping_FUReady_Done THEN bI_FUReady := TRUE; END_IF    // if not mapped is ready
+
+
+bFUReady := bI_FUReady;  // AND bO_FUActivate?
+
+fb_TofFUOffDelay(IN := bPrintActive, PT := tR_FUOffDelay);    // turn-off delay
+bO_FUActivate := fb_TofFUOffDelay.Q;
+
+fL_VacuumAnalogLevelMBar := UINT_TO_REAL(iI_VacuumMeasurement) * fR_VacuumAnalogMaxMBar / iR_VacuumAnalogMaxDigit;
+
+fb_TonVacuumCheckDelay(IN := bO_FUActivate, PT := tR_VacuumCheckDelay);   // delay for vacum measurement
+IF fb_TonVacuumCheckDelay.Q THEN
+  // check levels and set waring/error
+  bVacuumWarningLevel := fL_VacuumAnalogLevelMBar < fR_VacuumWarningLevelMBar;
+  bVacuumErrorLevel   := fL_VacuumAnalogLevelMBar < fR_VacuumErrorLevelMBar;
+END_IF
+
+
+bExhaustError := NOT bFUReady OR bVacuumErrorLevel;]]></ST>
+    </Implementation>
+    <Method Name="checkMapping" Id="{cc586209-65da-4391-8b61-ef801610bd07}">
+      <Declaration><![CDATA[METHOD PRIVATE checkMapping
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bMapping_FUReady_Done := F_GetMappingStatus(p:=ADR(bI_FUReady), n:=SIZEOF(bI_FUReady)) > EPlcMappingStatus.MS_Unmapped;
+
+bMappingChecked := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mAckError" Id="{f16ec73d-1c7a-41ac-bd19-106bc5fe0258}">
+      <Declaration><![CDATA[METHOD mAckError : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bVacuumWarningLevel := FALSE;
+bVacuumErrorLevel   := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_ExhaustSystemPrint">
+      <LineId Id="466" Count="19" />
+      <LineId Id="103" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ExhaustSystemPrint.checkMapping">
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ExhaustSystemPrint.mAckError">
+      <LineId Id="6" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,125 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_UvLedModule" Id="{3f4eca81-28a1-427b-8cc1-b934d6bded93}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_UvLedModule EXTENDS FB_BasePrint IMPLEMENTS I_DeviceBase
+VAR_INPUT
+  IbReady                  AT%I* : BOOL;
+END_VAR
+
+VAR_OUTPUT
+  ObEnableHigh             AT%Q* : BOOL;
+  ObLowIntenseMode         AT%Q* : BOOL;
+  ObDisableLeft            AT%Q* : BOOL;
+  ObDisableRight           AT%Q* : BOOL;
+  OnIntensitySetpoint      AT%Q* : WORD;  (*Setpoint for intensity control  [digit]*)
+END_VAR
+
+VAR
+  _bActivate                     : BOOL;
+  _sName                         : STRING := '';
+  _nColorRGB                     : UDINT;
+  _sColorName                    : STRING := 'undef';    (*color name*)
+END_VAR
+
+VAR CONSTANT
+  CnAnalogMinDigit               : DINT := 0;      (*Min value analog-output in digit*)
+  CnAnalogMaxDigit               : DINT := 32767;  (*Max value analog-output in digit*)
+  CnMinIntensitySetpoint         : DINT := 5;      (*Min setpoint for intensity control [%]*)
+  CnMaxIntensitySetpoint         : DINT := 100;    (*Max setpoint for intensity control [%]*)
+END_VAR
+
+VAR PERSISTENT
+  RbLowIntenseMode               : BOOL := FALSE;  (*Visu: set low intense mode*)
+  RbDisableLeft                  : BOOL := FALSE;  (*Visu: disable left SLM*)
+  RbDisableRight                 : BOOL := FALSE;  (*Visu: disable right SLM*)
+  RnIntensitySetpoint            : DINT := 20;     (*Visu: setpoint for intensity control [%]*)
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*Set outputs*)
+ObEnableHigh        := _bActivate;
+ObLowIntenseMode    := RbLowIntenseMode;
+ObDisableLeft       := RbDisableLeft;
+ObDisableRight      := RbDisableRight;
+OnIntensitySetpoint := DINT_TO_WORD(CnAnalogMaxDigit * RnIntensitySetpoint / 100);  (*Setpoint [digit]*)
+]]></ST>
+    </Implementation>
+    <Method Name="Init" Id="{4ec47f5d-f08c-48cb-9a2b-d64c9c7b11ba}">
+      <Declaration><![CDATA[METHOD Init : BOOL
+VAR_INPUT
+  nColorRGB    : UDINT;     (*color RGB*)
+  sColorName   : STRING;    (*color name*)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_nColorRGB := nColorRGB;
+_sColorName := sColorName;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mDisable" Id="{69edd295-f260-4933-889c-986f73e3fd12}">
+      <Declaration><![CDATA[METHOD mDisable : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_bActivate := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mEnable" Id="{e7faa1d3-d717-40dd-97e1-4128d21d4838}">
+      <Declaration><![CDATA[METHOD mEnable : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_bActivate := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="pActive" Id="{5a931f28-b826-4eb9-8a20-33a2db125118}">
+      <Declaration><![CDATA[{warning 'add property implementation'}
+PROPERTY pActive : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{254f1391-79b3-4938-91e5-575bba5fa1e4}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[pActive := _bActivate;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="pErrorCode" Id="{1aefa6c7-005a-42f8-870b-575a1eb8da43}">
+      <Declaration><![CDATA[{warning 'add property implementation'}
+PROPERTY pErrorCode : INT
+]]></Declaration>
+      <Get Name="Get" Id="{ad16c2ce-f00c-49bb-98f2-b73fd3b2d0cf}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <LineIds Name="FB_UvLedModule">
+      <LineId Id="41" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_UvLedModule.Init">
+      <LineId Id="5" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_UvLedModule.mDisable">
+      <LineId Id="4" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_UvLedModule.mEnable">
+      <LineId Id="4" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_UvLedModule.pActive.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_UvLedModule.pErrorCode.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

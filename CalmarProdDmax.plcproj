@@ -17,7 +17,7 @@
     <Implicit_Jitter_Distribution>{16d81fa0-13c7-4d29-a136-833127f063f5}</Implicit_Jitter_Distribution>
     <LibraryReferences>{ba6a19c6-5744-48f5-a170-b3a0509f6030}</LibraryReferences>
     <Released>false</Released>
-    <ProjectVersion>2.0.2.21</ProjectVersion>
+    <ProjectVersion>2.0.2.22</ProjectVersion>
     <Company>WIFAG-Polytype</Company>
     <Title>CalmarProdDmax</Title>
     <Author>Wifag//Polytype</Author>
@@ -31,6 +31,9 @@ Fribourg/Switzerland (2021)</Description>
     <Folder Include="GVLs" />
     <Folder Include="POUs" />
     <Folder Include="POUs\Machine" />
+    <Folder Include="POUs\Machine\ExhaustSystem" />
+    <Folder Include="POUs\Machine\PowerControl" />
+    <Folder Include="POUs\Machine\UV_LED_Modul" />
     <Folder Include="POUs\Print" />
     <Folder Include="POUs\Print\Camera" />
     <Folder Include="POUs\Print\DefGrid" />
@@ -92,10 +95,24 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Machine\FB_PowerControl.TcPOU">
+    <Compile Include="POUs\Machine\ExhaustSystem\FB_ExhaustSystemPrint.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Machine\_VISU_PowerControl.TcVIS">
+    <Compile Include="POUs\Machine\ExhaustSystem\_VISU_ExhaustSystemPrint.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="POUs\Machine\PowerControl\FB_PowerControl.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Machine\PowerControl\_VISU_PowerControl.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="POUs\Machine\UV_LED_Modul\FB_UvLedModule.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Machine\UV_LED_Modul\_VISU_UvLedModule.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
@@ -516,7 +533,7 @@ Fribourg/Switzerland (2021)</Description>
       <Resolution>CalmarCompPrint, 2.2.1.13 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompSystem">
-      <Resolution>CalmarCompSystem, 2.0.0.4 (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCompSystem, 2.0.0.8 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompTcpIp">
       <Resolution>CalmarCompTcpIp, 1.0.4 (WIFAG-Polytype)</Resolution>
