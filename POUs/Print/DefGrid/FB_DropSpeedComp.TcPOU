@@ -66,12 +66,17 @@ END_VAR
         <ST><![CDATA[fDiffSpeed :=  ( fTestSpeed[2] - fTestSpeed[1] ) * 1/60;
 fDiffPlace :=  ( fTestDisplacement[2] - fTestDisplacement[1] ) * 1/1_000_000;
 
-// calc time
-_fDropSpeedDeadTime := 
-(
-    fDiffPlace      // displacement diff
-  * 1/fDiffSpeed    // speed diff
-) * 1000;           // [s] -> [ms]
+IF fDiffSpeed <> 0 THEN   // avoid crash
+  // calc time
+  _fDropSpeedDeadTime := 
+  (
+      fDiffPlace      // displacement diff
+    * 1/fDiffSpeed    // speed diff
+  ) * 1000;           // [s] -> [ms]
+ELSE
+  F_LogError('DropSpeedComp invalid TestSpeed given -> DeadTime not updated');
+END_IF
+
 
 // reset entries
 fTestSpeed[2] := fTestSpeed[1] := 0;
@@ -132,10 +137,15 @@ END_VAR
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_DropSpeedComp.calcDeadTime">
-      <LineId Id="15" Count="4" />
-      <LineId Id="25" Count="0" />
-      <LineId Id="20" Count="1" />
-      <LineId Id="26" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="35" Count="1" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="38" Count="1" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="43" Count="1" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="40" Count="0" />
       <LineId Id="22" Count="2" />
       <LineId Id="10" Count="0" />
     </LineIds>

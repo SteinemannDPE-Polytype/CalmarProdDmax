@@ -32,11 +32,11 @@ VAR
 END_VAR
 VAR PERSISTENT
   //-- 4point correction
-  _bEnable_4p    : BOOL := TRUE;
-  _bEnablePuc_4p : BOOL := TRUE;
+  _bEnable_4p    : BOOL := FALSE;
+  _bEnablePuc_4p : BOOL := FALSE;
   //  persistence of points see: FB_PointCorr
   //-- banana correction
-  _bEnable_banana : BOOL := TRUE;
+  _bEnable_banana : BOOL := FALSE;
   _e_max_per_deltaT : LREAL := 0.01;  // [mm/°C]  TODO: use from config
 END_VAR
 VAR CONSTANT
