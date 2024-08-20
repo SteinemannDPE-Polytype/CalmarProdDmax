@@ -21,6 +21,7 @@ VAR
   _bAttached        : BOOL;                           // one ct is attached
   _pAttachedCt      : POINTER TO FB_ContainerDefGrid; // currently attached container (HEAD)
   _pNewAttached     : POINTER TO FB_ContainerDefGrid; // last attached container (as return value of Attach() (TAIL))
+  _pNewAttachedHdlData : POINTER TO ST_WorkerDefGrid_CTData;  // pointer to handling data for last attached
   _bSupportParallelCT : BOOL := FALSE;                // support for parallel CTs (else avoid attach while one connected).
   _nAttachedCTs     : UDINT;                          // Number of currently attached CTs
   _pAttachedCTList  : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF POINTER TO FB_ContainerDefGrid;    // current attached CTs
@@ -372,6 +373,7 @@ END_IF
 _nAttachedCTs := _nAttachedCTs + 1;
 _pAttachedCTList[_nAttachedCTs] := pNewCT;
 MEMSET(destAddr:=ADR(_stAttachedCTData[_nAttachedCTs]), fillByte:=0, n:=SIZEOF(_stAttachedCTData[1]));  // clear additional data
+_pNewAttachedHdlData := ADR(_stAttachedCTData[_nAttachedCTs]);   // select handling data for new attached ct 
 
 // apply head
 IF _nAttachedCTs = 1 THEN
@@ -599,6 +601,7 @@ END_FOR
       <LineId Id="22" Count="0" />
       <LineId Id="18" Count="0" />
       <LineId Id="50" Count="0" />
+      <LineId Id="56" Count="0" />
       <LineId Id="33" Count="0" />
       <LineId Id="30" Count="1" />
       <LineId Id="29" Count="0" />

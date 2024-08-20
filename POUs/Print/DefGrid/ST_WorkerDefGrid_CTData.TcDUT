@@ -4,11 +4,9 @@
     <Declaration><![CDATA[// workers additional data for all attached CTs
 TYPE ST_WorkerDefGrid_CTData :
 STRUCT
-  fPosRelToAttach : LREAL;
-  nData1 : UDINT;
-  nData2 : DINT;
-  fData1 : LREAL;
-  fData2 : LREAL;
+  fPosRelToAttach : LREAL;    // ct relative position to attach
+  nChargedCols : UDINT;       // number of streamed columns of this ct
+  nXS : DINT;                 // XS print start position
 END_STRUCT
 END_TYPE
 ]]></Declaration>
