@@ -375,8 +375,8 @@ sActiveJobInfo := F_Concat7(
   F_Concat3('FlowId:    ', sjobdef.aFlowId, '$n'),
   F_Concat3('Substrate: ', sjobdef.aSubstrateName, '$n'),
   F_Concat3('Descr:     ', sjobdef.aJobDescription, '$n'),
-  F_Concat3('Width:     ', TO_STRING(sjobdef.fImageWidth), '$n'),
-  F_Concat3('Depth:     ', TO_STRING(sjobdef.fImageDepth), '$n')
+  F_Concat4('Width:     ', TO_STRING(sjobdef.fImageWidth), ' [mm]', '$n'),
+  F_Concat4('Depth:     ', TO_STRING(sjobdef.fImageDepth), ' [mm]', '$n')
 );
 
 sJobDef.getJobPageNbrs(nProdPages=>n1, nMaintPages=>n2, nPrePrPages=>n3);
