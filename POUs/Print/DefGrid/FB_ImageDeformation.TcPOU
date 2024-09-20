@@ -551,7 +551,8 @@ VAR_INPUT
   nFeatureCt : UDINT;
 END_VAR
 VAR
-  row, col, ct : UDINT;
+  row, col : UDINT;
+  ct : DINT;
   sTmpPoint : ST_DeformationPointAccurate;
   dx, dy : LREAL;
 END_VAR
@@ -591,7 +592,7 @@ FOR col:=_nLocalGridColsGenerated TO nGridCol DO
   END_FOR
   ct := ct + 1;
 END_FOR
-_nLocalGridColsGenerated := _nLocalGridColsGenerated + ct;
+_nLocalGridColsGenerated := _nLocalGridColsGenerated + TO_UDINT(ct);
 
 // set state variables which would be updated in PyUpdate/PyExed
 _tExecutionTime := T#2MS;
@@ -603,15 +604,17 @@ bPythonBusy := SEL(_nGridPoints >= _sDefGridSettings.nGridPoints, TRUE, FALSE); 
 fTrig_Done(CLK:=bPythonBusy);
 IF fTrig_Done.Q THEN
   // calculate effective printing length
-  FOR ct:=0 TO _nCamPoints-1 DO
-    sTmpPoint := _sCamPoints[_nCamPoints-ct].sPoint;     // get last valid point
-    IF sTmpPoint.valid THEN
-      // update effective printing length
-      {warning 'TODO: calc effective length based on deformations'}
-      _fPrintLengthEffective := sTmpPoint.x_ref/(sTmpPoint.x_ref + sTmpPoint.dx) * _fPrintLengthEffective;
-      EXIT;
-    END_IF
-	END_FOR
+  IF _nCamPoints > 0 THEN
+    FOR ct := TO_DINT(_nCamPoints)-1 TO 0 BY -1 DO
+      sTmpPoint := _sCamPoints[ct].sPoint;     // get last valid point
+      IF sTmpPoint.valid THEN
+        // update effective printing length
+        {warning 'TODO: calc effective length based on deformations'}
+        _fPrintLengthEffective := _fPrintLengthEffective; // crashes: sTmpPoint.x_ref/(sTmpPoint.x_ref + sTmpPoint.dx) * _fPrintLengthEffective;
+        EXIT;
+      END_IF
+    END_FOR
+  END_IF
 END_IF
 
 bPythonDeformationDone := NOT bPythonBusy;]]></ST>
@@ -820,15 +823,12 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="344" Count="1" />
       <LineId Id="336" Count="0" />
       <LineId Id="271" Count="24" />
-      <LineId Id="303" Count="1" />
-      <LineId Id="307" Count="0" />
-      <LineId Id="311" Count="0" />
-      <LineId Id="362" Count="0" />
-      <LineId Id="308" Count="0" />
-      <LineId Id="310" Count="0" />
-      <LineId Id="309" Count="0" />
-      <LineId Id="305" Count="0" />
-      <LineId Id="299" Count="1" />
+      <LineId Id="441" Count="0" />
+      <LineId Id="422" Count="0" />
+      <LineId Id="432" Count="6" />
+      <LineId Id="420" Count="1" />
+      <LineId Id="443" Count="0" />
+      <LineId Id="300" Count="0" />
       <LineId Id="13" Count="0" />
     </LineIds>
   </POU>

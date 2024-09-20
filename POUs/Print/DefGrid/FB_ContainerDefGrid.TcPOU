@@ -247,7 +247,7 @@ VAR_INPUT
   fStartDeformationPos : LREAL;   // reference start position in [px]
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[fBImageDeformation.fPrintLengthEffective := pJob^.fSubstrateDepth;                           // update with intended length 
+        <ST><![CDATA[fBImageDeformation.fPrintLengthEffective := pJob^.fSubstrateDepth;        // update with intended length 
 fBImageDeformation.sDefGridSettings := sDefGridSettings;                  // apply grid setting
 fBImageDeformation.startDeformation(                                      // start deformation process
   fStartDefPos:=fStartDeformationPos     // reference position at current position [Px]

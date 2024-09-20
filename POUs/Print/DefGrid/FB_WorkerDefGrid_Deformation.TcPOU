@@ -79,7 +79,7 @@ IF _pNewAttached = 0 THEN RETURN; END_IF
 bDeformErr := _pNewAttached^.getDeformationStatus(eDStep=>eDeformStep);   // get latest status 
   
 // - deformation started? and no deformation error so far
-IF bDeformErr OR eDeformStep = E_DeformationStep.nothing THEN
+IF bDeformErr OR eDeformStep < E_DeformationStep.cameraStarted THEN
   Release(iCT:=iCT);  // nothing to do anymore
 
   // - job is valid?

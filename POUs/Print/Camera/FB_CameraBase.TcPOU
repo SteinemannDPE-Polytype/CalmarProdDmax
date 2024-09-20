@@ -42,10 +42,10 @@ VAR
 END_VAR
 
 VAR PERSISTENT
-  _fTriggerDistance         : LREAL;           (*Distance between Sensor and Trigger [m]*)
-  _fTriggerPulseLength      : LREAL := 10;     (*Length of trigger signal in ms, min. 3 bus cycles*)
-  _fDetectToCameraOffset    : LREAL := 0.1;    (*Distance between innput trigger and camera, mech.*)
-  _fCameraToPrintOffset     : LREAL := 0.0;    (*Distance between Camera and PU, mech, This offset can be used to shift the reference of a camera/sheet-detect, e.g. because this reference is different from to one where the alignment Camera/sheetdetect-PrintUnit has been made*)
+  _fTriggerDistance         : LREAL;           (*[m] Distance between Sensor and Trigger*)
+  _fTriggerPulseLength      : LREAL := 10;     (*[ms] Length of trigger signal in ms, min. 3 bus cycles*)
+  _fDetectToCameraOffset    : LREAL := 0.1;    (*[m] Distance between input trigger and camera, mech.*)
+  _fCameraToPrintOffset     : LREAL := 0.0;    (*[m] Distance between Camera and PU, mech, This offset can be used to shift the reference of a camera/sheet-detect, e.g. because this reference is different from to one where the alignment Camera/sheetdetect-PrintUnit has been made*)
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[]]></ST>
