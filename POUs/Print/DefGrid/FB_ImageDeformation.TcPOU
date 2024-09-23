@@ -36,7 +36,7 @@ VAR
 END_VAR
 VAR_STAT
   // sim
-  nTestGridSelection : UDINT;
+  eTestGridSelection : E_GridTypeSelection;
   nTestGridFactor : LREAL := 20;
 END_VAR
 VAR CONSTANT
@@ -567,18 +567,18 @@ END_VAR]]></Declaration>
 FOR col:=_nLocalGridColsGenerated TO nGridCol DO
   FOR row:=0 TO _sDefGridSettings.nGridSizeY -1 DO
 
-    CASE nTestGridSelection OF
-      1: dx := 0; dy := SEL(_nCamPoints>0, 0, _sCamPoints[0].sPoint.dy);      // dy of start-mark
-      2: dx := 0.1*TO_LREAL(col+row)*10; dy := 0.2*TO_LREAL(col+row)*10;      // a test-grid dx & dy 10*
-      3: dx := 0.1*TO_LREAL(col+row)*100; dy := 0.2*TO_LREAL(col+row)*100;    // a test-grid dx & dy 100*
-      4: dx := nTestGridFactor; dy := 0;                                      // dx only (Factor)
-      5: dx := 0; dy := nTestGridFactor;                                      // dy only (Factor)
-      6: dx := 0; dy := TO_LREAL(col) * nTestGridFactor;
-      7: dx := TO_LREAL(col) * nTestGridFactor; dy := 0;
-      8: dx := SEL(row=1, 0, nTestGridFactor ); dy := 0;
+    CASE eTestGridSelection OF
+      0: dx := dy := 0;     // default deformation (TODO!!! 0 for now)
+      1: dx := 0; dy := SEL(_nCamPoints>0 AND _sCamPoints[0].bSet , 0, _sCamPoints[0].sPoint.dy);      // dy of start-mark for a "lateral" offset
+      2: dx := nTestGridFactor; dy := 0;                                                               // dx static (Factor)
+      3: dx := 0; dy := nTestGridFactor;                                                               // dy static (Factor)
+      4: dx := 0; dy := TO_LREAL(col) * nTestGridFactor;                                               // dx = factor * col
+      5: dx := TO_LREAL(col) * nTestGridFactor; dy := 0;                                               // dy = factor * col
+      6: dx := SEL(row=1, 0, nTestGridFactor ); dy := 0;                                               // dx row 1 = factor ( test BOF)
     ELSE
       dx := dy := 0;
     END_CASE
+    
     // - calculate x/y shift and rotation based on available CamPoints
     sTmpPoint.index := TO_DINT(col * _sDefGridSettings.nGridSizeY + row);
     sTmpPoint.x_ref := 0;
@@ -815,13 +815,15 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="332" Count="0" />
       <LineId Id="268" Count="2" />
       <LineId Id="343" Count="0" />
-      <LineId Id="334" Count="1" />
-      <LineId Id="346" Count="0" />
-      <LineId Id="378" Count="0" />
-      <LineId Id="391" Count="2" />
-      <LineId Id="406" Count="1" />
+      <LineId Id="334" Count="0" />
+      <LineId Id="458" Count="0" />
+      <LineId Id="335" Count="0" />
+      <LineId Id="461" Count="0" />
+      <LineId Id="459" Count="0" />
+      <LineId Id="463" Count="2" />
       <LineId Id="344" Count="1" />
       <LineId Id="336" Count="0" />
+      <LineId Id="457" Count="0" />
       <LineId Id="271" Count="24" />
       <LineId Id="441" Count="0" />
       <LineId Id="422" Count="0" />

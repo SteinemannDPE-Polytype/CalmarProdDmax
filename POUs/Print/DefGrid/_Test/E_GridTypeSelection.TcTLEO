@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <EnumerationTextList Name="E_GridTypeSelection" Id="{b8f70bd9-6e05-42da-800f-ecab1d25db0a}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE E_GridTypeSelection :
+(
+  Default          := 0,  // default deformation
+  Test_DyStartMark := 1,  // Dy constant of Start Mark, like a lateral shift from start mark
+  Test_AllDxFactor := 2,  // Dx constant for all = factor
+  Test_AllDyFactor := 3,  // Dy constant for all = factor
+  Test_DyColFactor := 4,  // Dy = col * factor (changes by column)
+  Test_DxColFactor := 5,  // Dx = col * factor (changes by column)
+  Test_Dx_Row1OnlyFactor := 6   // dx factor only on row1 (test BOF)
+) UINT := Default ;
+END_TYPE]]></Declaration>
+    <XmlArchive>
+      <Data>
+        <o xml:space="preserve" t="TextListEnumerationTextListObject">
+          <l n="TextList" t="ArrayList" cet="TextListRow">
+            <o>
+              <v n="TextID">"Default"</v>
+              <v n="TextDefault">"0"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"Test_DyStartMark"</v>
+              <v n="TextDefault">"1"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"Test_AllDxFactor"</v>
+              <v n="TextDefault">"2"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"Test_AllDyFactor"</v>
+              <v n="TextDefault">"3"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"Test_DyColFactor"</v>
+              <v n="TextDefault">"4"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"Test_DxColFactor"</v>
+              <v n="TextDefault">"5"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"Test_Dx_Row1OnlyFactor"</v>
+              <v n="TextDefault">"6"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">""</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+          </l>
+          <l n="Languages" t="ArrayList" />
+          <v n="GuidInit">{0753d641-bc2a-47c9-a14f-178904359ea9}</v>
+          <v n="GuidReInit">{6e0ad15b-9cc2-4f9b-9e4c-e218b71f97cc}</v>
+          <v n="GuidExitX">{d1c22bf7-1e18-4b6d-ae6a-6479a1c01123}</v>
+        </o>
+      </Data>
+      <TypeList>
+        <Type n="ArrayList">System.Collections.ArrayList</Type>
+        <Type n="Guid">System.Guid</Type>
+        <Type n="String">System.String</Type>
+        <Type n="TextListEnumerationTextListObject">{4b60233c-f940-4beb-b331-82133b520151}</Type>
+        <Type n="TextListRow">{53da1be7-ad25-47c3-b0e8-e26286dad2e0}</Type>
+      </TypeList>
+    </XmlArchive>
+  </EnumerationTextList>
+</TcPlcObject>
