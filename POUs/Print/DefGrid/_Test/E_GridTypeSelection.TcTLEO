@@ -7,7 +7,7 @@
 TYPE E_GridTypeSelection :
 (
   Default          := 0,  // default deformation
-  Test_DyStartMark := 1,  // Dy constant of Start Mark, like a lateral shift from start mark
+  Test_DyStartMark := 1,  // Dy constant of Start Mark (for all others), like a lateral shift from start mark
   Test_AllDxFactor := 2,  // Dx constant for all = factor
   Test_AllDyFactor := 3,  // Dy constant for all = factor
   Test_DyColFactor := 4,  // Dy = col * factor (changes by column)

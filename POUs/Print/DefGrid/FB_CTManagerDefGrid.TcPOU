@@ -113,7 +113,7 @@ FOR nCtr := 0 TO lC_MAX_CTS-1 DO
 END_FOR
 
 // call parent init
-SUPER^.InitBase(bAutoDelete:=TRUE);]]></ST>
+SUPER^.InitBase(aName:='CTM', aUnit:='SubPx', bAutoDelete:=TRUE);]]></ST>
       </Implementation>
     </Method>
     <Property Name="sCTDefGridInstancesPath" Id="{b4d88d3c-ac8f-4c1b-9101-ee6ed3ea35b7}">
