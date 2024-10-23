@@ -6,12 +6,12 @@
 {attribute 'to_string'}
 TYPE E_GridTypeSelection :
 (
-  Default          := 0,  // default deformation
-  Test_DyStartMark := 1,  // Dy constant of Start Mark (for all others), like a lateral shift from start mark
-  Test_AllDxFactor := 2,  // Dx constant for all = factor
-  Test_AllDyFactor := 3,  // Dy constant for all = factor
-  Test_DyColFactor := 4,  // Dy = col * factor (changes by column)
-  Test_DxColFactor := 5,  // Dx = col * factor (changes by column)
+  Default             := 0,  // Dy constant of Start Mark (for all others), like a lateral shift from start mark
+  None                := 1,  // No deformation calculated all dx/dy=0
+  Test_AllDxFactor    := 2,  // Dx constant for all = factor
+  Test_AllDyFactor    := 3,  // Dy constant for all = factor
+  Test_DyColFactor    := 4,  // Dy = col * factor (changes by column)
+  Test_DxColFactor    := 5,  // Dx = col * factor (changes by column)
   Test_Dx_Row1OnlyFactor := 6   // dx factor only on row1 (test BOF)
 ) UINT := Default ;
 END_TYPE]]></Declaration>
@@ -25,7 +25,7 @@ END_TYPE]]></Declaration>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
-              <v n="TextID">"Test_DyStartMark"</v>
+              <v n="TextID">"None"</v>
               <v n="TextDefault">"1"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>

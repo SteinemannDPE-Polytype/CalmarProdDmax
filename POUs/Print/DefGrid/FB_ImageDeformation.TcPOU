@@ -568,8 +568,8 @@ FOR col:=_nLocalGridColsGenerated TO nGridCol DO
   FOR row:=0 TO _sDefGridSettings.nGridSizeY -1 DO
 
     CASE eTestGridSelection OF
-      0: dx := dy := 0;     // default deformation (TODO!!! 0 for now)
-      1: dx := 0; dy := SEL(_nCamPoints>0 AND _sCamPoints[0].bSet , 0, _sCamPoints[0].sPoint.dy);      // dy of start-mark for a "lateral" offset
+      0: dx := 0; dy := SEL(_nCamPoints>0 AND _sCamPoints[0].bSet , 0, _sCamPoints[0].sPoint.dy);      // dy of start-mark for a "lateral" offset
+      1: dx := dy := 0;     // no deformation on ct 
       2: dx := nTestGridFactor; dy := 0;                                                               // dx static (Factor)
       3: dx := 0; dy := nTestGridFactor;                                                               // dy static (Factor)
       4: dx := 0; dy := TO_LREAL(col) * nTestGridFactor;                                               // dx = factor * col
@@ -815,9 +815,8 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="332" Count="0" />
       <LineId Id="268" Count="2" />
       <LineId Id="343" Count="0" />
-      <LineId Id="334" Count="0" />
-      <LineId Id="458" Count="0" />
-      <LineId Id="335" Count="0" />
+      <LineId Id="334" Count="1" />
+      <LineId Id="479" Count="0" />
       <LineId Id="461" Count="0" />
       <LineId Id="459" Count="0" />
       <LineId Id="463" Count="2" />
