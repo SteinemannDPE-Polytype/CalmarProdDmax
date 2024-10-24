@@ -568,7 +568,7 @@ FOR col:=_nLocalGridColsGenerated TO nGridCol DO
   FOR row:=0 TO _sDefGridSettings.nGridSizeY -1 DO
 
     CASE eTestGridSelection OF
-      0: dx := 0; dy := SEL(_nCamPoints>0 AND _sCamPoints[0].bSet , 0, _sCamPoints[0].sPoint.dy);      // dy of start-mark for a "lateral" offset
+      0: dx := 0; dy := SEL(_nCamPoints>0 AND _sCamPoints[0].bSet , 0, -1*_sCamPoints[0].sPoint.dy);  // dy of start-mark for a "lateral" offset, negative  dy -> dy correction
       1: dx := dy := 0;     // no deformation on ct 
       2: dx := nTestGridFactor; dy := 0;                                                               // dx static (Factor)
       3: dx := 0; dy := nTestGridFactor;                                                               // dy static (Factor)
