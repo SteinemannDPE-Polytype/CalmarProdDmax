@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_SheetDetectSupervisionPar" Id="{3c43ca34-e5b9-4d15-9844-f0122b20569d}">
+    <Declaration><![CDATA[TYPE ST_SheetDetectSupervisionPar :
+STRUCT
+  bR_Enable                   : BOOL  := TRUE;
+  fR_SheetDetectDistance01    : LREAL := 0.656;  //[m]
+  fR_SheetDetectRange01_m     : REAL  := 0.03;   //[m]
+  nR_SheetDetectRange01_SubPx : DINT;            //[SubPx]
+  fR_SheetDetectDistance02    : LREAL := 1.031;  //[m]
+  fR_SheetDetectRange02_m     : REAL  := 0.03;   //[m]
+  nR_SheetDetectRange02_SubPx : DINT;            //[SubPx]
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

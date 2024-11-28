@@ -24,6 +24,7 @@ VAR_INPUT
   bI_HwEnable                             : BOOL;            // relase (enable SheetDetect) from machine
   bI_AutomaticMode                        : BOOL;            // machine is in automatic mode
   (* - (EL1252) StartPosition detect sensor*)
+  bI_SensorSupervisionEnable              : BOOL := TRUE;    // enable SheetDetect with supervision 
   bI_Sensor_State                   AT%I* : BOOL;            // Sensor signal
   tI_Sensor_TimeStampPos            AT%I* : T_DCTIME64;      // Sensor last detection timestamp
   (* - (EL1252) Camera started feedback trigger/signal*)
@@ -127,7 +128,7 @@ fCycleTime    := (TO_LREAL(tCurrentTime) - TO_LREAL(tLastTimeStamp)) * 1E-9;  tL
 bSheetDetected:= FALSE;                                       // Set to true below just for one cycle
 bTriggerEnabled := bSpeedValid AND bI_HwEnable AND (bI_AutomaticMode OR _bCamManualTeachMode);
 bTriggerArmed :=  NOT bInhibitTrigger AND bTriggerEnabled;
-rT_Sensor(CLK:=bI_Sensor_State);
+rT_Sensor(CLK := bI_Sensor_State AND bI_SensorSupervisionEnable);
 
 // apply parameter
 IF bCamValid THEN    // save dynamic changable settings
@@ -478,7 +479,7 @@ _nSubstrateLength := F_MeterToSubPixel(fPosMeter:=_fSubstrateLength, fResoSubPx:
       </Implementation>
     </Method>
     <LineIds Name="FB_CameraTrigger">
-      <LineId Id="4615" Count="177" />
+      <LineId Id="5137" Count="177" />
       <LineId Id="1688" Count="0" />
     </LineIds>
     <LineIds Name="FB_CameraTrigger.bManualTeach.Get">

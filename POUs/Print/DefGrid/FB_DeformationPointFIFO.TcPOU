@@ -1,9 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_DeformationPointFIFO" Id="{1c595d80-10e4-4767-bff8-0ee27da948ff}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_DeformationPointFIFO
 VAR_OUTPUT
 	nCount    : UINT;                 // Fill level
+  nBufferSize : UINT := MAX_BUFFER_SIZE;
+  nBufferItemSize : UINT := BUFFER_ITEM_SIZE;
 END_VAR
 VAR
 	sBuffer 	: ARRAY[0..(MAX_BUFFER_SIZE-1)] OF ST_DeformationPoint;

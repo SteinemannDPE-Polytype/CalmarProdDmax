@@ -420,6 +420,14 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
+    <Compile Include="POUs\Print\FB_SheetDetectSupervision.TcPOU">
+      <SubType>Code</SubType>
+      <LinkAlways>true</LinkAlways>
+    </Compile>
+    <Compile Include="POUs\Print\ST_SheetDetectSupervisionPar.TcDUT">
+      <SubType>Code</SubType>
+      <LinkAlways>true</LinkAlways>
+    </Compile>
     <Compile Include="Version\Global_Version.TcGVL">
       <SubType>Code</SubType>
     </Compile>
