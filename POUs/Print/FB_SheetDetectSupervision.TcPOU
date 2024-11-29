@@ -36,6 +36,9 @@ VAR
   // jam event
   rTrig_SheetJam                                : R_TRIG;
   _bSheetJamEvent                               : BOOL;
+  
+  // error handling 
+  nConversionErrorCounter                       : UDINT;
 END_VAR
 
 VAR PERSISTENT
@@ -46,7 +49,7 @@ END_VAR
       <ST><![CDATA[rfTrig_MachineStopped(CLK := IbMachineStopped);
 
 (*B250 => B256*)
-fbSheetDetectRingbuffer01.pI_ConversionErr      := ADR(PRG_SYSTEMBASE.lI_ConversionErr);
+fbSheetDetectRingbuffer01.pI_ConversionErr      := ADR(nConversionErrorCounter);
 fbSheetDetectRingbuffer01.bI_Reset              := IbMachineStopped;
 fbSheetDetectRingbuffer01.bI_Sensor             := NOT IbSensorSheetCalender;
 fbSheetDetectRingbuffer01.iI_CurrentPos         := DINT_TO_UDINT(InCurrentPos);
@@ -57,7 +60,7 @@ fbSheetDetectRingbuffer01.fI_ShiftDistance      := 0 - RemSheetDetectSupervision
 fbSheetDetectRingbuffer01();
 
 (*B256 => B254*)
-fbSheetDetectRingbuffer02.pI_ConversionErr      := ADR(PRG_SYSTEMBASE.lI_ConversionErr);
+fbSheetDetectRingbuffer02.pI_ConversionErr      := ADR(nConversionErrorCounter);
 fbSheetDetectRingbuffer02.bI_Reset              := IbMachineStopped;
 fbSheetDetectRingbuffer02.bI_Sensor             := IbCameraTrigger;
 fbSheetDetectRingbuffer02.iI_CurrentPos         := DINT_TO_UDINT(InCurrentPos);
