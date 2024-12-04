@@ -36,9 +36,7 @@ VAR
   // jam event
   rTrig_SheetJam                                : R_TRIG;
   _bSheetJamEvent                               : BOOL;
-  
-  // error handling 
-  nConversionErrorCounter                       : UDINT;
+
 END_VAR
 
 VAR PERSISTENT
@@ -49,7 +47,6 @@ END_VAR
       <ST><![CDATA[rfTrig_MachineStopped(CLK := IbMachineStopped);
 
 (*B250 => B256*)
-fbSheetDetectRingbuffer01.pI_ConversionErr      := ADR(nConversionErrorCounter);
 fbSheetDetectRingbuffer01.bI_Reset              := IbMachineStopped;
 fbSheetDetectRingbuffer01.bI_Sensor             := NOT IbSensorSheetCalender;
 fbSheetDetectRingbuffer01.iI_CurrentPos         := DINT_TO_UDINT(InCurrentPos);
@@ -60,7 +57,6 @@ fbSheetDetectRingbuffer01.fI_ShiftDistance      := 0 - RemSheetDetectSupervision
 fbSheetDetectRingbuffer01();
 
 (*B256 => B254*)
-fbSheetDetectRingbuffer02.pI_ConversionErr      := ADR(nConversionErrorCounter);
 fbSheetDetectRingbuffer02.bI_Reset              := IbMachineStopped;
 fbSheetDetectRingbuffer02.bI_Sensor             := IbCameraTrigger;
 fbSheetDetectRingbuffer02.iI_CurrentPos         := DINT_TO_UDINT(InCurrentPos);
@@ -145,7 +141,9 @@ END_VAR
     </Property>
     <LineIds Name="FB_SheetDetectSupervision">
       <LineId Id="546" Count="1" />
-      <LineId Id="370" Count="29" />
+      <LineId Id="370" Count="0" />
+      <LineId Id="372" Count="9" />
+      <LineId Id="383" Count="16" />
       <LineId Id="507" Count="0" />
       <LineId Id="401" Count="20" />
       <LineId Id="423" Count="5" />

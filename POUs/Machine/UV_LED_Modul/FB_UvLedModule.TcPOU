@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_UvLedModule" Id="{3f4eca81-28a1-427b-8cc1-b934d6bded93}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK FB_UvLedModule EXTENDS FB_BasePrint IMPLEMENTS I_DeviceBase
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_UvLedModule IMPLEMENTS I_DeviceBase
 VAR_INPUT
   IbReady                  AT%I* : BOOL;
 END_VAR
@@ -44,6 +44,7 @@ ObDisableRight      := RbDisableRight;
 OnIntensitySetpoint := DINT_TO_WORD(CnAnalogMaxDigit * RnIntensitySetpoint / 100);  (*Setpoint [digit]*)
 ]]></ST>
     </Implementation>
+    <Folder Name="I_DeviceBase" Id="{8d640c35-7667-43b9-bfa3-25a0453f0d8d}" />
     <Method Name="Init" Id="{4ec47f5d-f08c-48cb-9a2b-d64c9c7b11ba}">
       <Declaration><![CDATA[METHOD Init : BOOL
 VAR_INPUT
@@ -56,24 +57,23 @@ END_VAR
 _sColorName := sColorName;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mDisable" Id="{69edd295-f260-4933-889c-986f73e3fd12}">
+    <Method Name="mDisable" Id="{69edd295-f260-4933-889c-986f73e3fd12}" FolderPath="I_DeviceBase\">
       <Declaration><![CDATA[METHOD mDisable : BOOL
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[_bActivate := FALSE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="mEnable" Id="{e7faa1d3-d717-40dd-97e1-4128d21d4838}">
+    <Method Name="mEnable" Id="{e7faa1d3-d717-40dd-97e1-4128d21d4838}" FolderPath="I_DeviceBase\">
       <Declaration><![CDATA[METHOD mEnable : BOOL
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[_bActivate := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Property Name="pActive" Id="{5a931f28-b826-4eb9-8a20-33a2db125118}">
-      <Declaration><![CDATA[{warning 'add property implementation'}
-PROPERTY pActive : BOOL
-]]></Declaration>
+    <Property Name="pActive" Id="{5a931f28-b826-4eb9-8a20-33a2db125118}" FolderPath="I_DeviceBase\">
+      <Declaration><![CDATA[{attribute 'monitoring':='call'}
+PROPERTY pActive : BOOL]]></Declaration>
       <Get Name="Get" Id="{254f1391-79b3-4938-91e5-575bba5fa1e4}">
         <Declaration><![CDATA[VAR
 END_VAR
@@ -83,16 +83,15 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Property Name="pErrorCode" Id="{1aefa6c7-005a-42f8-870b-575a1eb8da43}">
-      <Declaration><![CDATA[{warning 'add property implementation'}
-PROPERTY pErrorCode : INT
+    <Property Name="pErrorCode" Id="{1aefa6c7-005a-42f8-870b-575a1eb8da43}" FolderPath="I_DeviceBase\">
+      <Declaration><![CDATA[PROPERTY pErrorCode : INT
 ]]></Declaration>
       <Get Name="Get" Id="{ad16c2ce-f00c-49bb-98f2-b73fd3b2d0cf}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[]]></ST>
+          <ST><![CDATA[pErrorCode := 0;  // no error]]></ST>
         </Implementation>
       </Get>
     </Property>

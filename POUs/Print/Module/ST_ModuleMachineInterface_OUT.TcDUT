@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_ModuleMachineInterface_OUT" Id="{73847cdf-60fb-47f0-ba6d-8b396a0570a6}">
+    <Declaration><![CDATA[TYPE ST_ModuleMachineInterface_OUT :
+STRUCT
+  // Outputs (to Machine)
+  // -- from Print
+  bMoving               : BOOL;             // substrate/module is moving
+  fSpeed                : LREAL;            // Current module speed [m/s]
+  fPosition             : LREAL;            // PrintPostion [m]
+  fMaxSpeed             : LREAL;            // Max. possible print module speed [m/s]
+  bLengthMismatch       : BOOL;             // image/format length mismatch
+  bStopReady            : BOOL;             // Module is ready to stop moving (for synced stop)
+  bSpeedExeeded         : BOOL;             // Module speed exeeded
+  fHeadGap              : LREAL;            // Head gap from PUC [m] (from Ads SA converted)
+  fInkQuantity          : LREAL;            // InkQuantity (from Ads PG)
+  fEncoderStepsMeasured : LREAL;            // Measured encoder pulse between the effective encoder step measurement [pulse]
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

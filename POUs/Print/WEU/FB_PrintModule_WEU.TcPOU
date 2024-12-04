@@ -1,0 +1,407 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_PrintModule_WEU" Id="{bf81d19f-9fa7-4acb-8cca-087a288b3f4d}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_PrintModule_WEU EXTENDS FB_PrintModule_Base
+VAR_INPUT
+  fPUPlate1_Temperature : LREAL;  // PU Plate1 temperature
+  fPUPlate2_Temperature : LREAL;  // PU Plate2 temperature
+END_VAR
+VAR
+  (* Module specific sub-modules - WEU module contains a 
+    - print position (encoder input to print domain translation)
+    - Mark sensor with a mark detection module which provices a camera trigger and start position detection
+    - Mark definition (used by the detection and camera)
+  *)
+  fbPrintPosition    : FB_PrintPositionDmax;   // a position per pm (external encoder wheel)
+  fbMarkCameraWeu    : FB_MarkCamera_WEU;      // Mark detection camera
+  
+  // sync CT trigger with Camera detection
+  _bNewCT             : BOOL;   // a new ct is received to be treated
+  _iNewCT             : I_CT;   // new ct to be treated
+  _bNewStartPosX0     : BOOL;   // a new startpos detected by cam
+  _nNewStartPosX0     : DINT;   // new startpos X0 deteced by cam
+  
+  fbEncoderResoDetect: FB_EffectiveEncoderResolutionDetection;     // Effective encoder resolution detection
+  fbFineAlignement   : FB_FineAlignement;     // additional grid corrections, PU Deformation/correction (4p, banana, ...)
+
+  // view
+  fbView             : FB_PrintModule_WEU_View;    // additional controls for print module visus
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT bInit THEN RETURN; END_IF
+
+fbPrintPosition.fEnoderResolution := _pModuleMachineState^.fEncoderResolution;    // encoder resolution from machine
+fbPrintPosition();
+
+fbMarkCameraWeu(
+  bReadyForPrinting   := bReadyForPrinting,
+  nCurrentPosition    := _iPrintPosition.getPosition(),
+  fCurrentSpeed       :=_iPrintPosition.getSpeed(),
+  bPrintMarkExist     :=_pModuleMachineState^.bPrintMarkExist,
+  bPrintDirReverse    :=_pModuleMachineState^.bPrintDirection,
+  nUsePerRepeatInLine :=SEL(_pModuleMachineState^.nUsePerRepeatInLine=0, _pModuleMachineState^.nUsePerRepeatInLine, 1),
+  fMarkSizeDefault    :=_pModuleMachineState^.fMarkBaseSize,
+  fMarkDistRepeatToStartMark := _pModuleMachineState^.fMarkDistToStartMark,
+  fMarkDistFromCenter := _pModuleMachineState^.fMarkToPrintdataCenterY
+);
+
+// check for new start trigger
+IF _iStartPos.bStartTrig AND _iStartPos.bValid THEN
+  // buffer/save new start trigger
+  _bNewStartPosX0 := TRUE;
+  _nNewStartPosX0 := _iStartPos.nStartPositionX0;      // save detected start position for next CT to be applied to this module¨
+  
+  LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2(
+    F_Concat2(_pModuleSetup^.aName, ' New StartPos:'),
+    F_Concat2(' at position X0:', TO_STRING(_nNewStartPosX0))
+  ));
+END_IF
+
+// if trigger and CT give register CT for processing --> we have all information to attach CT to local tracking/treating
+IF _bNewCT AND _bNewStartPosX0 THEN    
+  _bNewCT := FALSE; _bNewStartPosX0 := FALSE;
+  
+  LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
+    F_Concat2(_pModuleSetup^.aName, ' Track NewCT:'),
+    F_Concat2(' internal (print)Pos X0:', TO_STRING(_nNewStartPosX0)),
+    F_Concat2(' with CT:', _iNewCT.print(0))
+  ));
+  
+  _iNewCT.nPosPrint_X0 := _nNewStartPosX0;                        // set print pos to new dected in this module position domain
+  fbCTTracker.RegisterCT(iCT:=_iNewCT, nX0:=_nNewStartPosX0);     // register ct for tracking in modules position and tracking system
+  
+  _iNewCT := 0; _nNewStartPosX0:=0; // reset internals
+END_IF
+
+// Neutral fibre calculation with additional mark sensors
+fbEncoderResoDetect(
+  //bIKp_MarkTrigger01:=,
+  //tIKp_TimeStampPos01:=,
+  //tIKn_TimeStampNeg01:=,
+  //bIKp_MarkTrigger02:=,
+  //tIKp_TimeStampPos02:=,
+  //tIKn_TimeStampNeg02:=,
+  nPulse:=TO_DINT(fbPrintPosition.IlEncoderPulse),
+  fCurrentResolution:=_pModuleMachineState^.fEncoderResolution,
+  fEncoderPulseDistMin:=_pModuleMachineState^.fEncoderDetectPulseMin,
+  fEncoderPulseDistMax:=_pModuleMachineState^.fEncoderDetectPulseMax,
+  nDisInPulseFilterSz:=_pModuleMachineState^.nEncoderDetectFilterSz,
+  //bUpdate=>,
+  fDisInPulse=>_pModuleMachineFeedback^.fEncoderStepsMeasured
+);
+
+(*PU corrections*)
+IF GVL_Deformation.bC_UsePUDeformation THEN
+  fbFineAlignement.fT_PL1 := fPUPlate1_Temperature;
+  fbFineAlignement.fT_PL2 := fPUPlate2_Temperature;
+  fbFineAlignement();
+END_IF
+
+fbView();
+
+// call module base
+SUPER^();
+
+// simulation
+SimUpdate();
+]]></ST>
+    </Implementation>
+    <Folder Name="I_PositionEvent_ovrd" Id="{212612fd-c98f-4fcb-8ea9-fac5585d1647}" />
+    <Folder Name="Simulation" Id="{ff45cf45-269f-4fec-ab1d-0aca9951a18d}" />
+    <Method Name="Init" Id="{fba0a279-e9f9-46b1-8f8f-0e7a0e308a34}">
+      <Declaration><![CDATA[METHOD Init : BOOL
+VAR_INPUT
+  pModulesSetup         : POINTER TO ST_CassetteSetup;          // Module Setup Settings
+  pAdsSa                : POINTER TO FB_ADS_DVTSHEETALIGNMENT;  // ADS sheet alignement
+  pAdsCam               : POINTER TO FB_ADS_CAMERA;             // ADS camera
+  pAdsParent            : POINTER TO FB_ADS_Config;             // Parent ADS config reference (Parent ADS block and module ref)
+
+  // config print
+  fCycleTime            : LREAL;                // task cycle time in [s]
+  fPrintUnitWidth       : LREAL;                // PrintUnit width mechanical [m]
+  // references
+  iModule               : I_Module;             // system status interface (for sleep, estop, ...), may shadow states from machine inputs
+  iPrintGlobal          : I_PrintGlobal;        // interface for module to master (main) communication
+  pMachineInputs        : POINTER TO ST_ModuleMachineInterface_IN;
+  pMachineOutputs       : POINTER TO ST_ModuleMachineInterface_OUT;
+END_VAR
+VAR
+  nCtr : UDINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Parameter checks
+IF pModulesSetup = 0 OR pAdsSa = 0 OR pAdsCam = 0 OR 
+    pMachineInputs = 0 OR pMachineOutputs = 0 THEN
+    // set here from local fb instances: OR iModuleMaster = 0 OR iPosition = 0 OR iStartPos = 0 THEN
+  LogError('init(): Invalid parameter');
+  RETURN;
+END_IF
+
+// position
+fbPrintPosition.Init(fPrintResolution:=pModulesSetup^.pSetupPrint^.nPrintResolution, fSubPxResolution:=pModulesSetup^.pSetupPrint^.nSubPixelResolution, fTaskCycleTime:=fCycleTime);
+_iPrintPosition := fbPrintPosition;  // select reference position
+
+// -- Mark camera
+fbMarkCameraWeu.InitMarkCamera(
+  fPrintUnitResolution:=_iPrintPosition.fPrintResolution, 
+  fPrintUnitSubPx:=_iPrintPosition.fSubPxResolution
+);
+fbMarkCameraWeu.sVisuName := 'VISU_MarkCamera_WEU';
+fbWorkerCamera.RegisterCamera(fbMarkCameraWeu);
+
+// -- Sheet/Camera trigger & mark detection
+_iStartPos := fbMarkCameraWeu.fbMarkDetection;  // select start position detection
+
+SUPER^.Init(
+  pModulesSetup     := pModulesSetup,
+  pAdsSa            := pAdsSa,
+  pAdsCam           := pAdsCam,
+  pAdsParent        := pAdsParent,
+  // config print
+  fCycleTime        := fCycleTime,
+  fPrintUnitWidth   := fPrintUnitWidth,
+  // references     
+  iPrintGlobal      := iPrintGlobal,     // internal subm
+  iModule           := iModule, 
+  pMachineInputs    := pMachineInputs,
+  pMachineOutputs   := pMachineOutputs
+);
+
+// Effective Encoder Resolution detection (NeutralFibre correction)
+fbEncoderResoDetect.Init();
+
+// additional grid point corrections
+fbFineAlignement.init(pAdsCam := pAdsCam, fPxReso := _iPrintPosition.fPrintResolution, fPuWidth := fPrintUnitWidth);
+// - register them to workers
+FOR nCtr := 1 TO GVL_WEU.nC_MaxWorkerPrintPerPm DO
+  fbWorkerPrint[nCtr].RegisterGridCorrection(iGridCorrection:=fbFineAlignement);
+END_FOR 
+
+fbView.init(pModule:=THIS, pPositioning:=ADR(fbPrintPosition));
+setLogLevels(lvl:=E_LogSeverity.Info);
+
+Init := bInit;   // set in the SUPER class]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="pMsgConfig" Id="{3f9ad2f8-f49c-46e8-8c7b-162fe18749a6}">
+      <Declaration><![CDATA[PROPERTY pMsgConfig : POINTER TO ST_MSG_CONFIG]]></Declaration>
+      <Get Name="Get" Id="{5bcaf950-0c98-4a16-8209-bb10ff6fbca0}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[pMsgConfig := ADR(sL_MsgConfig);]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="setLogLevels" Id="{e26383c7-5f29-468c-b845-4944132a7335}">
+      <Declaration><![CDATA[METHOD PROTECTED setLogLevels
+VAR_INPUT
+  lvl : E_LogSeverity;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// - fb itself
+LogLevel := lvl;
+// - base
+SUPER^.setLogLevels(lvl:=lvl);
+// - weu
+fbPrintPosition.LogLevel := lvl;
+fbMarkCameraWeu.LogLevel := lvl;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SimUpdate" Id="{86d331a7-7239-49bc-b197-44cccc5c4107}" FolderPath="Simulation\">
+      <Declaration><![CDATA[METHOD PRIVATE SimUpdate
+VAR_INPUT
+END_VAR
+VAR_INST
+  rfTrig_SimEnable : RF_TRIG;
+  
+  //parameter backup
+  fCamMark_ToPrint, fCamMark_toDetect : LREAL;
+  fCamNo_ToPrint, fCamNo_toDetect : LREAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[rfTrig_SimEnable(CLK:=fbSim.bSimEnable);
+IF    rfTrig_SimEnable.RT THEN
+  // ev. enable
+  //fbWorkerCamera.bWorkerEnable := TRUE;
+  //fbWorkerDeformation.bWorkerEnable := TRUE;
+  //fbWorkerPrint[1].bWorkerEnable := TRUE;
+  //fbWorkerPrint[2].bWorkerEnable := TRUE;
+  
+  fbPrintPosition.bSimEnable  := TRUE;
+  fbMarkCameraWeu.bSimulate := TRUE;
+
+  // set some working config values
+  // -backup original
+  fCamMark_ToPrint  := fbMarkCameraWeu.fCameraToPrintOffset;
+  fCamMark_toDetect := fbMarkCameraWeu.fDetectToCameraOffset;
+  // -set sim val
+  fbMarkCameraWeu.fCameraToPrintOffset := 0.4;
+  fbMarkCameraWeu.fDetectToCameraOffset := 0.01;
+  
+  
+ELSIF rfTrig_SimEnable.FT THEN
+  // ev. disable
+  fbPrintPosition.bSimEnable  := FALSE;
+  fbMarkCameraWeu.bSimulate := FALSE;
+
+  fbMarkCameraWeu.fCameraToPrintOffset := fCamMark_ToPrint;
+  fbMarkCameraWeu.fDetectToCameraOffset := fCamMark_toDetect;
+  
+ELSIF fbSim.bSimEnable THEN
+  // enabled
+  ;
+ELSE
+  ; // disabled
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="trigger" Id="{a0aceb5d-071c-4ce1-a837-1712d7194423}" FolderPath="I_PositionEvent_ovrd\">
+      <Declaration><![CDATA[(*
+  Container triggered at position - callback.
+*)
+METHOD trigger : BOOL
+VAR_INPUT
+	sEvPos	: ST_PositionEventData;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bInit THEN RETURN; END_IF
+IF sEvPos.iCT = 0 THEN RETURN; END_IF
+
+
+// buffer new ct
+_bNewCT := TRUE;
+_iNewCT := sEvPos.iCT;
+
+LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
+  F_Concat2(_pModuleSetup^.aName, 'NewCT:'),
+  F_Concat2(' at (Main)TrackPos:', TO_STRING(sEvPos.nTrigPos)),
+  F_Concat2(' with CT:', sEvPos.iCT.print(0))
+));
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_PrintModule_WEU">
+      <LineId Id="252" Count="1" />
+      <LineId Id="487" Count="0" />
+      <LineId Id="261" Count="0" />
+      <LineId Id="269" Count="1" />
+      <LineId Id="533" Count="2" />
+      <LineId Id="319" Count="2" />
+      <LineId Id="510" Count="1" />
+      <LineId Id="323" Count="0" />
+      <LineId Id="322" Count="0" />
+      <LineId Id="580" Count="0" />
+      <LineId Id="577" Count="0" />
+      <LineId Id="576" Count="0" />
+      <LineId Id="584" Count="0" />
+      <LineId Id="581" Count="0" />
+      <LineId Id="578" Count="0" />
+      <LineId Id="591" Count="0" />
+      <LineId Id="587" Count="2" />
+      <LineId Id="586" Count="0" />
+      <LineId Id="579" Count="0" />
+      <LineId Id="585" Count="0" />
+      <LineId Id="561" Count="2" />
+      <LineId Id="575" Count="0" />
+      <LineId Id="570" Count="0" />
+      <LineId Id="623" Count="0" />
+      <LineId Id="572" Count="0" />
+      <LineId Id="574" Count="0" />
+      <LineId Id="565" Count="0" />
+      <LineId Id="592" Count="0" />
+      <LineId Id="596" Count="0" />
+      <LineId Id="583" Count="0" />
+      <LineId Id="594" Count="1" />
+      <LineId Id="564" Count="0" />
+      <LineId Id="469" Count="8" />
+      <LineId Id="480" Count="0" />
+      <LineId Id="486" Count="0" />
+      <LineId Id="481" Count="1" />
+      <LineId Id="485" Count="0" />
+      <LineId Id="483" Count="1" />
+      <LineId Id="468" Count="0" />
+      <LineId Id="273" Count="14" />
+      <LineId Id="19" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintModule_WEU.Init">
+      <LineId Id="273" Count="0" />
+      <LineId Id="281" Count="4" />
+      <LineId Id="276" Count="0" />
+      <LineId Id="362" Count="0" />
+      <LineId Id="360" Count="1" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="64" Count="1" />
+      <LineId Id="404" Count="1" />
+      <LineId Id="407" Count="0" />
+      <LineId Id="66" Count="1" />
+      <LineId Id="313" Count="0" />
+      <LineId Id="311" Count="0" />
+      <LineId Id="310" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="338" Count="0" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="337" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="175" Count="0" />
+      <LineId Id="46" Count="1" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="383" Count="1" />
+      <LineId Id="382" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="227" Count="1" />
+      <LineId Id="250" Count="0" />
+      <LineId Id="231" Count="0" />
+      <LineId Id="248" Count="0" />
+      <LineId Id="230" Count="0" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="149" Count="0" />
+      <LineId Id="287" Count="0" />
+      <LineId Id="286" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintModule_WEU.pMsgConfig.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintModule_WEU.setLogLevels">
+      <LineId Id="30" Count="1" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintModule_WEU.SimUpdate">
+      <LineId Id="53" Count="8" />
+      <LineId Id="63" Count="5" />
+      <LineId Id="71" Count="2" />
+      <LineId Id="77" Count="4" />
+      <LineId Id="83" Count="3" />
+      <LineId Id="90" Count="6" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintModule_WEU.trigger">
+      <LineId Id="24" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="60" Count="4" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="65" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

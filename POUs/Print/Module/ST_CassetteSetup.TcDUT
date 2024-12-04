@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_CassetteSetup" Id="{6d870f54-8139-4e98-a7c9-d6b9c9d9797d}">
+    <Declaration><![CDATA[TYPE ST_CassetteSetup :
+STRUCT
+  aName         : T_MaxString;      // module name
+  aNameShort    : T_MaxString;      // module name short string
+  nIdx          : UDINT;            // module index in Array [1..x]
+  nMaschineIdx  : UDINT;            // Module number in machine (station number in machine notation [eg. 3, 4, ...])
+
+  pSetupPrint   : POINTER TO ST_CassetteSetup_Print;  // ref to print settings
+  pSetupInk     : POINTER TO ST_CassetteSetup_Ink;    // ref to ink settings
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

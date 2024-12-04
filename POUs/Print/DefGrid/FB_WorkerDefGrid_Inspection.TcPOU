@@ -1,0 +1,306 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_WorkerDefGrid_Inspection" Id="{d49e7280-4879-45fa-a34b-5703a36a2e59}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Inspection EXTENDS FB_WorkerDefGrid
+VAR_INPUT
+  EL2252_Feedback      AT%I* : BYTE := 16#FF;   (*(optional from version > EL2252-0000-0018) Output feedback bit coded, needs activation in PDO config of terminal
+                                              BIT 0: Output Kanal 1
+                                              BIT 1: Tristate Kanal 1
+                                              BIT 2: Output Kanal 2
+                                              BIT 3: Tristate Kanal 2*)
+  nCurrentPosition           : DINT;            // current position in [SubPx]
+  fCurrentSpeed              : LREAL;           // current speed in [m/s]
+  fMaxMachineSpeed           : LREAL;           // max. machine speed in [m/s]
+END_VAR
+VAR_OUTPUT
+  // IOs
+  EL2252_Activate      AT%Q* : BYTE;            (*Oututs activation command (0->3 activate)*)
+  EL2252_StartTime     AT%Q* : T_DCTIME64;      (*Outputs activation timestamp*)
+  EL2252_Output1       AT%Q* : BOOL;            (*Output1 bool state*)
+END_VAR
+VAR
+  // timestamp output  
+  tNowDc                          : T_DCTIME64;       // Get Current Timestamp (now)
+  fCycleTime : LREAL;            // Current calculated cycle time [s]
+  
+  // helper
+  nDistBtwTriggerAndInspection_SubPx : DINT;   // worker position in [SubPx]
+  nTriggerPos_SubPx : DINT;   // next trigger position [SubPx]
+  tTriggerTime : T_DCTIME64;
+  bTriggerActivating, bOutputActive : BOOL;
+  bTriggerResetting, bResetActive : BOOL;     // output is currently set
+  tResetTime : T_DCTIME64;
+  nDelta_SubPx : DINT;
+END_VAR
+VAR CONSTANT
+  tC_CommTimeout : LREAL := 10.0/1000;   // 10ms in [s]
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Folder Name="EL2252" Id="{0158c249-6857-46bf-a494-b2f1524d8491}" />
+    <Folder Name="I_PrintStatusClient" Id="{622e22de-7c75-455b-8827-a6bdaab0b713}" />
+    <Method Name="Attach" Id="{e841e17d-4c3c-4975-8ae0-07d1deff609f}">
+      <Declaration><![CDATA[METHOD PROTECTED  Attach : BOOL
+VAR_INPUT
+  iCT              : I_CT;                         (*container at triggered event position*)
+END_VAR
+VAR
+  // temp pos
+  deltaPosNowToTrigger_SubPx : DINT;
+  deltaPosNowToTrigger_m : LREAL;
+  // temp time
+  deltaTime_s : LREAL;
+  deltaTime_Dc : T_DCTIME64;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF SUPER^.Attach(iCT:=iCT) THEN
+  
+  // calculate exact trigger position
+  // X0 + WorkerInspection-Pos
+  nTriggerPos_SubPx := iCT.GetPosX0(iTracker:=_iCTTracker) + nDistBtwTriggerAndInspection_SubPx;
+  // delta to current pos
+  deltaPosNowToTrigger_SubPx := nTriggerPos_SubPx - nCurrentPosition;  // delata position in [SubPx]
+  deltaPosNowToTrigger_m := F_SubPixelToMeter(lPosSubPx:=deltaPosNowToTrigger_SubPx, fResSubPx:=_fPrintResolution*_fSubPxResolution);
+  
+  IF fCurrentSpeed = 0 THEN RETURN; END_IF   // crash avoid
+  // delta in time
+  deltaTime_s  := deltaPosNowToTrigger_m/fCurrentSpeed;
+  deltaTime_Dc := TO_ULINT(deltaTime_s * TO_LREAL(EC_DCTIME_TICKSPERSEC64));  
+  
+  // trigger time
+  tTriggerTime := ULARGE_TO_ULINT(UInt64Add64(ULINT_TO_ULARGE(F_GetCurDcTaskTime64()), ULINT_TO_ULARGE(deltaTime_Dc)));
+  setTrigger(bOut1:=TRUE, tTime:=tTriggerTime);
+  bTriggerActivating := TRUE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="calcCycleTime" Id="{4f9d0544-5723-47c6-9b53-dcdf0a45a24d}" FolderPath="EL2252\">
+      <Declaration><![CDATA[// cycle time in [s]
+METHOD PRIVATE calcCycleTime : LREAL
+VAR_INPUT
+  tCurrent : T_DCTIME64;
+END_VAR
+VAR_INST
+  tLastTimeStamp : T_DCTIME64 := 0;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[calcCycleTime := (TO_LREAL(tCurrent) - TO_LREAL(tLastTimeStamp)) * 1E-9;
+tLastTimeStamp  := tCurrent;  // memory timestamp ]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mJobStart" Id="{9e3e744c-c7cf-40e6-81f1-71a64963221a}" FolderPath="I_PrintStatusClient\">
+      <Declaration><![CDATA[METHOD   mJobStart
+VAR_INPUT
+	sJobDef	: I_JobDefinition;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mJobStop" Id="{f410b542-746b-4eb1-9613-2986bd824a33}" FolderPath="I_PrintStatusClient\">
+      <Declaration><![CDATA[METHOD  mJobStop
+VAR_INPUT
+	sStatus	: I_JobStatus;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Release" Id="{ecf27b47-fa13-4637-a110-5c617ebd743c}">
+      <Declaration><![CDATA[METHOD Release : BOOL
+VAR_INPUT
+  iCT              : I_CT;                         (*container at triggered event position*)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF SUPER^.Release(iCT := iCT) THEN
+  ;  
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="resetOut" Id="{78afb77d-d3f3-44cd-9f32-46fd780b7dd5}" FolderPath="EL2252\">
+      <Declaration><![CDATA[METHOD PRIVATE resetOut
+VAR
+  tDistDc : T_DCTIME64;
+  tULargeNow, tULargeDist : T_ULARGE_INTEGER;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// send FALSE in the next tC_CommTimeout
+tDistDc := TO_ULINT(tC_CommTimeout * TO_LREAL(EC_DCTIME_TICKSPERSEC64));
+tULargeNow := ULINT_TO_ULARGE(tNowDc);
+tULargeDist := ULINT_TO_ULARGE(tDistDc);
+tResetTime := ULARGE_TO_ULINT(UInt64Add64(tULargeNow, tULargeDist));
+setTrigger(bOut1:=FALSE, tTime:=tResetTime);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="setTrigger" Id="{3e9e146e-8beb-4b75-a06e-084de4073f71}" FolderPath="EL2252\">
+      <Declaration><![CDATA[METHOD PRIVATE setTrigger
+VAR_INPUT
+  tTime : T_DCTIME64;
+  bOut1 : BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[EL2252_Activate  := 0;
+EL2252_StartTime := tTime;
+EL2252_Output1   := bOut1;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="work" Id="{c84e0ef9-4e1d-4b84-951f-24934b6f32d7}">
+      <Declaration><![CDATA[METHOD  work
+VAR
+  bOutput1 : BOOL;
+END_VAR
+VAR_INST
+  bTriggerActivating_mem : BOOL;
+  bTriggerResetting_mem : BOOL;
+  fPreAttachPos : LREAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SUPER^.work();
+
+// Overwrite "default" tracking offset (Attach position)
+fPreAttachPos := fMaxMachineSpeed * tC_CommTimeout;
+_nTrackOffset := F_MeterToSubPixel(fPosMeter:=fPosition - fPreAttachPos, fResoSubPx:=_fPrintResolution*_fSubPxResolution);  // [pos domain] save position
+
+// time & position updates
+tNowDc     := F_GetCurDcTaskTime64();                         // current dc time (most accurate time stamp we have)
+fCycleTime := calcCycleTime(tCurrent:=tNowDc);                // calculate cycle time of this fb
+nDistBtwTriggerAndInspection_SubPx := F_MeterToSubPixel(fPosMeter:=fPosition, fResoSubPx:=_fPrintResolution*_fSubPxResolution);  // distance between Sensor and Inspectionin [SubPx] 
+
+// output activation
+IF bTriggerActivating AND bTriggerActivating_mem THEN  bTriggerActivating := FALSE;
+  EL2252_Activate := 3;        // activate output config
+  bOutputActive := TRUE;
+END_IF
+bTriggerActivating_mem := bTriggerActivating;
+
+IF bOutputActive THEN
+  // check if pos later than activation position --> reset
+  nDelta_SubPx := F_MeterToSubPixel(fPosMeter:=tC_CommTimeout*fCurrentSpeed, fResoSubPx:=_fPrintResolution*_fSubPxResolution);
+  IF (nCurrentPosition - nTriggerPos_SubPx) > nDelta_SubPx THEN
+    resetOut();
+    bTriggerResetting := TRUE;
+    bOutputActive := FALSE;
+	END_IF
+END_IF
+
+IF bTriggerResetting AND bTriggerResetting_mem THEN  bTriggerResetting := FALSE;
+  EL2252_Activate := 3;        // activate output config
+  bResetActive := TRUE;
+END_IF
+bTriggerResetting_mem := bTriggerResetting;
+
+IF bResetActive THEN
+  // check if pos later than activation position --> reset
+  IF UInt64Cmp64(ULINT_TO_ULARGE(tNowDc), ULINT_TO_ULARGE(tResetTime)) > 0 THEN
+    bResetActive := FALSE;
+	END_IF
+END_IF
+
+IF _pAttachedCt <> 0 THEN
+  Release(iCT:=_pAttachedCt^);
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_WorkerDefGrid_Inspection">
+      <LineId Id="210" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Inspection.Attach">
+      <LineId Id="57" Count="2" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Inspection.calcCycleTime">
+      <LineId Id="5" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Inspection.mJobStart">
+      <LineId Id="81" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Inspection.mJobStop">
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Inspection.Release">
+      <LineId Id="6" Count="0" />
+      <LineId Id="16" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Inspection.resetOut">
+      <LineId Id="6" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Inspection.setTrigger">
+      <LineId Id="10" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Inspection.work">
+      <LineId Id="10" Count="0" />
+      <LineId Id="82" Count="1" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="116" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="107" Count="1" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="118" Count="1" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="129" Count="1" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="45" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

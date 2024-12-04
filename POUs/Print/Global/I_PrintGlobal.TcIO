@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <Itf Name="I_PrintGlobal" Id="{21c90071-c4b1-47be-a0ad-3c64a278d0e6}">
+    <Declaration><![CDATA[INTERFACE I_PrintGlobal
+]]></Declaration>
+    <Property Name="iHardwarePool" Id="{b6d2dee3-9f7c-4dc8-a78b-294dfdcc87ad}">
+      <Declaration><![CDATA[PROPERTY iHardwarePool : I_HardwarePool]]></Declaration>
+      <Get Name="Get" Id="{37d2349b-3cf6-4a81-9de1-4be811653e6e}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="iMasterPrintPosition" Id="{ebb31c12-29b2-4913-828d-32887cc26ddb}">
+      <Declaration><![CDATA[PROPERTY iMasterPrintPosition : I_PrintPosition]]></Declaration>
+      <Get Name="Get" Id="{cfa54b9f-29fd-4e1d-a222-ac56e5623fab}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Method Name="registerPuStatusClient" Id="{c83083f8-aed4-490c-ab6f-30bf48136e4a}">
+      <Declaration><![CDATA[(*
+  Register for PU StatusClient
+*)
+METHOD registerPuStatusClient : BOOL
+VAR_INPUT
+  sClient       : I_PrintStatusClient;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="registerPuSubystem" Id="{bc9e8bd5-c97d-4bef-a418-ad671ac1dd5b}">
+      <Declaration><![CDATA[METHOD registerPuSubystem : BOOL
+VAR_INPUT
+  iSubSys      : I_PrintSubsystem;
+END_VAR]]></Declaration>
+    </Method>
+  </Itf>
+</TcPlcObject>

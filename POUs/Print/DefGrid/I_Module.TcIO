@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <Itf Name="I_Module" Id="{1dfd1863-e2a6-441a-9d89-aba8aeeb8a6a}">
+    <Declaration><![CDATA[INTERFACE I_Module
+]]></Declaration>
+    <Property Name="bEstop" Id="{4b1b4922-80a7-423d-9cfc-b78fbc2175c5}">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'call'}
+PROPERTY bEstop : BOOL]]></Declaration>
+      <Get Name="Get" Id="{0c7d3028-0d52-4087-a8eb-f2b7d6c2ba3e}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{e277afc3-0577-4eb6-abeb-41eed3168691}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="bSleep" Id="{47e04413-cad2-427c-b47f-a7499a7b8296}">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'call'}
+PROPERTY bSleep : BOOL]]></Declaration>
+      <Get Name="Get" Id="{39547459-ada4-423c-9e42-25550573bb7e}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{922ce03d-1716-4fec-831d-71336752c26f}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Method Name="registerForEmergencyUpdate" Id="{5e2c4080-670f-4c98-96bf-407b75d7c2b3}">
+      <Declaration><![CDATA[(*
+  Register to get Emergency state updates.
+*)
+METHOD registerForEmergencyUpdate : BOOL
+VAR_INPUT
+	iObserver	: I_EmergencyObserver;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="registerForSleepUpdate" Id="{1f9b7c9c-a46b-4be8-9d82-e785f6af3470}">
+      <Declaration><![CDATA[(*
+  Register to get sleep state updates.
+*)
+METHOD registerForSleepUpdate : BOOL
+VAR_INPUT
+	iObserver	: I_SleepObserver;
+END_VAR
+]]></Declaration>
+    </Method>
+  </Itf>
+</TcPlcObject>

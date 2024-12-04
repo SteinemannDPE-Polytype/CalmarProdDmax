@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_TempLogging_OpcUa" Id="{fd731e1d-6860-4dd7-8b04-05f2e3a3a0fe}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_TempLogging_OpcUa
+VAR
+  // used data
+  _pAdsPh  : ARRAY[1..nC_MaxPHs] OF POINTER TO ST_ADS_PH;
+  _nRegPhs : UDINT;                                           (*number o registered printheads*)
+
+  // timing
+  fb_TonMaxTemp                             : TON;            (*Timer for max temperature*)
+  tL_TimeMaxTemp                            : TIME := T#10S;  (*Interval for max temperature*)
+  i                                         : UDINT;
+  
+  {attribute 'OPC.UA.DA':='1'}
+  iL_TempActValuePH                         : ARRAY[1..nC_MaxPHs] OF INT;       (*Actual temperature PHx*)
+  {attribute 'OPC.UA.DA':='1'}
+  iL_TempMaxValuePH                         : ARRAY[1..nC_MaxPHs] OF INT;       (*Max temperature in interval PHx*)
+END_VAR
+VAR CONSTANT
+  nC_MaxPHs                                 : UDINT := 8;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*Detect max temp value in defined interval*)
+fb_TonMaxTemp(IN := NOT fb_TonMaxTemp.Q, PT := tL_TimeMaxTemp);
+IF fb_TonMaxTemp.Q THEN
+  
+  FOR i:=1 TO _nRegPhs DO 
+    iL_TempActValuePH[i] := iL_TempMaxValuePH[i];
+    iL_TempMaxValuePH[i] := _pAdsPh[i]^.iO_Temperature;
+	END_FOR
+
+END_IF
+
+iL_TempMaxValuePH[i] := MAX(iL_TempMaxValuePH[i], _pAdsPh[i]^.iO_Temperature);
+]]></ST>
+    </Implementation>
+    <Method Name="registerPH" Id="{5b53e921-ab1c-4caf-b430-fc1a5c280839}">
+      <Declaration><![CDATA[METHOD registerPH : BOOL
+VAR_INPUT
+  pAdsPh : POINTER TO ST_ADS_PH;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF pAdsPh = 0 THEN RETURN; END_IF 
+IF _nRegPhs >= nC_MaxPHs THEN F_LogError('Too many phs already registered'); RETURN; END_IF 
+
+
+_nRegPhs := _nRegPhs + 1;
+_pAdsPh[_nRegPhs] := pAdsPh;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_TempLogging_OpcUa">
+      <LineId Id="38" Count="2" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="125" Count="0" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="57" Count="1" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TempLogging_OpcUa.registerPH">
+      <LineId Id="12" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="10" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

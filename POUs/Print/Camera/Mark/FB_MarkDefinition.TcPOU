@@ -1,0 +1,628 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_MarkDefinition" Id="{9fd490d8-a121-44dc-9636-b7387d840542}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  Holds Marks definition & current state.
+*)
+{attribute 'no_explicit_call' := 'do not call this POU directly'} 
+FUNCTION_BLOCK FB_MarkDefinition EXTENDS T_NamedBase IMPLEMENTS I_MarkDefinition
+VAR
+  // marks
+  // - mark list
+  _nMarks : UDINT;          // number of registered (teached) marks
+  sMarkDef : ARRAY[1..200] OF ST_MarkDefinition;   // mark array (teached marks)
+  
+  // mark states
+  _eMarkMode : E_MarkMode;
+  _nMarksDetected : UDINT;  // number of detected marks
+
+  // internals
+  nMaxMarks : UDINT;
+  sLastStartMark : ST_MarkDefinition;       // sampled start mark (because first mark will be overwritten already by next sheet)
+  
+  // View
+  _fImageLength, _fImageWidth, _fUseLength, _fDistBetweenMarks : LREAL;
+  _nUses, _nMarksPerUse : UDINT;
+  _bMarkInverted : BOOL;
+  nSelMark : UDINT := 1;
+  pSelMark : POINTER TO ST_MarkDefinition;
+  bShowDetail : BOOL;
+END_VAR
+VAR CONSTANT
+  // fixed triangle shape definition
+  fC_MinUseLength : LREAL := 0.04;  // minimal "use" length
+  //view
+  nShSzX_px : UDINT := 500;
+  nShSzY_px : UDINT := 180;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*
+  Definition of a mark.
+  
+   SqLength (1/2a or 2a) | TrLength = a -->
+   |--------| \
+   |        |   \
+   |        |     \    -- center --
+^  |        |       \
+|  |--------|---------
+| Height = a
+
+Requirements:
+  - StartMark has to be unique (bigger than minimal length of others)
+  - Distance between Start and Endmark has to be bigger than length of StartMark + Minimal space
+  - Mark has a minimum lenth, so the sensor can see the mark
+
+*)
+]]></ST>
+    </Implementation>
+    <Folder Name="I_MarkDefinition" Id="{768d0757-a8ce-42f3-be27-86b1dccd832c}" />
+    <Folder Name="Teaching" Id="{d7f1a474-7ab0-4d97-9fc3-29f084e73191}" />
+    <Property Name="fMaxLengthStartMark" Id="{43ac1333-9baa-4872-95db-9700173f90dd}">
+      <Declaration><![CDATA[(*
+  Ge minimum length of hte start mark.
+*)
+PROPERTY fMaxLengthStartMark : LREAL]]></Declaration>
+      <Get Name="Get" Id="{a57cf7c0-a0b4-4e15-a8a7-8af41d7a28e0}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IF _nMarks > 0 THEN
+  fMaxLengthStartMark := sMarkDef[1].fSqLength + sMarkDef[1].fTrLength;
+END_IF]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="fMinLengthStartMark" Id="{28ad9750-49f7-4210-8ae8-7698496aabf2}">
+      <Declaration><![CDATA[(*
+  Ge minimum length of hte start mark.
+*)
+PROPERTY fMinLengthStartMark : LREAL]]></Declaration>
+      <Get Name="Get" Id="{fde96c83-e5b8-4ed6-ab57-405d7b3125a8}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IF _nMarks > 0 THEN
+  fMinLengthStartMark := sMarkDef[1].fSqLength;
+END_IF]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="getMark" Id="{c37a739d-c91b-4a27-ba64-795297055335}" FolderPath="I_MarkDefinition\">
+      <Declaration><![CDATA[(*
+  Get a mark definition.
+  nIdx= 1.._nMarks = registered marks
+  nIdx= 0 - selects last mark 
+  :returns: pointer to mark defintion or 0 if not found
+*)
+METHOD getMark : POINTER TO ST_MarkDefinition
+VAR_INPUT
+  nIdx : DINT; // mark index: 1.._nMarks, 0 = last (endMark) 
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF    nIdx = 0 THEN 
+  getMark := ADR(sMarkDef[_nMarks]); // last mark (end or last)
+ELSIF nIdx > 0 AND nIdx <= TO_DINT(_nMarks) THEN 
+  getMark := ADR(sMarkDef[nIdx]);
+ELSE 
+  LogError(F_Concat2('Invalid mark requested, Idx=', TO_STRING(nIdx)));
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Init" Id="{10e5662f-25fc-4596-8060-c14e2fb3ea29}">
+      <Declaration><![CDATA[METHOD Init : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nMaxMarks := SIZEOF(sMarkDef) / SIZEOF(sMarkDef[1]);
+ResetDefinition();
+LogLevel := E_LogSeverity.Info;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="nMarks" Id="{d1a014db-64d0-4106-adc4-b24435d88146}" FolderPath="I_MarkDefinition\">
+      <Declaration><![CDATA[(*Number of registered marks*)
+PROPERTY nMarks : UDINT]]></Declaration>
+      <Get Name="Get" Id="{754530ed-d7a4-4c92-bf61-956c368cbf56}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[nMarks := _nMarks;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="nMarksDetected" Id="{d8225d80-c29e-447c-bdae-b0ba98c5da47}" FolderPath="I_MarkDefinition\">
+      <Declaration><![CDATA[(*Number of detected marks*)
+PROPERTY nMarksDetected : UDINT]]></Declaration>
+      <Get Name="Get" Id="{88f4a7a9-ca4b-4f17-b72f-9481bb832a9a}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[// number of detected marks
+nMarksDetected := _nMarksDetected;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="pLastStartMark" Id="{9dfa6397-d969-4853-8cda-cff0a6683302}">
+      <Declaration><![CDATA[PROPERTY pLastStartMark : POINTER TO ST_MarkDefinition]]></Declaration>
+      <Get Name="Get" Id="{d6dce974-ba32-4a91-8230-fe6e741ba47b}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[pLastStartMark := ADR(sLastStartMark);]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="RegisterMark" Id="{8567991f-e325-4655-876e-2d25aa46922c}">
+      <Declaration><![CDATA[(*
+  Register a mark to camera (teach).
+  If mark.nId >= 0 then it will be a detectable mark.
+*)
+METHOD RegisterMark : BOOL
+VAR_INPUT
+  sMark : ST_MarkDefinition;
+END_VAR
+VAR
+  pMark : POINTER TO ST_MarkDefinition;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// - for all other teach marks
+IF _nMarks >= nMaxMarks THEN LogError('Number of marks exeeded, ignore'); RETURN; END_IF
+// we assume first mark is start mark, last mark is end mark (marks need to be registered in sorted order)
+// (TODO) otherwise add marks in a sorted way to list
+_nMarks := _nMarks + 1;
+pMark := ADR(sMarkDef[_nMarks]);
+// copy mark data
+pMark^ := sMark;
+
+// checks
+// - set id if not given
+IF pMark^.nId = 0 THEN pMark^.nId := TO_DINT(_nMarks); END_IF
+// - start mark requirements
+IF _nMarks > 1 THEN   
+  // -- start mark length requirement 
+  IF pMark^.fSqLength + pMark^.fTrLength >= sMarkDef[1].fSqLength THEN 
+    LogError(F_Concat5('RegisterMark: mark not unique, too long: ', TO_STRING(pMark^.fSqLength + pMark^.fTrLength), ' > ', TO_STRING(sMarkDef[1].fSqLength), ' of start min. length'));
+  END_IF
+END_IF
+
+// view
+pMark^.sView.bShow := TRUE;
+pMark^.sView.nXPosPx := TO_DINT(nShSzX_px*pMark^.fPosX/SEL(_fImageLength=0, _fImageLength, 1));
+pMark^.sView.nYPosPx := TO_DINT(nShSzY_px*pMark^.fPosY/SEL(_fImageWidth=0,  _fImageWidth,  1));
+pMark^.sView.colorFill := SEL(pMark^.nId=1, 16#FFAAABB6, 16#FF8E7CC3 );
+
+// clear eventual mark state
+MEMSET(destAddr:=ADR(pMark^.sState), 0, SIZEOF(ST_MarkState));
+
+RegisterMark := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ResetDefinition" Id="{aca53e14-0a95-43b2-9963-e58fc6977ee5}">
+      <Declaration><![CDATA[METHOD ResetDefinition
+VAR
+  i : UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[ResetMarkStates();
+
+_nMarks := 0;
+
+MEMSET(destAddr:=ADR(sMarkDef), fillByte:=0, SIZEOF(sMarkDef));
+MEMSET(destAddr:=ADR(sLastStartMark), fillByte:=0, SIZEOF(sLastStartMark));
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ResetMarkStates" Id="{028fa150-b018-4ff3-b9f7-6a74efb6afb2}" FolderPath="I_MarkDefinition\">
+      <Declaration><![CDATA[(*
+  Reset all registered marks
+*)
+METHOD ResetMarkStates
+VAR
+  i : UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// reset detected marks
+_nMarksDetected := 0;
+// reset mark state only
+FOR i:=1 TO _nMarks DO
+  MEMSET(destAddr:=ADR(sMarkDef[i].sState), 0, SIZEOF(ST_MarkState));
+  sMarkDef[i].sView.colorFill := 16#FFFFFFFF;
+END_FOR
+//MEMSET(destAddr:=ADR(sLastStartMark.sState), 0, SIZEOF(ST_MarkState));]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="saveMark" Id="{b829c69e-69eb-412a-a77a-9b1cda33bddd}" FolderPath="I_MarkDefinition\">
+      <Declaration><![CDATA[METHOD saveMark : BOOL
+VAR_INPUT
+  pMark : POINTER TO ST_MarkDefinition;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF pMark = 0 THEN RETURN; END_IF
+
+IF NOT pMark^.sState.bMissed THEN
+  pMark^.sView.colorFill := 16#FF7AF096; // (light greeen) 
+ELSIF pMark^.sState.bMissed THEN 
+  pMark^.sView.colorFill := 16#FFFD0000; // (some red)
+END_IF
+
+// sample start mark
+IF pMark^.nId = 1 THEN 
+  sLastStartMark := pMark^;           // save start mark as backup
+  sMarkDef[pMark^.nId] := pMark^;     // save in teached mark table
+  _nMarksDetected := _nMarksDetected + 1;
+  saveMark := TRUE;
+
+ELSIF pMark^.nId > 1 AND pMark^.nId <= TO_DINT(_nMarks) THEN
+  sMarkDef[pMark^.nId] := pMark^;     // save in teached mark table
+  _nMarksDetected := _nMarksDetected + 1;
+  saveMark := TRUE;  
+  
+ELSE
+  LogError(F_Concat3('saveMark: mark with id=', TO_STRING(pMark^.nId), ' not available'));
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="TeachAuto" Id="{d881e1d3-0f3e-4142-90f4-761a524a5ce0}" FolderPath="Teaching\">
+      <Declaration><![CDATA[(*
+  Calculate marks (position, shape) and register to mark definition. 
+*)
+METHOD PRIVATE TeachAuto : BOOL
+VAR_INPUT
+  a : LREAL;              // a length [m]
+  c : LREAL;              // c start distance [m]
+  bInverted : BOOL;       // mark inverted (flipped on x-axis)
+END_VAR
+VAR
+  i : UDINT;
+  numMarks : UDINT;
+  sNewMark : ST_MarkDefinition;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+ResetDefinition();
+
+// 
+numMarks := _nUses*_nMarksPerUse;
+IF numMarks = 0 THEN numMarks := 1; END_IF   // at least one mark
+IF numMarks > 50 THEN numMarks:=50; LogError('TeachAuto: too many marks, limited to max. internal=50'); END_IF
+
+_fDistBetweenMarks := _fImageLength/numMarks;
+
+// calculate position
+FOR i:=1 TO numMarks DO
+  sNewMark.fHeight := a;
+  sNewMark.fTrLength := a;
+  sNewMark.fSqLength := SEL(i>1, 2*a, 0.5*a);
+  sNewMark.fPosX := c + (i-1) * _fDistBetweenMarks;
+  sNewMark.fPosY := 0;
+  sNewMark.bInvertedX := bInverted;
+  
+  RegisterMark(sMark:=sNewMark);
+END_FOR]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="TeachMarks" Id="{0862f9ff-112d-4178-95a2-88b41209d52d}" FolderPath="Teaching\">
+      <Declaration><![CDATA[(*Setup mark definition, teach marks for job x*)
+METHOD TeachMarks : BOOL
+VAR_INPUT
+  fImageLength             : LREAL := 1;      // Image length [m]
+  fImageWidth              : LREAL := 1;      // Image width [m]
+  eMarkMode                : E_MarkMode;      // mode for expected marks
+  // mark format
+  a       : LREAL;  // a= mark a length [m]
+  b       : LREAL;  // b= mark a length [m]
+  c       : LREAL;  // c= distance to start mark (from sheet border)
+  nUses   : UDINT;  // use per repeat
+  bMarkInverted  : BOOL;   // triangles are flipped Y
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_fImageLength := fImageLength;
+_fImageWidth := fImageWidth;
+_eMarkMode := eMarkMode;
+_bMarkInverted := bMarkInverted;
+_nUses := nUses;
+_fUseLength := _fImageLength/nUses;
+_nMarksPerUse := TO_UDINT(FLOOR(_fUseLength/fC_MinUseLength));
+
+// checks
+IF fImageLength/nUses < fC_MinUseLength THEN LogError('TeachMarks: Use length too small'); END_IF
+
+// Teach new marks
+IF    eMarkMode = E_MarkMode.AutoDefault THEN
+  TeachAuto(a:=a, c:=c, bInverted:=bMarkInverted);
+ELSIF eMarkMode = E_MarkMode.OneDefault THEN
+  TeachOneMark(a:=a, c:=c, bInverted:=bMarkInverted);
+ELSIF eMarkMode = E_MarkMode.OneTriangle THEN
+  TeachOneTriangle(a:=a, b:=b, c:=c, bInverted:=bMarkInverted);
+ELSIF eMarkMode = E_MarkMode.None THEN
+  TeachOneSimMark();
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="TeachOneMark" Id="{b29aa47a-aa65-45ec-a32e-d33a1e8344f2}" FolderPath="Teaching\">
+      <Declaration><![CDATA[(*
+  Calculate marks (position, shape) and register to mark definition. 
+*)
+METHOD PRIVATE TeachOneMark : BOOL
+VAR_INPUT
+  a : LREAL;    // a length [m]
+  c : LREAL;    // c start distance [m]
+  bInverted : BOOL;
+END_VAR
+VAR
+  sNewMark : ST_MarkDefinition;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+ResetDefinition();
+
+// > default mark (square & triangle)
+// calculate position
+sNewMark.fHeight := a;
+sNewMark.fTrLength := a;
+sNewMark.fSqLength := 2 * a;
+sNewMark.fPosX := c;
+sNewMark.fPosY := 0;
+sNewMark.bInvertedX := bInverted;
+
+RegisterMark(sMark:=sNewMark);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="TeachOneSimMark" Id="{453a94e7-603c-485c-9e23-e7ac2a920742}" FolderPath="Teaching\">
+      <Declaration><![CDATA[(*
+  Calculate marks (position, shape) and register to mark definition. 
+*)
+METHOD PRIVATE TeachOneSimMark : BOOL
+VAR_INPUT
+END_VAR
+VAR
+  sNewMark : ST_MarkDefinition;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+ResetDefinition();
+
+// > a simulation/generation mark
+// calculate position
+sNewMark.bVirtual := TRUE;
+sNewMark.fHeight := 0.001;
+sNewMark.fTrLength := 0.001;
+sNewMark.fSqLength := 0;
+sNewMark.fPosX := 0;
+sNewMark.fPosY := 0;
+sNewMark.bInvertedX := FALSE;
+
+RegisterMark(sMark:=sNewMark);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="TeachOneTriangle" Id="{c2c1a8d2-eed4-4e97-9356-e7bcd531caed}" FolderPath="Teaching\">
+      <Declaration><![CDATA[(*
+  Calculate marks (position, shape) and register to mark definition. 
+*)
+METHOD PRIVATE TeachOneTriangle : BOOL
+VAR_INPUT
+  a : LREAL;    // a length [m]
+  b : LREAL;    // b length [m]
+  c : LREAL;    // c start distance [m]
+  bInverted : BOOL;
+END_VAR
+VAR
+  sNewMark : ST_MarkDefinition;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+ResetDefinition();
+
+// calculate position
+// > triangle only  (squareLen=0)
+sNewMark.fHeight := a;
+sNewMark.fTrLength := b;
+sNewMark.fSqLength := 0;
+sNewMark.fPosX := c;
+sNewMark.fPosY := 0;
+sNewMark.bInvertedX := bInverted;  
+
+RegisterMark(sMark:=sNewMark);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="update_view" Id="{41a8142f-4950-483a-a733-e026dfe68780}">
+      <Declaration><![CDATA[METHOD update_view
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nSelMark := LIMIT(1, nSelMark, nMaxMarks);
+pSelMark := ADR(sMarkDef[nSelMark]);]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_MarkDefinition">
+      <LineId Id="9" Count="0" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="31" Count="5" />
+      <LineId Id="29" Count="1" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="66" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.fMaxLengthStartMark.Get">
+      <LineId Id="2" Count="0" />
+      <LineId Id="5" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.fMinLengthStartMark.Get">
+      <LineId Id="2" Count="0" />
+      <LineId Id="5" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.getMark">
+      <LineId Id="5" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.Init">
+      <LineId Id="13" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="17" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.nMarks.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.nMarksDetected.Get">
+      <LineId Id="5" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.pLastStartMark.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.RegisterMark">
+      <LineId Id="98" Count="4" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="125" Count="0" />
+      <LineId Id="133" Count="1" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="178" Count="2" />
+      <LineId Id="107" Count="3" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="165" Count="0" />
+      <LineId Id="161" Count="0" />
+      <LineId Id="177" Count="0" />
+      <LineId Id="163" Count="1" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="13" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.ResetDefinition">
+      <LineId Id="25" Count="2" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="28" Count="1" />
+      <LineId Id="39" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.ResetMarkStates">
+      <LineId Id="17" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="34" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.saveMark">
+      <LineId Id="14" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="51" Count="2" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="13" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.TeachAuto">
+      <LineId Id="78" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="101" Count="1" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="107" Count="1" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="29" Count="5" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="37" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.TeachMarks">
+      <LineId Id="53" Count="3" />
+      <LineId Id="65" Count="1" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="61" Count="1" />
+      <LineId Id="87" Count="1" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="89" Count="1" />
+      <LineId Id="18" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.TeachOneMark">
+      <LineId Id="39" Count="1" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="91" Count="7" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="37" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.TeachOneSimMark">
+      <LineId Id="39" Count="1" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="91" Count="1" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="93" Count="5" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="37" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.TeachOneTriangle">
+      <LineId Id="39" Count="1" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="103" Count="6" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="37" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.update_view">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

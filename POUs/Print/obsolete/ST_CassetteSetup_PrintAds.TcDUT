@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_CassetteSetup_PrintAds" Id="{676db2ee-0444-4c6c-b587-2d29b8d9827c}">
+    <Declaration><![CDATA[TYPE ST_CassetteSetup_PrintAds :
+STRUCT
+
+  aPM_Name : STRING[10];
+  aPG_Name : ARRAY[1..GVL_WEU.nC_MaxWorkerPrintPerPm] OF STRING[22];
+  aPC_Name : ARRAY[1..GVL_WEU.nC_MaxPcPerPm] OF STRING[22];
+  aPH_Name : ARRAY[1..GVL_WEU.nC_MaxPhPerPm] OF STRING[15];
+  
+{IF defined (Production_1PM)}
+
+  aC_PM_NAME                    : ARRAY[1..iCPr_NB_PM] OF STRING[10] :=
+           ['Module 3'];
+
+  aC_PG_NAME                    : ARRAY[1..iCPr_NB_PM] OF ARRAY[1..iCPr_NB_PG] OF STRING[22] := [
+            ['M3 Printline 1 infeed', 'M3 Printline 2 outlet']];  // PM1
+
+  aC_PC_NAME                    : ARRAY[1..iCPr_NB_PC] OF STRING[22] :=
+           ['Controller Board 1.1',
+            'Controller Board 1.2',
+            'Controller Board 2.1',
+            'Controller Board 2.2'];
+
+  aC_PH_NAME                    : ARRAY[1..iCPr_NB_PH] OF STRING[15] :=
+           ['Printhead 1.1',
+            'Printhead 1.2',
+            'Printhead 1.3',
+            'Printhead 1.4',
+            'Printhead 1.5',
+            'Printhead 1.6',
+            'Printhead 2.1',
+            'Printhead 2.2',
+            'Printhead 2.3',
+            'Printhead 2.4',
+            'Printhead 2.5',
+            'Printhead 2.6'];
+
+{ELSE}
+
+  aC_PM_NAME                    : ARRAY[1..iCPr_NB_PM] OF STRING[10] :=
+           ['Module 3',
+            'Module 4'];
+
+  aC_PG_NAME                    : ARRAY[1..iCPr_NB_PM] OF ARRAY[1..GVL_WEU.nC_MaxWorkerPrintPerPm] OF STRING[22] := [
+            ['M3 Printline 1 infeed', 'M3 Printline 2 outlet'],   // PM1
+            ['M4 Printline 3 infeed', 'M4 Printline 4 outlet']];  // PM2
+
+  aC_PC_NAME                    : ARRAY[1..iCPr_NB_PC] OF STRING[22] :=
+           ['Controller Board 1.1',
+            'Controller Board 1.2',
+            'Controller Board 2.1',
+            'Controller Board 2.2',
+            'Controller Board 3.1',
+            'Controller Board 3.2',
+            'Controller Board 4.1',
+            'Controller Board 4.2'];
+
+  aC_PH_NAME                    : ARRAY[1..iCPr_NB_PH] OF STRING[15] :=
+           ['Printhead 1.1',
+            'Printhead 1.2',
+            'Printhead 1.3',
+            'Printhead 1.4',
+            'Printhead 1.5',
+            'Printhead 1.6',
+            'Printhead 2.1',
+            'Printhead 2.2',
+            'Printhead 2.3',
+            'Printhead 2.4',
+            'Printhead 2.5',
+            'Printhead 2.6',
+            'Printhead 3.1',
+            'Printhead 3.2',
+            'Printhead 3.3',
+            'Printhead 3.4',
+            'Printhead 3.5',
+            'Printhead 3.6',
+            'Printhead 4.1',
+            'Printhead 4.2',
+            'Printhead 4.3',
+            'Printhead 4.4',
+            'Printhead 4.5',
+            'Printhead 4.6'];
+
+{END_IF}
+ 
+  (*ADS configurations*)
+  // PM 
+  aC_GENERALSHIFT_X_UNIT          : STRING  :=
+  lL_GENERALSHIFT_X_SET_MIN       : DINT    :=   -380_000;     (*minimum set value*)
+  lL_GENERALSHIFT_X_SET_MAX       : DINT    :=  1_000_000;     (*maximum set value*)
+  aC_GENERALSHIFT_Y_UNIT          : STRING  := 'um';
+  lL_GENERALSHIFT_Y_SET_MIN       : DINT    := -8_001;         (*minimum set value*)
+  lL_GENERALSHIFT_Y_SET_MAX       : DINT    :=  8_001;         (*maximum set value*)
+  
+  // PG
+  aC_xx_STARTPOS_X_TYPE           : STRING  := 'DINT';
+  aC_xx_STARTPOS_X_UNIT           : STRING  := 'um';
+  lL_xx_STARTPOS_X_SET_MIN        : DINT    := 0;              (*minimum set value*)
+  lL_xx_STARTPOS_X_SET_MAX        : DINT    := 2_000_000;      (*maximum set value*)
+  aC_xx_STARTPOS_Y_UNIT           : STRING  := 'pixel';
+  lL_xx_STARTPOS_Y_SET_MIN        : DINT    := 0;              (*minimum set value*)
+  lL_xx_STARTPOS_Y_SET_MAX        : DINT    := 2147483647;     (*maximum set value*)
+  
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

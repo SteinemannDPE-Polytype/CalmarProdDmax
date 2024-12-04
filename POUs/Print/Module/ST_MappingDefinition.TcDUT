@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_MappingDefinition" Id="{94507792-b71b-43fb-ad13-c8e5240da468}">
+    <Declaration><![CDATA[(*
+  Hardware mapping definition.
+*)
+TYPE ST_MappingDefinition :
+STRUCT
+  // absolute hw mapping
+  nPhInst : UDINT := 1;      // ph hw instance selection
+  nPcInst : UDINT := 1;      // pc hw instance selection
+  nPgAbs  : UDINT := 1;      // absolute pg (eq PrintLine)
+  // module internal mapping (relative to given nPm)
+  nPm     : UDINT := 1;      // to pm x
+  nPg     : UDINT := 1;      // to pg in pm x
+  nPa     : UDINT := 1;      // to pa in pg
+  nPs     : UDINT := 1;      // to ps in pa
+  nPc     : UDINT := 1;      // to pc in pm
+  nPcCh   : UDINT := 1;      // to pc channel of pc 1-4
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_CassetteSetup_Print" Id="{80ee0860-b9cd-48ad-b2b2-9c8d3d615c49}">
+    <Declaration><![CDATA[TYPE ST_CassetteSetup_Print :
+STRUCT
+  // print settings
+  aAmsNetId_Localhost : T_AmsNetID;           // AMS NetID for file access
+  aAmsNetId_Io        : T_AmsNetID;           // AMS NetID of EtherCAT master
+  nEcatAddr_Pc_Base   : UINT;                 // Base address ethercat slave address of PCs in this module
+  pOd                 : POINTER TO FB_OD;     // Pointer to object dictionary of PC
+  aCfgPath            : T_MaxString;          // Configuration file path
+  nPrintResolution    : LREAL;                // printhead print resolution
+  nSubPixelResolution : LREAL;                // position subpx resolution
+  sPHType             : ST_PH_DEF; 						// Printhead hw type definition
+  ePcType             : E_PcTypes;            // PrintController hw type
+  nPcYShiftCenterRam  : UDINT;                // PrintController Y-Shift for centering in RAM (memory section configuration)
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

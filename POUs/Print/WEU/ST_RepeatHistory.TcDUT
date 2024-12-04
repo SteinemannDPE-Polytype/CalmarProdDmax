@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_RepeatHistory" Id="{94d14178-4632-42c6-ab3e-45022b89e73f}">
+    <Declaration><![CDATA[TYPE ST_RepeatHistory :
+STRUCT
+  bSelected       : BOOL;     // UI selected
+  nIndex          : UDINT;    // list index
+  nX0             : DINT;     // X0 detected position
+  fLen            : LREAL;    // Length intended
+  fLenEffective   : LREAL;    // Effective dist to previous
+  fLenDiff        : LREAL;    // Length difference to image length
+  bLenNotInRange  : BOOL;     // Effective length not in range
+  bStartOverrun   : BOOL;     // too many starts
+  bMissingMarks   : BOOL;     //
+  bMarksTooShort  : BOOL;     //
+  bMarksDetectErr : BOOL;     //
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

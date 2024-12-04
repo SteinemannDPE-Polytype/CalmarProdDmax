@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_CassetteSetup_Ink" Id="{2c4a2d4f-3716-4b97-aafa-49e3b36612de}">
+    <Declaration><![CDATA[TYPE ST_CassetteSetup_Ink :
+STRUCT
+  // ink settings
+  pInkDefinition        : POINTER TO ST_INKDEFINITON;
+  pInkHeaderTankGroup   : POINTER TO FB_ADS_HeadertankGroup;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

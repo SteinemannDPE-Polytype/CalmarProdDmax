@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_FILTER_MAV_1000" Id="{6dbc58d3-8020-4ff9-aedd-86e9fef47ab7}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_FILTER_MAV_1000
+(*************************************************************************************************)
+(*  FILENAME:    FB_FILTER_MAV_1000.EXP                                                          *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*     Moving everage filter.                                                                    *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+VAR_INPUT
+  fI_Input                  : LREAL;                              (*Input value*)
+  iI_NbInputs               : UINT;                               (*Number of inputs*)
+
+  bI_Reset                  : BOOL;                               (*Reset function*)
+END_VAR
+
+VAR_OUTPUT
+  fO_OutputMav              : LREAL;                              (*Output filtered value*)
+END_VAR
+
+VAR
+  bL_Init                   : BOOL;                               (*Init function*)
+  fL_Buffer                 : ARRAY [1..cL_BUFFER_MAX] OF LREAL;  (*Buffer for values*)
+  fL_Sum                    : LREAL;                              (*Sum of values*)
+
+  iL_Counter                : INT;                                (*Internal counter*)
+  iL_Counter2               : INT;                                (*Internal counter*)
+END_VAR
+
+VAR CONSTANT
+  cL_BUFFER_MAX             : UINT := 1000;                       (*Const buffer max size*)
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF (iI_NbInputs = 0) OR (iI_NbInputs > cL_BUFFER_MAX) THEN
+  iI_NbInputs := cL_BUFFER_MAX;
+END_IF
+
+IF NOT bL_Init OR bI_Reset THEN
+  bL_Init := TRUE;
+
+  FOR iL_Counter := 1 TO UINT_TO_INT(iI_NbInputs) DO
+    fL_Buffer[iL_Counter] := fI_Input;
+  END_FOR
+
+  fO_OutputMav := fI_Input;
+ELSE
+  iL_Counter := iL_Counter + 1;
+  IF iL_Counter > UINT_TO_INT(iI_NbInputs) THEN
+    iL_Counter := 1;
+  END_IF
+
+  fL_Buffer[iL_Counter] := fI_Input;
+
+  
+  fL_Sum := 0;
+  FOR iL_Counter2 := 1 TO UINT_TO_INT(iI_NbInputs) DO
+    fL_Sum := fL_Sum + fL_Buffer[iL_Counter2];
+  END_FOR
+  fO_OutputMav := fL_Sum / iI_NbInputs;
+END_IF;
+
+(********************************* END OF FB *****************************************************)]]></ST>
+    </Implementation>
+    <LineIds Name="FB_FILTER_MAV_1000">
+      <LineId Id="3" Count="18" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="22" Count="7" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

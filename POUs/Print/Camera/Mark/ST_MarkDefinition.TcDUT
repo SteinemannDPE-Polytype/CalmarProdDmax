@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_MarkDefinition" Id="{11c4a026-740b-4346-a6f9-fcbc93823657}">
+    <Declaration><![CDATA[TYPE ST_MarkDefinition :
+STRUCT
+  nId : DINT;             // mark id (array index)
+  bVirtual : BOOL;        // virtual mark(to be generated/simulated)
+  fHeight : LREAL;        // [m] mark height (size Y)
+  fTrLength : LREAL;      // [m] triangle lenght
+  fSqLength : LREAL;      // [m] square length ( square + triangle lengh = sizeX)
+  fPosX : LREAL;          // [m] position X offset from 0/0
+  fPosY : LREAL;          // [m] position Y offset from 0/0
+  bInvertedX : BOOL;      // flipped in X axis (prior bMarksInverted)
+  //bInvertedY : BOOL;      // flipped in Y axis
+  //state
+  sState : ST_MarkState;  // mark detection state
+  // view
+  sView  : ST_MarkView;   // additional view data
+END_STRUCT 
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

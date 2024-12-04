@@ -1,0 +1,278 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_START_POS_DETECT_WEU" Id="{b18a46c4-d1a6-4f86-9db1-84aba56d938d}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_START_POS_DETECT_WEU
+(*************************************************************************************************)
+(*  FILENAME:    FB_START_POS_DETECT_WEU                                                         *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    With 1 timestamped sensors, this function that can be used with marked web,                *)
+(*    will return the lateral offset of the web.                                                 *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+VAR_INPUT
+  pI_ConversionErr                : POINTER TO UDINT;  (*counts catched data type conversion overflows*)
+
+  (*EL1252*)
+  bIKp_CmdStartPrintSta     AT%I* : BOOL;        (*Command to start print station*)
+  tIKp_TimeStampPos         AT%I* : T_DCTIME64;  (*TimeStamp Pos_Edge @EL1252*)
+  tIKn_TimeStampNeg         AT%I* : T_DCTIME64;  (*TimeStamp Neg_Edge @EL1252*)
+
+  (*signals*)
+  bI_Sensor1_State                : BOOL;            (*Sensor 1 signal*)
+  tI_Sensor1_TimeStampPos         : T_DCTIME64;      (*Sesnor 1 last detection timestamp*)
+  tI_Sensor1_TimeStampNeg         : T_DCTIME64;      (*Sesnor 1 last detection timestamp*)
+  iI_CurrentTimeStampComp         : DINT := 2_000;   (*µs*)
+  iI_SensorTimeStampComp          : DINT := 150;     (*µs*)
+
+  iI_CurrentPos                   : DINT;            (*current position in Pulses/Subpixels*)
+  fI_ConveyorSpeed                : REAL;            (*actual speed of conveyor in [m/s]*)
+  fI_SubstrateLength              : REAL;            (*length of substrate in [m]*)
+  bI_Reset                        : BOOL := FALSE;   (*reset this fb*)
+  bI_MissedMarks                  : BOOL := TRUE;    (*At least one sensor missed mark, detected by FB_SUPERVISOR*)
+  bI_SpeedValid                   : BOOL;
+
+  (*configuration*)
+  bI_WithMark                     : BOOL := TRUE;    (*use with or without mark detection, TRUE=with detection*)
+  bI_MarksInverted                : BOOL := FALSE;   (*invert in case of wrong mirrored marks*)
+  fI_MarkLength                   : REAL;            (*length of detection mark [m]*)
+  fI_MarkHeight                   : REAL;            (*width of detection mark [m]*)
+
+  fI_Resolution                   : LREAL := 1;
+
+  (*Debug & Test*)
+  bI_SimTriggerActive             : BOOL;            (*Sim start trigger active*)
+  bI_ManualTrigger                : BOOL;            (*Manual start trigger*)
+  iI_ManualTriggerPosition        : DINT;            (*Manual trigger position [SubPx]*)
+END_VAR
+
+VAR_OUTPUT
+  fO_LateralOffset                : REAL;       (*[m]*)
+
+  iO_Offset_X0                    : DINT;       (*[SubPx]*)
+  bO_StartTrig                    : BOOL;       (**)
+  bO_Eject                        : BOOL;       (*Error occured, eject sheet*)
+  bO_MarkDetected1                : BOOL;
+
+  nO_PrintMarkPosBits             : WORD;       (*Print mark position (bit coded)*)
+END_VAR
+
+VAR
+  (*sensor 1*)
+  fL_S1_Duration                  : REAL;
+  tL_S1_RisingEdge                : T_DCTIME64;
+  tL_S1_FallingEdge               : T_DCTIME64;
+  bL_S1_AcqOK                     : BOOL;
+  fL_S1_Length                    : REAL;       (*[m]*)
+  bL_memS1_State                  : BOOL;
+  bL_inhibSensor1                 : BOOL;       (*inhibit sensor signals, TRUE=inhibit*)
+
+  bL_StopCondition                : BOOL;       (*condition to send a stop trigger*)
+  iL_InhibitLength                : DINT;       (*inhibit length in pulse [SubPx]*)
+  fL_InhibitSubstrateDecrease     : REAL := 0.010;   (*decrease substrate for inhibit in [m]*)
+
+  tL_CurrentTimeStamp             : T_DCTIME64; (* Get Current Timestamp *)
+  fL_CurrentTimeStamp             : LREAL;
+  fI_Sensor1_TimeStamp            : LREAL;
+
+  fL_DeltaDistance                : LREAL;      (*Distance that the substrate moved between the detection and the treatment of the information [m]*)
+  fL_TempVar                      : LREAL;      (*[SubPx]*)
+  iL_DeltaPosition                : DINT;       (*distance [SubPx]*)
+  iL_DbgDeltaP_min                : UDINT := 100_000;
+  iL_DbgDeltaP_max                : UDINT := 0;
+
+  iL_Dbg_0Div                     : UDINT := 0; (*counts all avoided zero pointer divisions*)
+  iL_Dbg_MissedMarks              : DINT;
+
+  bL_SpeedValid                   : BOOL;
+  
+  fb_TonCheckMarks                : TON;
+END_VAR
+
+VAR PERSISTENT
+  nR_AreaMarkSensorOk             : INT := 10;  (*Area with the correct arrangement of the mark sensor [%]*)
+END_VAR
+
+VAR CONSTANT
+  fC_MIN_CONVEYOR_SPEED           : REAL := 0.05;  (*[m/s]*)
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*EL1252*)
+bI_Sensor1_State        := bIKp_CmdStartPrintSta;
+tI_Sensor1_TimeStampPos := tIKp_TimeStampPos;
+tI_Sensor1_TimeStampNeg := tIKn_TimeStampNeg;
+
+IF bI_Reset THEN
+	bL_inhibSensor1       := FALSE;
+	bO_MarkDetected1      := FALSE;
+	bL_S1_AcqOK           := FALSE;
+END_IF;
+
+(*zero divisions*)
+IF    fI_Resolution = 0 THEN iL_Dbg_0Div := iL_Dbg_0Div + 1; RETURN;
+ELSIF fI_MarkHeight = 0 THEN iL_Dbg_0Div := iL_Dbg_0Div + 1; RETURN;
+END_IF;
+
+iL_InhibitLength := FC_LREAL_TO_DINT((fI_SubstrateLength - fL_InhibitSubstrateDecrease) * (1 / (0.0254 / fI_Resolution)), pI_ConversionErr);
+//bL_SpeedValid  := fI_ConveyorSpeed > fC_MIN_CONVEYOR_SPEED;
+bL_SpeedValid    := bI_SpeedValid;
+
+
+(* -------- Detection of rising edge on sensor1 --------*)
+IF bI_Sensor1_State AND NOT bL_memS1_State AND NOT bL_inhibSensor1 AND bL_SpeedValid AND NOT bI_SimTriggerActive THEN
+	tL_S1_RisingEdge := tI_Sensor1_TimeStampPos;
+
+	IF bI_WithMark THEN					(*  if the paper is marked, *)
+		bL_S1_AcqOK      := FALSE;(*  the function will wait until the falling edge to calculate the lateral offset too*)
+	ELSE												(*  if the paper is not marked, *)
+		bL_S1_AcqOK      := TRUE;	(*  the function will directly calculate the angle, can't calculate the lateral offset*)
+		bL_inhibSensor1  := TRUE;
+		bO_MarkDetected1 := TRUE;
+	END_IF;
+
+(* Calculate the current and sensor time stamp *)
+	tL_CurrentTimeStamp  := F_GetCurDcTaskTime64();
+	fL_CurrentTimeStamp  := (ULINT_TO_LREAL(tL_CurrentTimeStamp)     - (iI_CurrentTimeStampComp * 1_000)) / 1_000_000.0; (*in ms*)
+	fI_Sensor1_TimeStamp := (ULINT_TO_LREAL(tI_Sensor1_TimeStampPos) - (iI_SensorTimeStampComp  * 1_000)) / 1_000_000.0; (*in ms*)
+
+(* Treatment of the information *)
+	fL_DeltaDistance := (fL_CurrentTimeStamp - fI_Sensor1_TimeStamp) * 0.001 * fI_ConveyorSpeed;	(* Distance in pulses that the substrate has traveled between the sensor detection and the PLC treatment *)
+	fL_TempVar       := fL_DeltaDistance * (1 / (0.0254 / fI_Resolution));  (*1/1px*)	(* Travel of the substrate between the time of acquisition and the time of treatment *)
+	iL_DeltaPosition := FC_LREAL_TO_DINT(fL_TempVar, pI_ConversionErr);
+	iO_Offset_X0     := iI_CurrentPos - iL_DeltaPosition;	(* Position where the sheet has been detected *)
+END_IF;
+
+(*Debug & Test*)
+IF bI_ManualTrigger AND bL_SpeedValid THEN
+	bL_S1_AcqOK     := TRUE;
+  bL_inhibSensor1 := TRUE;
+  iO_Offset_X0    := iI_ManualTriggerPosition;	(* Position where the sheet has been detected *)
+END_IF
+
+
+(*debug - store max and minimal correction pulse*)
+IF DINT_TO_UDINT(iL_DeltaPosition) > iL_DbgDeltaP_max THEN
+	iL_DbgDeltaP_max := DINT_TO_UDINT(iL_DeltaPosition);
+END_IF
+IF DINT_TO_UDINT(iL_DeltaPosition) < iL_DbgDeltaP_min THEN
+	iL_DbgDeltaP_min := DINT_TO_UDINT(iL_DeltaPosition);
+END_IF
+
+
+(* -------- Detection of falling edge, only for detection with mark --------*)
+IF bI_WithMark AND NOT bI_Sensor1_State AND bL_memS1_State AND NOT bL_inhibSensor1 AND bL_SpeedValid AND NOT bI_SimTriggerActive THEN
+	tL_S1_FallingEdge := tI_Sensor1_TimeStampNeg;
+	fL_S1_Duration    := LREAL_TO_REAL(ULINT_TO_LREAL(tL_S1_FallingEdge) - ULINT_TO_LREAL(tL_S1_RisingEdge));		(* Calculate how long the signal was ON *)
+	fL_S1_Length      := fL_S1_Duration * fI_ConveyorSpeed * 0.000_000_001;			(* Calculate the equivalence*)
+	bL_S1_AcqOK       := TRUE;									(* now the function can continue to Angle & Offset calculation *)
+	bL_inhibSensor1   := TRUE;
+	bO_MarkDetected1  := TRUE;
+END_IF;
+
+bL_memS1_State := bI_Sensor1_State;			(* Memorization of the sensor1 state for next cycle *)
+
+
+(*Check mark sensor detection*)
+IF fI_ConveyorSpeed <> 0 THEN
+  fb_TonCheckMarks(IN := (bL_SpeedValid AND NOT bL_S1_AcqOK), PT := REAL_TO_TIME((2 * fI_SubstrateLength) / fI_ConveyorSpeed * 1000) );
+ELSE
+  fb_TonCheckMarks(IN := FALSE);
+END_IF
+
+
+(* ------------ OFFSET CALCULATION ----------------- *)
+IF bL_S1_AcqOK THEN
+	IF bI_WithMark AND NOT bI_ManualTrigger THEN
+    (*Sensor should aligned to the middle of the sensor (fI_MarkHeight / 2). *)
+    (*With the difference of the measured lenght to the normal lenght, the fO_LateralOffset can be calculated*)
+    (* invert in case of wrong mirrored marks *)
+    IF bI_MarksInverted THEN
+      fO_LateralOffset := -1*((fL_S1_Length * (fI_MarkHeight / 2 ) / (fI_MarkLength / 2)) - (fI_MarkHeight / 2 ));
+    ELSE     
+		  fO_LateralOffset := (fL_S1_Length * (fI_MarkHeight / 2 ) / (fI_MarkLength / 2)) - (fI_MarkHeight / 2 );
+    END_IF
+	ELSE
+		fO_LateralOffset := 0;			(* if no mark on the paper, can't detect the offset *)
+	END_IF;
+	bL_S1_AcqOK  := FALSE;
+	bO_StartTrig := TRUE;
+ELSE
+	bO_StartTrig := FALSE;
+END_IF;
+
+
+(*Check area with the correct arrangement of the mark sensor*)
+nO_PrintMarkPosBits := 0;
+IF fb_TonCheckMarks.Q THEN
+  nO_PrintMarkPosBits.0 := TRUE; (*mark missing*) 
+ELSE
+  IF    (fO_LateralOffset = 0) 
+     OR FC_COMPARE_RANGE_PERCENT( fI_ValueSet     := (fI_MarkHeight / 2)
+                                , fI_ValueActual  := (fI_MarkHeight / 2) + fO_LateralOffset
+                                , fI_RangePercent := nR_AreaMarkSensorOk)
+  THEN 
+    nO_PrintMarkPosBits.2 := TRUE; (*mark position in center*) 
+  ELSIF fO_LateralOffset > 0 THEN
+    nO_PrintMarkPosBits.1 := TRUE; (*mark position on side I*) 
+  ELSIF fO_LateralOffset < 0 THEN
+    nO_PrintMarkPosBits.3 := TRUE; (*mark position on side II*) 
+  END_IF
+END_IF
+
+
+(*------------ start and stop signal treatment ------------*)
+
+(*generate stop trigger*)
+bL_StopCondition := (iI_CurrentPos >= (iO_Offset_X0 + iL_InhibitLength));
+IF bL_StopCondition AND bL_inhibSensor1 THEN
+	bL_inhibSensor1  := FALSE;
+	bO_MarkDetected1 := FALSE;
+END_IF;
+
+
+
+
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_START_POS_DETECT_WEU">
+      <LineId Id="1804" Count="15" />
+      <LineId Id="1842" Count="0" />
+      <LineId Id="2026" Count="0" />
+      <LineId Id="1843" Count="0" />
+      <LineId Id="1845" Count="55" />
+      <LineId Id="2260" Count="7" />
+      <LineId Id="1901" Count="4" />
+      <LineId Id="2374" Count="0" />
+      <LineId Id="2369" Count="0" />
+      <LineId Id="2372" Count="0" />
+      <LineId Id="2370" Count="0" />
+      <LineId Id="2373" Count="0" />
+      <LineId Id="2371" Count="0" />
+      <LineId Id="1907" Count="7" />
+      <LineId Id="2268" Count="0" />
+      <LineId Id="2127" Count="1" />
+      <LineId Id="2270" Count="0" />
+      <LineId Id="2249" Count="0" />
+      <LineId Id="2254" Count="0" />
+      <LineId Id="2251" Count="0" />
+      <LineId Id="2130" Count="0" />
+      <LineId Id="2234" Count="2" />
+      <LineId Id="2232" Count="0" />
+      <LineId Id="2230" Count="0" />
+      <LineId Id="2237" Count="0" />
+      <LineId Id="2239" Count="2" />
+      <LineId Id="2231" Count="0" />
+      <LineId Id="2252" Count="0" />
+      <LineId Id="2129" Count="0" />
+      <LineId Id="1915" Count="14" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

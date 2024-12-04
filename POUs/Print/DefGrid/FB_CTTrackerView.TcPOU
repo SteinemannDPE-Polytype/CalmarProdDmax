@@ -1,0 +1,177 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_CTTrackerView" Id="{5503a3f9-fbb8-4dc1-b593-67f13630fa01}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CTTrackerView
+VAR_INPUT
+  fX_m,  fY_m     : LREAL;            // max. x/y position [m]
+  nX_px, nY_px    : DINT;             // max. x/y pixel in view
+  fPxToMRatio     : LREAL;            // 
+  iPrintPosition  : I_PrintPosition;  // 
+END_VAR
+
+VAR
+  // helper
+  bInit   : BOOL;
+  nCtr    : UDINT;
+  nNum    : UDINT;
+  
+  // config
+  _pCTTracker : POINTER TO FB_CTTracker;
+  _fPrintResolution : LREAL;      // [dpi]
+  _fSubPixelResolution : LREAL;   // sub pixel resolution
+  
+  // Container view list
+  iCT     : I_CT;
+  aCTV    : ARRAY[1..iCPr_MAX_CONTAINER] OF FB_ContainerView;
+  
+  // view control
+  
+END_VAR
+VAR CONSTANT
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT checkConfig() THEN RETURN; END_IF    // check config
+
+// -- show CTs -----------------------
+nNum := _pCTTracker^.nCount;
+FOR nCtr := 1 TO nNum DO
+  // get CT interface from list
+  iCT := _pCTTracker^.getCT(nIdx:=nCtr);
+  IF iCT <> 0 THEN
+    // set position
+    aCTV[nCtr].setPos(x:=iCT.GetPosRel(iTracker:=_pCTTracker^), y:=0);
+
+    // display
+    aCTV[nCtr].bHide := FALSE;
+    aCTV[nCtr]( iCT:=iCT, 
+                iIdx:=UDINT_TO_UINT(iCT.pCT^.nMemIndex), 
+                fPxtoMRatio:=fPxToMRatio, 
+                fPosToMFactor := 0.0254 / (_fPrintResolution*_fSubPixelResolution), 
+                iTracker:=_pCTTracker^);
+  END_IF
+END_FOR
+
+FOR nCtr := (nNum+1) TO iCPr_MAX_CONTAINER DO
+  aCTV[nCtr].iCT := 0;
+  aCTV[nCtr].bHide := TRUE;
+END_FOR
+]]></ST>
+    </Implementation>
+    <Method Name="checkConfig" Id="{3530ac76-377e-4ff1-a0c9-509750909c57}">
+      <Declaration><![CDATA[METHOD checkConfig : BOOL
+VAR_INPUT
+END_VAR
+VAR_INST
+  _fX_m, _fY_m   : LREAL;
+  _nX_px, _nY_px : DINT; 
+END_VAR
+VAR
+  bOK : BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bInit THEN RETURN; END_IF
+IF iPrintPosition = 0 THEN RETURN; END_IF
+
+_fPrintResolution := iPrintPosition.fPrintResolution;
+_fSubPixelResolution := iPrintPosition.fSubPxResolution;
+
+// changed settings
+IF _fX_m <> fX_m OR
+          _fY_m <> fY_m OR
+          _nX_px <> nX_px OR
+          _nY_px <> nY_px THEN
+  // save new config
+   _fX_m := fX_m;
+   _fY_m := fY_m;
+   _nX_px := nX_px;
+   _nY_px := nY_px;
+   config();
+END_IF
+
+checkConfig := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="config" Id="{08ec8ad7-bcff-4a52-bd36-3c9522c81f27}">
+      <Declaration><![CDATA[METHOD PRIVATE config
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// NOTE: some config values are given only here (internally)
+FOR nCtr := 1 TO iCPr_MAX_CONTAINER DO
+  aCTV[nCtr].init(
+    nXPosMin:=0,
+    nXPosMax:= F_MeterToSubPixel(fPosMeter := fX_m, fResoSubPx := _fPrintResolution * _fSubPixelResolution),
+    nYPosMin:=0,
+    nYPosMax:=F_MeterToSubPixel(fPosMeter := fY_m, fResoSubPx := _fPrintResolution * _fSubPixelResolution),
+    bXFlip:=TRUE,
+    bYFlip:=FALSE,
+    nXMinPx:=0,
+    nXMaxPx:=nX_px,
+    nYMinPx:=0,
+    nYMaxPx:=nY_px,
+  );
+  aCTV[nCtr].setPos(x:=0, y:=0);
+END_FOR
+
+bInit := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="init" Id="{47bdff26-a878-4ffa-b7d3-6ac1d20d0112}">
+      <Declaration><![CDATA[METHOD init : BOOL
+VAR_INPUT
+  pCTTracker : POINTER TO FB_CTTracker;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF pCTTracker = 0 THEN RETURN; END_IF
+
+_pCTTracker := pCTTracker;
+
+bInit := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CTTrackerView">
+      <LineId Id="573" Count="8" />
+      <LineId Id="682" Count="0" />
+      <LineId Id="681" Count="0" />
+      <LineId Id="583" Count="2" />
+      <LineId Id="671" Count="3" />
+      <LineId Id="586" Count="0" />
+      <LineId Id="678" Count="0" />
+      <LineId Id="587" Count="0" />
+      <LineId Id="589" Count="3" />
+      <LineId Id="424" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CTTrackerView.checkConfig">
+      <LineId Id="26" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="57" Count="2" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="38" Count="1" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="41" Count="2" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CTTrackerView.config">
+      <LineId Id="55" Count="15" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CTTrackerView.init">
+      <LineId Id="49" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="14" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

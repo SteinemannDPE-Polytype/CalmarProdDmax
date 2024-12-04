@@ -1,0 +1,342 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_EffectiveEncoderResolutionDetection" Id="{172ff757-0f60-4a20-baa8-40d4b6b6387f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_EffectiveEncoderResolutionDetection EXTENDS FB_Commons
+VAR_INPUT
+  (*EL1252*)
+  bIKp_MarkTrigger01    AT%I* : BOOL;        // First  mark sensor - Trigger
+  tIKp_TimeStampPos01   AT%I* : T_DCTIME64;  // First  mark sensor - RisingEdge  @EL1252
+  tIKn_TimeStampNeg01   AT%I* : T_DCTIME64;  // First  mark sensor - FallingEdge @EL1252
+  bIKp_MarkTrigger02    AT%I* : BOOL;        // Second mark sensor - Trigger
+  tIKp_TimeStampPos02   AT%I* : T_DCTIME64;  // Second mark sensor - RisingEdge  @EL1252
+  tIKn_TimeStampNeg02   AT%I* : T_DCTIME64;  // Second mark sensor - FallingEdge @EL1252
+  nPulse                      : DINT;        // encoder pulse input
+  nDisInPulseFilterSz         : UDINT;       // mav filter size for measured distance in encoder steps (from machine) 
+    
+  // settings
+  fCurrentResolution          : LREAL;       // current used resolution (given from machine), encoder step size
+  fEncoderPulseDistMin        : LREAL;       // defines the min sensor distance in pulse, range minimum
+  fEncoderPulseDistMax        : LREAL;       // defines the max sensor distance in pulse, range maximum
+
+END_VAR
+VAR_OUTPUT
+  bUpdate                     : BOOL;        // a valid new measurment
+  fDisInPulse                 : LREAL;       // disntance in encoder pulse
+END_VAR
+VAR
+  bInitOk                     : BOOL;        // initialized
+  fSpeed                      : LREAL;       // current encoder speed [pulse/s]
+  fbMark1,fbMark2             : RF_TRIG;     // edge detection
+  bMeasurementActive          : BOOL;        // a measurement started
+  nMeasurementCounter         : UDINT;       // counter for measurements
+  nCurrentDistActive          : DINT;        // current distance during active measurement
+  bVerbose                    : BOOL;
+  // errors
+  bLower, bHigher, bAborted   : BOOL;        // ui errors
+  bMarkTooShort_S1, bMarkTooShort_S2 : BOOL; // detected marks too short
+  nMarkLength_S1, nMarkLength_S2 : UDINT;    // mark length measured in [um]
+  
+  // time calculations
+  tNowDc                      : T_DCTIME64;  // Get Current Timestamp (now
+  fCycleTime                  : LREAL;       // Current calculated cycle time [s]
+
+  // position
+  nPulse_mem                  : DINT;        // Encoder pulse of previous cycles
+  fDistMeasured               : LREAL;       // distance measured [pulse]
+  fbFilterMavDisInPulse       : FB_FILTER_MAV; // Moving everage filter
+  fbFilterMavSpeed            : FB_FILTER_MAV; // Moving everage filter
+  
+  // view
+  bSim : BOOL;
+  nPulseSim : DINT;
+END_VAR
+VAR PERSISTENT
+  nSpeedFilterSz              : UINT := 1;      // speed - moving average filter size
+END_VAR
+VAR CONSTANT
+  nC_MinMarkLength            : LREAL := 2_000; // min. mark length in [um]
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// check & correct parameter
+IF NOT bInitOk THEN RETURN; END_IF;
+
+bUpdate := FALSE;
+
+// time caluclations
+tNowDc := F_GetCurDcTaskTime64();                  // current dc time (most accurate time stamp we have)
+fCycleTime := calcCycleTime(tCurrent:=tNowDc);     // calculate cycle time of this fb
+// input edge detection
+fbMark1(CLK:=bIKp_MarkTrigger01);
+fbMark2(CLK:=bIKp_MarkTrigger02);
+
+// simulation
+IF bSim THEN
+  nPulseSim := nPulseSim + 1;
+  nPulse := nPulseSim;
+  bVerbose:=bSim;
+  IF fbMark1.RT THEN tIKp_TimeStampPos01 := tNowDc; END_IF
+  IF fbMark1.FT THEN tIKn_TimeStampNeg01 := tNowDc; END_IF
+  IF fbMark2.RT THEN tIKp_TimeStampPos02 := tNowDc; END_IF
+  IF fbMark2.FT THEN tIKn_TimeStampNeg02 := tNowDc; END_IF
+END_IF
+
+
+// speed calculation
+fbFilterMavSpeed(fI_Input:=(nPulse - nPulse_mem)/fCycleTime, iI_NbInputs:=LIMIT(1, nSpeedFilterSz, fbFilterMavSpeed.cL_BUFFER_MAX));
+fSpeed := fbFilterMavSpeed.fO_OutputMav;
+nPulse_mem := nPulse;
+
+bMeasurementActive := measure(bUpdate=>bUpdate, fEncoderDistance=>fDistMeasured);
+IF bUpdate THEN
+  // check range (given from machine)
+  bHigher := SEL(fDistMeasured > fEncoderPulseDistMax, FALSE, TRUE);  IF bVerbose AND bHigher THEN LogWarning('Measured distance in pulse LONGER than max range'); END_IF
+  bLower  := SEL(fDistMeasured < fEncoderPulseDistMin, FALSE, TRUE);  IF bVerbose AND bLower  THEN LogWarning('Measured distance in pulse shorter than min range'); END_IF
+
+  IF NOT bHigher AND NOT bLower THEN  
+    // measurement ok
+    fbFilterMavDisInPulse(fI_Input:=fDistMeasured, iI_NbInputs:=TO_UINT(LIMIT(1, nDisInPulseFilterSz, fbFilterMavDisInPulse.cL_BUFFER_MAX))); // moving average filter
+    fDisInPulse := fbFilterMavDisInPulse.fO_OutputMav;
+  END_IF
+  
+  nMeasurementCounter := (nMeasurementCounter + 1) MOD 1000;  // limit to 0-1000
+END_IF
+]]></ST>
+    </Implementation>
+    <Method Name="calcCycleTime" Id="{d0932db0-858d-4f52-84ae-fb96799c2d8c}">
+      <Declaration><![CDATA[METHOD PRIVATE calcCycleTime : LREAL
+VAR_INPUT
+  tCurrent : T_DCTIME64;
+END_VAR
+VAR_INST
+  tLastTimeStamp : T_DCTIME64 := 0;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[calcCycleTime := (TO_LREAL(tCurrent) - TO_LREAL(tLastTimeStamp)) * 1E-9;
+tLastTimeStamp  := tCurrent;  // memory timestamp]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="checkMarkLength" Id="{a7413c46-e6e0-4347-b06a-9059e8a70b2c}">
+      <Declaration><![CDATA[METHOD PRIVATE checkMarkLength : BOOL
+VAR_INPUT
+  nRef : DINT;
+  nOther : DINT;
+END_VAR
+VAR_OUTPUT
+  nLen : DINT;  // mark length in pulse
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// pulse elapsed * resolution [pulse/um] => pos in [um]
+nLen := ABS(nOther - nRef);
+IF nLen * fCurrentResolution > nC_MinMarkLength THEN
+  // mark long enough
+  checkMarkLength := TRUE;
+ELSE
+  IF bVerbose THEN LogWarning(F_Concat5('Mark to short: ', TO_STRING(nLen * fCurrentResolution), '<', TO_STRING(nC_MinMarkLength), 'um')); END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="getExactPosition" Id="{64c83f4e-2f90-4829-a9ba-519450c0af9d}">
+      <Declaration><![CDATA[METHOD PRIVATE getExactPosition : DINT
+VAR_INPUT
+  tNow : T_DCTIME64;    // current system time
+  nPos : DINT;          // current (encoder) position at the current time
+  tEdge : T_DCTIME64;   // detected time
+  fSpeed : LREAL;       // current speed
+END_VAR
+VAR
+  fDeltaDistance : LREAL;       // Distance that the substrate moved between the detection and the treatment of the information
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fDeltaDistance := UINT64_TO_LREAL(UInt64Sub64(ULINT_TO_ULARGE(tNowDc), ULINT_TO_ULARGE(tEdge))) * 1E-9 * fSpeed;
+getExactPosition := nPos - TO_DINT(fDeltaDistance); 
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Init" Id="{ac39b667-8b90-4a38-b9db-5deaa270f17b}">
+      <Declaration><![CDATA[METHOD Init
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bInitOk := TRUE;
+Reset();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="measure" Id="{67cbae6f-8d48-4bd4-86d9-cdcb6b146f3f}">
+      <Declaration><![CDATA[METHOD PRIVATE measure : BOOL
+VAR_OUTPUT
+  bUpdate : BOOL;
+  fEncoderDistance : LREAL;
+END_VAR
+VAR_INST
+  nPosStart, nPosEnd : DINT;    // encoder positions detectec (exact by trigger, timestamp and speed based approximation)
+  bActive : BOOL;
+END_VAR
+VAR
+  nPosFalling1, nPosFalling2 : DINT;   // exact position in [pulse]
+  bTrigRising1, bTrigFalling1, bTrigRising2, bTrigFalling2 : BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bUpdate := FALSE;
+bTrigRising1 := fbMark1.RT;
+bTrigRising2 := fbMark2.RT;
+bTrigFalling1 := fbMark1.FT;    // wait on falling edge always 
+bTrigFalling2 := fbMark2.FT;
+
+
+//-- First Sensor
+IF NOT bActive THEN
+  // ringing
+  IF bTrigRising1 THEN 
+    nPosStart := getExactPosition(tNow:=tNowDc, nPos:=nPulse, tEdge:=tIKp_TimeStampPos01, fSpeed:=fSpeed);    // reverse use negative edge
+  END_IF 
+  // falling
+  IF bTrigFalling1 THEN
+    nPosFalling1 := getExactPosition(tNow:=tNowDc, nPos:=nPulse, tEdge:=tIKn_TimeStampNeg01, fSpeed:=fSpeed);  
+    
+    IF checkMarkLength( nRef := nPosStart, nOther := nPosFalling1) THEN
+      bActive := TRUE;           // start measurement after rising&falling edge
+      bAborted := FALSE;
+      bMarkTooShort_S1 := FALSE;
+      bMarkTooShort_S2 := FALSE;
+    ELSE
+      IF bVerbose THEN LogWarning('Mark at Sensor1 too short, measurement ignored'); END_IF
+      bAborted := TRUE;
+      bMarkTooShort_S1 := TRUE;
+    END_IF
+
+  END_IF
+END_IF
+
+//-- Second Sensor (Stop)
+//   only when measurement started and rising within range
+IF bActive THEN
+  IF (nPulse - nPosStart) >= fEncoderPulseDistMin THEN                  // bigger than minimum pulse (enable sensor 2 detection)
+    // rising
+    IF bTrigRising2 THEN 
+      nPosEnd := getExactPosition(tNow:=tNowDc, nPos:=nPulse, tEdge:=tIKp_TimeStampPos02, fSpeed:=fSpeed);      // reverse use negative edge  
+    END_IF
+    // falling
+    IF bTrigFalling2 THEN
+      nPosFalling2 := getExactPosition(tNow:=tNowDc, nPos:=nPulse, tEdge:=tIKn_TimeStampNeg02, fSpeed:=fSpeed);  
+      
+      IF checkMarkLength( nRef := nPosEnd, nOther := nPosFalling2) THEN
+        // set new measurement   
+        fEncoderDistance := nPosEnd-nPosStart;
+        bUpdate := TRUE;
+      ELSE
+        IF bVerbose THEN LogWarning('Mark at Sensor2 too short, abort measurement'); END_IF
+        bAborted := TRUE;
+        bMarkTooShort_S2 := TRUE;
+      END_IF
+      bActive := FALSE;         // stop measurement
+    END_IF
+    
+  ELSIF ( (nPulse - nPosStart) > (fEncoderPulseDistMax * 1.1) ) THEN    // bigger than maximum pulse (disable sensor 2 and abort measurement)
+    IF bVerbose THEN LogWarning('2nd mark detected too far , ignore measurement'); END_IF
+    bAborted := TRUE;
+    bActive := FALSE;   // abort measurement
+    
+  ELSIF fSpeed = 0 THEN
+    bActive := FALSE;
+	END_IF
+END_IF
+
+// debug current distance
+IF bActive THEN
+  nCurrentDistActive := (nPulse - nPosStart);
+END_IF
+
+
+
+
+measure := bActive;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Reset" Id="{d5fe1b7c-5060-4be1-aff0-fdec2471f305}">
+      <Declaration><![CDATA[METHOD PRIVATE Reset
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nMeasurementCounter := 0;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_EffectiveEncoderResolutionDetection">
+      <LineId Id="5616" Count="20" />
+      <LineId Id="5678" Count="0" />
+      <LineId Id="5687" Count="0" />
+      <LineId Id="5647" Count="7" />
+      <LineId Id="5661" Count="0" />
+      <LineId Id="5664" Count="0" />
+      <LineId Id="5666" Count="0" />
+      <LineId Id="5669" Count="0" />
+      <LineId Id="5665" Count="0" />
+      <LineId Id="5670" Count="0" />
+      <LineId Id="5655" Count="1" />
+      <LineId Id="5667" Count="0" />
+      <LineId Id="5657" Count="2" />
+      <LineId Id="5164" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_EffectiveEncoderResolutionDetection.calcCycleTime">
+      <LineId Id="5" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_EffectiveEncoderResolutionDetection.checkMarkLength">
+      <LineId Id="16" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="28" Count="1" />
+      <LineId Id="18" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_EffectiveEncoderResolutionDetection.getExactPosition">
+      <LineId Id="8" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_EffectiveEncoderResolutionDetection.Init">
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_EffectiveEncoderResolutionDetection.measure">
+      <LineId Id="192" Count="0" />
+      <LineId Id="234" Count="1" />
+      <LineId Id="193" Count="1" />
+      <LineId Id="236" Count="0" />
+      <LineId Id="309" Count="0" />
+      <LineId Id="196" Count="0" />
+      <LineId Id="273" Count="0" />
+      <LineId Id="277" Count="0" />
+      <LineId Id="296" Count="0" />
+      <LineId Id="278" Count="1" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="280" Count="14" />
+      <LineId Id="275" Count="0" />
+      <LineId Id="207" Count="1" />
+      <LineId Id="298" Count="0" />
+      <LineId Id="300" Count="1" />
+      <LineId Id="313" Count="0" />
+      <LineId Id="310" Count="0" />
+      <LineId Id="312" Count="0" />
+      <LineId Id="311" Count="0" />
+      <LineId Id="314" Count="0" />
+      <LineId Id="316" Count="11" />
+      <LineId Id="315" Count="0" />
+      <LineId Id="328" Count="0" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="303" Count="0" />
+      <LineId Id="307" Count="1" />
+      <LineId Id="306" Count="0" />
+      <LineId Id="332" Count="2" />
+      <LineId Id="304" Count="0" />
+      <LineId Id="302" Count="0" />
+      <LineId Id="331" Count="0" />
+      <LineId Id="299" Count="0" />
+      <LineId Id="297" Count="0" />
+      <LineId Id="329" Count="1" />
+      <LineId Id="254" Count="0" />
+      <LineId Id="230" Count="2" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_EffectiveEncoderResolutionDetection.Reset">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

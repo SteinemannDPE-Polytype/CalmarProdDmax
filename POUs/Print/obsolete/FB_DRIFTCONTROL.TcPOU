@@ -1,0 +1,320 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_DRIFTCONTROL" Id="{16b96060-927c-4794-a935-418457be7845}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_DRIFTCONTROL
+VAR_INPUT
+  bI_Reset                    : BOOL;            (*reset fb and controller*)
+  bI_Enable                   : BOOL;            (*[internal] auto enable of control*)
+  bI_OutputEnable             : BOOL;            (*enable control output or 1.0 if off*)
+  bI_RegisterMark             : BOOL;            (*start trigger (e.g. register mark)*)
+  
+  lI_RegisterMarkPosition     : DINT;            (*[Subpixel] Mark position*)
+  lI_RefPosition              : DINT;            (*[Subpixel] Refereence position*)
+  lI_ImgPosition              : DINT;            (*[Subpixel] Image position*)
+(*UNUSED*)  fI_RefPosition            : LREAL;          (*[um] Refereence position*)    
+(*UNUSED*)  fI_ImgPosition            : LREAL;          (*[um] Image position*)
+
+  iI_Res_Ph                   : INT;             (*[dpi] resolution printhead native*)
+  iI_Res_SubPix               : INT;             (*[-] resolution subpixel*)
+  pI_JobSettings              : POINTER TO ST_JobSettings;
+  
+  fI_ControllerPGain          : LREAL := 0.5;    (*PDI controller P-Gain*)
+  fI_ControllerIGain          : LREAL := 20;     (*PDI controller I-Gain*)
+  
+  fI_DriftTimeShift           : LREAL;           (*[ms] register shift time*)
+  fI_TaskCycleTime            : REAL;            (*Task cycle time of actual task [s]*)
+END_VAR
+
+VAR_OUTPUT
+  fO_SpeedCorrectionFactor    : LREAL;           (*[-] controller output*)
+  bO_ContrErr                 : BOOL;            (*correction fail (out of bound)*)
+  bO_SupervisionContrErr      : BOOL;            (*supervision (out of bound)*)
+END_VAR
+
+VAR
+  bL_ControlActive            : BOOL;
+  bL_RegisterMark             : BOOL;
+  
+  lL_LastRegisterMarkPosition : DINT;            (*[SubPixel] last stored mark position*)
+  lL_LastRefPosition          : DINT;            (*[Subpixel] Refereence position*)
+  lL_LastImgPosition          : DINT;            (*[Subpixel] Image position*)
+
+  fL_RefSpeed                 : LREAL;           (*[rev/s] : rev ^= image, revolution of reference axe sync with image*)
+  fL_ImgSpeed                 : LREAL;           (*[rev/s] : rev ^= image, revolution of reference axe sync with image*)
+  fL_RefLength                : LREAL;           (*[Subpixel in float!] real length of one image = reference distance between print marks*)
+  lL_ImgLength                : DINT;            (*[Subpixel] image length of job*)
+  fL_RefPos                   : LREAL;           (*[rev] : 1rev ^= 1ImageLength, number rev after start*)
+  fL_ImgPos                   : LREAL;           (*[rev] : 1rev ^= 1ImageLength, number rev after start*)
+  fL_LastRefPos               : LREAL;           (*[rev] : 1rev ^= 1ImageLength, number rev after start*)
+  fL_LastImgPos               : LREAL;           (*[rev] : 1rev ^= 1ImageLength, number rev after start*)
+  fL_ShiftPos                 : LREAL;           (*[rev] shift position rev->img*)
+
+  fL_DeltaCtrl                : LREAL;           (**)
+  fL_CtrlGainFactor           : LREAL;           (**)
+        
+  fL_DeltaTimeStamp           : LREAL;           (**)
+  tL_CurrentTimeStamp         : T_DCTIME64;      (* Get Current Timestamp *)
+  tL_LastTimeStamp            : T_DCTIME64;      (* Get Current Timestamp *)
+  fB_PID                      : FB_BasicPID;     (**)
+  iL_State                    : UINT;            (**)
+
+  bL_FormatWarning            : BOOL;
+  bL_Error                    : BOOL;
+  bL_RegisterEvent            : BOOL;
+  bL_ResetInternal            : BOOL;            (*internal reset*)
+  fL_DeltaLength              : LREAL;           (*image length difference between img and ref bewtween a cycle*)
+  lL_ConversionErrorCtr       : UDINT;
+
+  bL_SupervisionContrErr      : BOOL;            (*supervision (out of bound)*)
+  fb_TonSupervisionContrErr   : TON;             (*supervision (out of bound)*)
+
+  fC_MaxCorrection            : LREAL := 1.10;  (*moved from Constant: org value: 1.05*)
+  fC_MinCorrection            : LREAL := 0.90;  (*moved from Constant: org value: 0.95*)
+  fC_MaxControlError          : LREAL := 0.2;   (*moved from Constant: org value: 0.1*)
+END_VAR
+
+VAR CONSTANT
+  fC_NormSpeedCorrectionFactor: LREAL := 1.0;
+  
+  fC_MaxFormatDifference      : LREAL := 1.0;
+  
+  fC_MaxFormatLength          : LREAL := 1.0;       (*m*)
+  fC_MinSubstrateSpeed        : LREAL := 5.0/60.0 ; (*m/s*)
+  lC_MaxFormatLength          : DINT  := LREAL_TO_DINT(fC_MaxFormatLength/0.0254*32*600);  (*Subpixel*)
+  fC_MaxCycleTime             : LREAL := fC_MaxFormatLength/fC_MinSubstrateSpeed;  (*sec*)
+END_VAR
+
+VAR PERSISTENT
+  fR_SpeedCorrectionWindow    : LREAL := 0.05;     (*Supervision window*)
+  tR_SpeedCorrectionTime      : TIME  := T#10S;    (*Supervision time*)
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*--- Reset*)
+IF bI_Reset OR bL_ResetInternal THEN
+  iL_State := 0;
+END_IF;
+
+(*--- cyclic called on register event*)
+IF bI_RegisterMark AND NOT bL_RegisterMark THEN
+  bL_RegisterEvent    := TRUE;
+  tL_CurrentTimeStamp := F_GetCurDcTaskTime64();
+  fL_DeltaTimeStamp   := (ULINT_TO_LREAL(tL_CurrentTimeStamp) - ULINT_TO_LREAL(tL_LastTimeStamp)) * 0.000_000_001;
+ELSE
+  bL_RegisterEvent    := FALSE;
+END_IF
+
+
+// ----- State machine 
+CASE iL_State OF
+  000:  (*Reset --------------------*)
+    bL_ControlActive:=FALSE;
+    fB_PID(bReset := TRUE);
+    fO_SpeedCorrectionFactor:=1.0; 
+    fB_PID.bReset:=FALSE;
+    fL_RefPos:=0;
+    fL_ImgPos:=0;
+
+    IF pI_JobSettings<>0 THEN
+      iL_State:=001;
+    ELSE
+      iL_State:=000;
+    END_IF
+
+    bL_ControlActive:=0;
+    bL_Error:=FALSE;
+     bI_Enable:=FALSE; (*Disable by default*)
+    bO_ContrErr := FALSE;
+    
+  001:  (*Control Disabled --------------------*)
+    (*New PrintLib 1.5.2.6
+    lL_ImgLength:=UDINT_TO_DINT(pI_JobSettings^.lI_ImageDepth)*iI_Res_SubPix; *)
+    lL_ImgLength := FC_CONV_M_TO_SUBPX( UDINT_TO_LREAL(pI_JobSettings^.lI_ImageDepth) / 1_000_000
+                                      , iI_Res_Ph
+                                      , iI_Res_SubPix
+                                      , ADR(PRG_SYSTEMBASE.lI_ConversionErr));
+
+    IF pI_JobSettings^.lI_PrintMode.ePr_PRINT_MODE_ENDLESS THEN
+      bI_Enable:=TRUE; (*Automatically enable in Endless Mode*)
+    END_IF    
+    
+    IF bI_Enable AND (fL_DeltaTimeStamp < fC_MaxCycleTime) AND bL_RegisterEvent AND lL_ImgLength >0 THEN (*Enabled and moving*)
+      iL_State:=010;
+    ELSE
+      iL_State:=001;
+    END_IF
+    fO_SpeedCorrectionFactor:=1.0; 
+
+  010:  (*Starting Controller ------------------*)
+    IF (fL_DeltaTimeStamp > fC_MaxCycleTime) THEN
+      iL_State:=001;
+    ELSIF bL_RegisterEvent THEN
+        (*registered first label*)
+      fL_RefLength := DINT_TO_LREAL(lI_RegisterMarkPosition - lL_LastRegisterMarkPosition);
+      (*New PrintLib 1.5.2.6
+      lL_ImgLength:=UDINT_TO_DINT(pI_JobSettings^.lI_ImageDepth)*iI_Res_SubPix; *)
+      lL_ImgLength := FC_CONV_M_TO_SUBPX( UDINT_TO_LREAL(pI_JobSettings^.lI_ImageDepth) / 1_000_000
+                                        , iI_Res_Ph
+                                        , iI_Res_SubPix
+                                        , ADR(PRG_SYSTEMBASE.lI_ConversionErr));
+      
+      IF fL_RefLength > 0 AND lL_ImgLength > 0 THEN
+        IF DINT_TO_LREAL(ABS(FC_LREAL_TO_DINT(fL_RefLength, ADR(lL_ConversionErrorCtr))-lL_ImgLength)*100)/fL_RefLength > fC_MaxFormatDifference THEN
+          bL_FormatWarning:=TRUE;
+        ELSE
+            bL_FormatWarning:=FALSE;
+        END_IF
+        iL_State:=020;
+        fL_RefPos:=0;
+        fL_ImgPos:=0;
+      ELSE
+        iL_State:=099;
+      END_IF
+    ELSE
+      iL_State:=010;
+    END_IF
+    
+    fL_CtrlGainFactor:=1.0;
+    bL_ControlActive:=FALSE;
+    
+  020:  (*Controller enabled--------------------*)
+    
+    IF bL_RegisterEvent THEN (*run controller when a mark trigger was detected*)
+      (*position in [rev] from beginning*)
+      fL_RefLength := DINT_TO_LREAL(lI_RegisterMarkPosition - lL_LastRegisterMarkPosition);
+      IF fL_RefLength > 0 THEN
+        fL_RefPos := fL_LastRefPos + DINT_TO_LREAL(lI_RefPosition - lL_LastRefPosition) / fL_RefLength;
+        fL_ImgPos := fL_LastImgPos + DINT_TO_LREAL(lI_ImgPosition - lL_LastImgPosition) / DINT_TO_LREAL(lL_ImgLength);  
+      END_IF
+
+      (*calculate current speed of ref and img position*)
+      (*    'traveled pos in cycle' / ('Reference Length sampled' / 'time diff sampled' *)
+      fL_RefSpeed := (fL_RefPos - fL_LastRefPos) / fL_DeltaTimeStamp;
+      fL_ImgSpeed := (fL_ImgPos - fL_LastImgPos) / fL_DeltaTimeStamp;   
+    
+//      fL_RefSpeed:=DINT_TO_LREAL(lI_RefPosition-lL_LastRefPosition)/(fL_RefLength*fL_DeltaTimeStamp);
+//      fL_ImgSpeed:=DINT_TO_LREAL(lI_ImgPosition-lL_LastImgPosition)/(DINT_TO_LREAL(lL_ImgLength)*fL_DeltaTimeStamp);    
+//      fL_RefPos:=0.000001*fI_RefPosition/( fL_RefLength / INT_TO_REAL(iI_Res_Ph * iI_Res_SubPix) * 0.0254);
+//      fL_ImgPos:=0.000001*fI_ImgPosition/FC_CONV_SUBPX_TO_M(lL_ImgLength,INT_TO_UDINT(iI_Res_Ph),INT_TO_UDINT(iI_Res_SubPix));
+      
+      (*shift calculation*)
+      fL_ShiftPos := (fI_DriftTimeShift / 1000) * fL_RefSpeed;
+      
+      (*calc control diff*)
+      fL_DeltaCtrl := (fL_RefPos - fL_ImgPos) + fL_ShiftPos;
+      
+      (*controller*)
+      fB_PID.fCtrlCycleTime  := fL_DeltaTimeStamp;  // use fI_TaskCycleTime if running controller cyclically
+      fB_PID.bReset          := FALSE;
+      fB_PID.fSetpointValue  := fL_DeltaCtrl;
+      fB_PID.fActualValue    := 0.0;
+      fB_PID.fKp             := fI_ControllerPGain * fL_CtrlGainFactor;
+      fB_PID.fTd             := 0.0;
+      fB_PID.fTn             := fI_ControllerIGain;
+      fB_PID.fTv             := 0.0;
+
+      fB_PID();
+    END_IF
+    
+    IF bI_OutputEnable THEN
+      fO_SpeedCorrectionFactor := fB_PID.fCtrlOutput + 1.0;
+    ELSE
+      fO_SpeedCorrectionFactor := 1.0;
+    END_IF;
+
+    IF fO_SpeedCorrectionFactor > fC_MaxCorrection THEN
+      fO_SpeedCorrectionFactor := fC_MaxCorrection;
+      fL_CtrlGainFactor := 0.1;  (*TODO ARW*)
+      bO_ContrErr       := TRUE;
+    ELSIF fO_SpeedCorrectionFactor < fC_MinCorrection THEN
+      fO_SpeedCorrectionFactor := fC_MinCorrection;
+      fL_CtrlGainFactor := 0.1;  (*TODO ARW*)
+      bO_ContrErr       := TRUE;
+    ELSE
+      fO_SpeedCorrectionFactor := fO_SpeedCorrectionFactor;
+      fL_CtrlGainFactor := 1;
+      bO_ContrErr       := FALSE;
+    END_IF
+    (*Supervision*)
+    IF fO_SpeedCorrectionFactor > (fC_NormSpeedCorrectionFactor + fR_SpeedCorrectionWindow) THEN
+      bL_SupervisionContrErr := TRUE;
+    ELSIF fO_SpeedCorrectionFactor < (fC_NormSpeedCorrectionFactor - fR_SpeedCorrectionWindow) THEN
+      bL_SupervisionContrErr := TRUE;
+    ELSE
+      bL_SupervisionContrErr := FALSE;
+    END_IF
+    fb_TonSupervisionContrErr( IN := bL_SupervisionContrErr, PT := tR_SpeedCorrectionTime);
+    bO_SupervisionContrErr := fb_TonSupervisionContrErr.Q;
+    
+    (*Check for errors  while control was on*)
+    IF ((fL_DeltaTimeStamp > fC_MaxCycleTime) OR (fL_DeltaCtrl > fC_MaxControlError) OR fL_RefLength=0) AND bL_RegisterEvent THEN
+      iL_State:=099;
+    ELSIF NOT bI_Enable THEN
+      iL_State:=030;  
+    ELSE
+      iL_State:=020;
+    END_IF
+    bL_ControlActive:=TRUE;
+
+  030:  (*Stopping controller-------------------*)
+    iL_State:=001;  
+    bL_ControlActive:=FALSE;
+    fO_SpeedCorrectionFactor:=1.0;
+    bO_ContrErr := FALSE;
+    
+  099:  (*Error---------------------------------*)
+    bL_Error:=TRUE;
+    bL_ControlActive:=FALSE;
+    fO_SpeedCorrectionFactor:=1.0; 
+    bO_ContrErr := FALSE;
+END_CASE
+
+(*--- cyclic called on register event*)
+IF bL_RegisterEvent OR bI_Reset THEN
+  (*save old values & debug*)
+  fL_DeltaLength              := lL_ImgLength - fL_RefLength;  (*debug only*)
+  lL_LastRegisterMarkPosition := lI_RegisterMarkPosition; 
+  lL_LastRefPosition          := lI_RefPosition;       (*used for speed only*)
+  lL_LastImgPosition          := lI_ImgPosition;       (*used for speed only*)
+  tL_LastTimeStamp            := tL_CurrentTimeStamp;
+  fL_LastRefPos               := fL_RefPos;
+  fL_LastImgPos               := fL_ImgPos;
+END_IF;]]></ST>
+    </Implementation>
+    <LineIds Name="FB_DRIFTCONTROL">
+      <LineId Id="2315" Count="23" />
+      <LineId Id="2558" Count="0" />
+      <LineId Id="2339" Count="4" />
+      <LineId Id="2559" Count="0" />
+      <LineId Id="2344" Count="2" />
+      <LineId Id="2560" Count="0" />
+      <LineId Id="2347" Count="2" />
+      <LineId Id="2714" Count="0" />
+      <LineId Id="2713" Count="0" />
+      <LineId Id="2716" Count="2" />
+      <LineId Id="2350" Count="17" />
+      <LineId Id="2722" Count="5" />
+      <LineId Id="2369" Count="54" />
+      <LineId Id="2636" Count="0" />
+      <LineId Id="2424" Count="21" />
+      <LineId Id="2822" Count="0" />
+      <LineId Id="2809" Count="0" />
+      <LineId Id="2812" Count="1" />
+      <LineId Id="2824" Count="0" />
+      <LineId Id="2817" Count="0" />
+      <LineId Id="2825" Count="0" />
+      <LineId Id="2821" Count="0" />
+      <LineId Id="2912" Count="0" />
+      <LineId Id="2911" Count="0" />
+      <LineId Id="2446" Count="12" />
+      <LineId Id="2460" Count="0" />
+      <LineId Id="2554" Count="1" />
+      <LineId Id="2461" Count="1" />
+      <LineId Id="2553" Count="0" />
+      <LineId Id="2463" Count="0" />
+      <LineId Id="2465" Count="0" />
+      <LineId Id="2556" Count="0" />
+      <LineId Id="2466" Count="11" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
