@@ -637,7 +637,7 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print\WEU\_VISU_Pm_Debug.TcVIS">
+    <Compile Include="POUs\Print\WEU\_VISU_Pm_WEU_Debug.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
@@ -661,7 +661,7 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print\WEU\_VISU_Pm_Worker.TcVIS">
+    <Compile Include="POUs\Print\WEU\_VISU_Pm_WEU_Worker.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>

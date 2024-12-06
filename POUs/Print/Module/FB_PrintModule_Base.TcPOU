@@ -450,9 +450,7 @@ _pModuleMachineState := pMachineInputs;
 _pModuleMachineFeedback := pMachineOutputs;
 nYShift_PcRamCenter := _pModuleSetup^.pSetupPrint^.nPcYShiftCenterRam;
 
-// Initialize internal hw
-InitHw();
-// setup hw and module linking
+// init & setup hw and module linking
 SetupHw();
 
 // ADS config and mapping
@@ -592,93 +590,6 @@ FOR nCtr := 1 TO GVL_WEU.nC_MaxWorkerPrintPerPm DO
      , lMaxPrintSpeed_Max        := 100
   );
 END_FOR;
-]]></ST>
-      </Implementation>
-    </Method>
-    <Method Name="InitHw" Id="{9e466401-f7a8-4178-b58f-6ae9018895cf}">
-      <Declaration><![CDATA[(*
-  Sstup internal print hw blocks
-  NOTE: override this method if it does not match the default mapping.
-*)
-METHOD PROTECTED InitHw
-VAR
-  i : UDINT;
-  sPhFdlCfg_ImgMap : ST_PH_FileDownloadCfg;
-  aName : T_MaxString;
-  nOldPg : UDINT;
-  nRelativeCtr : UDINT;
-END_VAR
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[IF _pModuleSetup = 0 THEN LogError('Module setup not given, ignore SetupHw'); END_IF
-
-// PC
-FOR i := 1 TO _nPc DO
-  // build ads name
-  IF nOldPg <> _nPcToPgAbsoluteIdx[i] THEN nRelativeCtr := 1; nOldPg := _nPcToPgAbsoluteIdx[i]; END_IF  // create cb counter relative to pg
-  aName := F_Concat4('Controller Board', TO_STRING(_nPcToPgAbsoluteIdx[i]), '.', TO_STRING(nRelativeCtr));
-  nRelativeCtr := nRelativeCtr + 1;
-
-  // init
-  _pPc[i]^.Init(    aName                 := aName
-                  , sAmsNetIdLocalHost    := _pModuleSetup^.pSetupPrint^.aAmsNetId_Localhost
-                  , sAmsNetIdIo           := _pModuleSetup^.pSetupPrint^.aAmsNetId_Io
-                  , nEcatSlaveAddr        := TO_UINT(_pModuleSetup^.pSetupPrint^.nEcatAddr_Pc_Base + (i-1))
-                  , nBlockId              := TO_INT(ePr_BLK_PC)
-                  , pOd                   := _pModuleSetup^.pSetupPrint^.pOd
-                  , tWaveDownload         := T#10S
-                  , bHeaterEnableExist    := TRUE
-                  , bPrintEnableExist     := TRUE
-                  , sFilePath             := _pModuleSetup^.pSetupPrint^.aCfgPath
-                  , ePcType               := E_PcTypes.Pc_RicohGen
-                  );
-END_FOR
-
-// PH
-FOR i := 1 TO _nPh DO
-  // build ads name
-  IF nOldPg <> _nPcToPgAbsoluteIdx[i] THEN nRelativeCtr := 1; nOldPg := _nPcToPgAbsoluteIdx[i]; END_IF  // create cb counter relative to pg
-  aName := F_Concat4('Printhead', TO_STRING(_nPcToPgAbsoluteIdx[i]), '.', TO_STRING(nRelativeCtr));
-  nRelativeCtr := nRelativeCtr + 1;
-  
-  _pPh[i]^.init(    aName                 := aName
-                  , sPhDef                := _pModuleSetup^.pSetupPrint^.sPHType
-                  , tTempMonitor          := T#45S
-                  , iChannel              := _nPhToPcCh_Mapping[i]
-                  , bPositionX_Exist      := TRUE
-                  , aPositionX_Unit       := 'um'
-                  , lPositionX_Min        := 0
-                  , lPositionX_Max        := 1_000_000
-                  , bPositionY_Exist      := FALSE
-                  , aPositionY_Unit       := 'pixel'
-                  , lPositionY_Min        := 0
-                  , lPositionY_Max        := 100_000 
-                  , bShiftPositionX_Exist := FALSE      
-                  , aShiftPositionX_Unit  := 'um'
-                  , lShiftPositionX_Min   := 0      
-                  , lShiftPositionX_Max   := 1000      
-                  , bShiftPositionY_Exist := FALSE
-                  , aShiftPositionY_Unit  := 'pixel'
-                  , lShiftPositionY_Min   := 0
-                  , lShiftPositionY_Max   := 100_000       
-                  , bVoltageScale_Exist   := TRUE  
-                  , aVoltageScale_Unit    := '%'
-                  , fVoltageScale_Min     := 90.0  
-                  , fVoltageScale_Max     := 110.0 
-                  );
-
-  _pPh[i]^.initTempMonitor(fPhTempDeviation:=1, tTempMonitor:=T#45S);   // overwrite default temperatur deviation
-  
-  // edit default file download config for ImageMap file --> disable file downloader
-  _pPh[i]^.getFileDownloadConfig(E_PhFileSelection.eImageMap, stConfig=>sPhFdlCfg_ImgMap);
-  sPhFdlCfg_ImgMap.bEnable := FALSE;
-  _pPh[i]^.setFileDownloadConfig(eDownloader:=E_PhFileSelection.eImageMap, stConfig:=sPhFdlCfg_ImgMap);
-
-  _pPh[i]^.LogLevel := E_LogSeverity.Info;
-  
-  // link ph <-> pc if not done externally
-  _pPc[_nPhToPc_Mapping[i]]^.registerPH(iPH :=_pPh[i]^, nCh := TO_UINT(_nPhToPcCh_Mapping[i]));
-END_FOR
 ]]></ST>
       </Implementation>
     </Method>
@@ -831,44 +742,108 @@ END_FOR
 METHOD PRIVATE SetupHw
 VAR
   i : UDINT;
+  sPhFdlCfg_ImgMap : ST_PH_FileDownloadCfg;
+  aName : T_MaxString;
+  nOldPg : UDINT;
+  nRelativeCtr : UDINT;
 END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[// check parameters
 IF _iPrintGlobal.iHardwarePool = 0 THEN LogError('SetupHw: invalid hw pool reference, do not setup'); RETURN; END_IF
 
+IF _pModuleSetup = 0 THEN LogError('Module setup not given, ignore SetupHw'); END_IF
 
-// 1. Init and setup hardware (init and link between) -------------------------
-InitHw();
-
-// 2. Register to handlers ----------------------------------------------------
-// PC
+// PC -------------------------------------------
 FOR i := 1 TO _nPc DO
+  // check settings
   IF _pPc[i] = 0 THEN LogError(F_Concat4('SetupHw: invalid pc mapping','_pPc[',TO_STRING(i),']=0'));
     CONTINUE;
 	END_IF
+  
+  // build ads name
+  IF nOldPg <> _nPcToPgAbsoluteIdx[i] THEN nRelativeCtr := 1; nOldPg := _nPcToPgAbsoluteIdx[i]; END_IF  // create cb counter relative to pg
+  aName := F_Concat4('Controller Board', TO_STRING(_nPcToPgAbsoluteIdx[i]), '.', TO_STRING(nRelativeCtr));
+  nRelativeCtr := nRelativeCtr + 1;
 
+  // init
+  _pPc[i]^.Init(    aName                 := aName
+                  , sAmsNetIdLocalHost    := _pModuleSetup^.pSetupPrint^.aAmsNetId_Localhost
+                  , sAmsNetIdIo           := _pModuleSetup^.pSetupPrint^.aAmsNetId_Io
+                  , nEcatSlaveAddr        := TO_UINT(_pModuleSetup^.pSetupPrint^.nEcatAddr_Pc_Base + (i-1))
+                  , nBlockId              := TO_INT(ePr_BLK_PC)
+                  , pOd                   := _pModuleSetup^.pSetupPrint^.pOd
+                  , tWaveDownload         := T#10S
+                  , bHeaterEnableExist    := TRUE
+                  , bPrintEnableExist     := TRUE
+                  , sFilePath             := _pModuleSetup^.pSetupPrint^.aCfgPath
+                  , ePcType               := E_PcTypes.Pc_RicohGen
+                  );
   // register to worker
   fbWorkerPrint[_nPcToWorker_Mapping[i]].registerPc(iNewPC:=_pPc[i]^);
   
   // register to hw pool
-   _iPrintGlobal.iHardwarePool.registerPc(pNewPc:=_pPc[i]);
+  _iPrintGlobal.iHardwarePool.registerPc(pNewPc:=_pPc[i]);
+   
 END_FOR
 
-// PH
+// PH -------------------------------------------
 FOR i := 1 TO _nPh DO
+  // check config
   IF _pPh[i] = 0 OR _pPc[_nPhToPc_Mapping[i]] = 0 THEN LogError(F_Concat4('SetupHw: invalid ph mapping','_pPh[',TO_STRING(i),']=0'));
     CONTINUE;
 	END_IF
+  
+  // build ads name
+  IF nOldPg <> _nPcToPgAbsoluteIdx[i] THEN nRelativeCtr := 1; nOldPg := _nPcToPgAbsoluteIdx[i]; END_IF  // create cb counter relative to pg
+  aName := F_Concat4('Printhead', TO_STRING(_nPcToPgAbsoluteIdx[i]), '.', TO_STRING(nRelativeCtr));
+  nRelativeCtr := nRelativeCtr + 1;
+  
+  _pPh[i]^.init(    aName                 := aName
+                  , sPhDef                := _pModuleSetup^.pSetupPrint^.sPHType
+                  , tTempMonitor          := T#45S
+                  , iChannel              := _nPhToPcCh_Mapping[i]
+                  , bPositionX_Exist      := TRUE
+                  , aPositionX_Unit       := 'um'
+                  , lPositionX_Min        := 0
+                  , lPositionX_Max        := 1_000_000
+                  , bPositionY_Exist      := FALSE
+                  , aPositionY_Unit       := 'pixel'
+                  , lPositionY_Min        := 0
+                  , lPositionY_Max        := 100_000 
+                  , bShiftPositionX_Exist := FALSE      
+                  , aShiftPositionX_Unit  := 'um'
+                  , lShiftPositionX_Min   := 0      
+                  , lShiftPositionX_Max   := 1000      
+                  , bShiftPositionY_Exist := FALSE
+                  , aShiftPositionY_Unit  := 'pixel'
+                  , lShiftPositionY_Min   := 0
+                  , lShiftPositionY_Max   := 100_000       
+                  , bVoltageScale_Exist   := TRUE  
+                  , aVoltageScale_Unit    := '%'
+                  , fVoltageScale_Min     := 90.0  
+                  , fVoltageScale_Max     := 110.0 
+                  );
+
+  _pPh[i]^.initTempMonitor(fPhTempDeviation:=1, tTempMonitor:=T#45S);   // overwrite default temperatur deviation
+  
+  // edit default file download config for ImageMap file --> disable file downloader
+  _pPh[i]^.getFileDownloadConfig(E_PhFileSelection.eImageMap, stConfig=>sPhFdlCfg_ImgMap);
+  sPhFdlCfg_ImgMap.bEnable := FALSE;
+  _pPh[i]^.setFileDownloadConfig(eDownloader:=E_PhFileSelection.eImageMap, stConfig:=sPhFdlCfg_ImgMap);
+
+  _pPh[i]^.LogLevel := E_LogSeverity.Info;
+  
+  // link ph <-> pc if not done externally
+  _pPc[_nPhToPc_Mapping[i]]^.registerPH(iPH :=_pPh[i]^, nCh := TO_UINT(_nPhToPcCh_Mapping[i]));
   
   // register to worker
   fbWorkerPrint[_nPhToWorker_Mapping[i]].registerPh(iPH:=_pPh[i]^);
   
   // register to hw pool
   _iPrintGlobal.iHardwarePool.registerPh(pNewPh:=_pPh[i]);
-  
-END_FOR
 
+END_FOR
 ]]></ST>
       </Implementation>
     </Method>
@@ -1020,8 +995,6 @@ END_VAR]]></Declaration>
       <LineId Id="1805" Count="8" />
       <LineId Id="1815" Count="5" />
       <LineId Id="1906" Count="0" />
-      <LineId Id="1905" Count="0" />
-      <LineId Id="1821" Count="0" />
       <LineId Id="1826" Count="1" />
       <LineId Id="1908" Count="2" />
       <LineId Id="1828" Count="56" />
@@ -1047,23 +1020,6 @@ END_VAR]]></Declaration>
       <LineId Id="47" Count="2" />
       <LineId Id="122" Count="0" />
       <LineId Id="51" Count="5" />
-      <LineId Id="5" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_PrintModule_Base.InitHw">
-      <LineId Id="338" Count="0" />
-      <LineId Id="337" Count="0" />
-      <LineId Id="280" Count="1" />
-      <LineId Id="356" Count="0" />
-      <LineId Id="353" Count="0" />
-      <LineId Id="340" Count="0" />
-      <LineId Id="355" Count="0" />
-      <LineId Id="357" Count="0" />
-      <LineId Id="342" Count="0" />
-      <LineId Id="282" Count="15" />
-      <LineId Id="360" Count="4" />
-      <LineId Id="298" Count="33" />
-      <LineId Id="333" Count="2" />
-      <LineId Id="332" Count="0" />
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintModule_Base.iPrintPosition.Get">
@@ -1116,12 +1072,7 @@ END_VAR]]></Declaration>
       <LineId Id="143" Count="0" />
       <LineId Id="142" Count="0" />
       <LineId Id="144" Count="0" />
-      <LineId Id="141" Count="0" />
-      <LineId Id="135" Count="0" />
-      <LineId Id="138" Count="1" />
-      <LineId Id="137" Count="0" />
-      <LineId Id="96" Count="24" />
-      <LineId Id="124" Count="1" />
+      <LineId Id="153" Count="91" />
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintModule_Base.trigger">
