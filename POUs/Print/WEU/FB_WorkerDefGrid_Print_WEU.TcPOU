@@ -448,7 +448,7 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF nStartPos < nCurrentPos THEN 
+        <ST><![CDATA[IF (nStartPos - nCurrentPos) < 0 THEN 
   checkPrintposTiming := TRUE;
   LogWarning(Msg:=F_Concat4('Print start position:', TO_STRING(nStartPos) ,' < Encoder position:', TO_STRING(nCurrentPos)));
 END_IF]]></ST>

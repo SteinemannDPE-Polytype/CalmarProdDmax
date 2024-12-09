@@ -109,6 +109,9 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
+    <Compile Include="ImagePool_Steinemann.TcIPO">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="POUs\Machine\EffectiveEncoderResolutionDetection\FB_EffectiveEncoderResolutionDetection.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
@@ -226,6 +229,10 @@ Fribourg/Switzerland (2021)</Description>
     <Compile Include="POUs\Print\Camera\Mark\FB_MarkDetection.TcPOU">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="POUs\Print\Camera\Mark\FB_MarkDetection_v1.TcPOU">
+      <SubType>Code</SubType>
+      <ExcludeFromBuild>true</ExcludeFromBuild>
+    </Compile>
     <Compile Include="POUs\Print\Camera\Mark\I_MarkDefinition.TcIO">
       <SubType>Code</SubType>
     </Compile>
@@ -236,6 +243,9 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\Print\Camera\Mark\ST_MarkView.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Print\Camera\Mark\ST_RepeatHistory.TcDUT">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\Print\Camera\Mark\TL_MarkMode.TcTLO">
@@ -630,9 +640,6 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print\WEU\ST_RepeatHistory.TcDUT">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="POUs\Print\WEU\_VISU_PmImgLengthCheck.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
@@ -700,6 +707,10 @@ Fribourg/Switzerland (2021)</Description>
     <PlaceholderReference Include="CalmarCompTcpIp">
       <DefaultResolution>CalmarCompTcpIp, * (WIFAG-Polytype)</DefaultResolution>
       <Namespace>CalmarCompTcpIp</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="CmpBitmapPool">
+      <DefaultResolution>CmpBitmapPool, * (System)</DefaultResolution>
+      <Namespace>CmpBitmapPool</Namespace>
     </PlaceholderReference>
     <PlaceholderReference Include="System_VisuElemEventTable">
       <DefaultResolution>VisuElemEventTable, 1.0.3.0 (System)</DefaultResolution>

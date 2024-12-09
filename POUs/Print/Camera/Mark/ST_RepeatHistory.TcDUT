@@ -10,10 +10,8 @@ STRUCT
   fLenEffective   : LREAL;    // Effective dist to previous
   fLenDiff        : LREAL;    // Length difference to image length
   bLenNotInRange  : BOOL;     // Effective length not in range
-  bStartOverrun   : BOOL;     // too many starts
-  bMissingMarks   : BOOL;     //
-  bMarksTooShort  : BOOL;     //
-  bMarksDetectErr : BOOL;     //
+  bInvalidIngoredMarks : BOOL;// Invalid marks seen, but ignored
+  bMissingMarks   : BOOL;     // Some missing marks seen
 END_STRUCT
 END_TYPE
 ]]></Declaration>
