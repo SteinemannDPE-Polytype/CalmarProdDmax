@@ -229,6 +229,10 @@ Fribourg/Switzerland (2021)</Description>
     <Compile Include="POUs\Print\Camera\Mark\FB_MarkDetection.TcPOU">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="POUs\Print\Camera\Mark\FB_MarkDetection_v2.TcPOU">
+      <SubType>Code</SubType>
+      <ExcludeFromBuild>true</ExcludeFromBuild>
+    </Compile>
     <Compile Include="POUs\Print\Camera\Mark\FB_MarkDetection_v1.TcPOU">
       <SubType>Code</SubType>
       <ExcludeFromBuild>true</ExcludeFromBuild>

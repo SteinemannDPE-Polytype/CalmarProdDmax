@@ -8,6 +8,10 @@ VAR_GLOBAL CONSTANT
   nC_MaxPhPerPm           : UDINT := 40;
   
   fC_MaxMachineSpeed      : LREAL := TO_LREAL(100)/60;   // max module speed (100 m/min) in [m/s]
+  
+  // compensations
+  nC_CurrentTimeStampComp : UDINT := 2_000;   // [us] current timestamp compensation for timestamp input
+  nC_SensorTimeStampComp  : UDINT := 150;     // [us] time compensation for input edge
 END_VAR
 ]]></Declaration>
   </GVL>

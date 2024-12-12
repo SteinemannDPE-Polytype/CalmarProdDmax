@@ -19,6 +19,7 @@ VAR
   // internals
   nMaxMarks : UDINT;
   sLastStartMark : ST_MarkDefinition;       // sampled start mark (because first mark will be overwritten already by next sheet)
+  _a : LREAL;               // saved a Size
   
   // View
   _fImageLength, _fImageWidth, _fUseLength, _fDistBetweenMarks : LREAL;
@@ -30,7 +31,8 @@ VAR
 END_VAR
 VAR CONSTANT
   // fixed triangle shape definition
-  fC_MinUseLength : LREAL := 0.04;  // minimal "use" length
+  fC_MinUseLength     : LREAL := 0.04;  // minimal "use" length
+  fC_MarkLengthMargin : LREAL := 0.1;   // [factor to a langth of mark] for mark length margin (to allow some jitter)
   //view
   nShSzX_px : UDINT := 500;
   nShSzY_px : UDINT := 180;
@@ -57,34 +59,45 @@ Requirements:
     </Implementation>
     <Folder Name="I_MarkDefinition" Id="{768d0757-a8ce-42f3-be27-86b1dccd832c}" />
     <Folder Name="Teaching" Id="{d7f1a474-7ab0-4d97-9fc3-29f084e73191}" />
-    <Property Name="fMaxLengthStartMark" Id="{43ac1333-9baa-4872-95db-9700173f90dd}">
+    <Property Name="fMarkLengthMargin" Id="{6354683d-c554-4595-afc5-0b4ee6712206}">
+      <Declaration><![CDATA[PROPERTY fMarkLengthMargin : LREAL]]></Declaration>
+      <Get Name="Get" Id="{aee51c4d-dbff-4339-bb35-85ed5d0cc192}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fMarkLengthMargin := fC_MarkLengthMargin * _a;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="fMaxMarkLength" Id="{43ac1333-9baa-4872-95db-9700173f90dd}">
       <Declaration><![CDATA[(*
-  Ge minimum length of hte start mark.
+  Ge max length of marks.
 *)
-PROPERTY fMaxLengthStartMark : LREAL]]></Declaration>
+PROPERTY fMaxMarkLength : LREAL]]></Declaration>
       <Get Name="Get" Id="{a57cf7c0-a0b4-4e15-a8a7-8af41d7a28e0}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
           <ST><![CDATA[IF _nMarks > 0 THEN
-  fMaxLengthStartMark := sMarkDef[1].fSqLength + sMarkDef[1].fTrLength;
+  fMaxMarkLength := sMarkDef[1].fSqLength + sMarkDef[1].fTrLength;
 END_IF]]></ST>
         </Implementation>
       </Get>
     </Property>
-    <Property Name="fMinLengthStartMark" Id="{28ad9750-49f7-4210-8ae8-7698496aabf2}">
+    <Property Name="fMinMarkLength" Id="{28ad9750-49f7-4210-8ae8-7698496aabf2}">
       <Declaration><![CDATA[(*
-  Ge minimum length of hte start mark.
+  Get minimum length of hte start mark.
 *)
-PROPERTY fMinLengthStartMark : LREAL]]></Declaration>
+PROPERTY fMinMarkLength : LREAL]]></Declaration>
       <Get Name="Get" Id="{fde96c83-e5b8-4ed6-ab57-405d7b3125a8}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
           <ST><![CDATA[IF _nMarks > 0 THEN
-  fMinLengthStartMark := sMarkDef[1].fSqLength;
+  fMinMarkLength := sMarkDef[SEL(_nMarks>1, 1, 2)].fSqLength;
 END_IF]]></ST>
         </Implementation>
       </Get>
@@ -120,6 +133,19 @@ END_VAR
         <ST><![CDATA[nMaxMarks := SIZEOF(sMarkDef) / SIZEOF(sMarkDef[1]);
 ResetDefinition();
 LogLevel := E_LogSeverity.Info;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="isStartMark" Id="{3e3e599f-4d3b-4e89-be04-2c96b56f1dec}">
+      <Declaration><![CDATA[// return TRUE if its a StartMark
+METHOD isStartMark : BOOL
+VAR_INPUT
+  fMarkLength : LREAL;    // mark length in [m]
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _nMarks > 0 AND_THEN fMarkLength >= sMarkDef[1].fSqLength THEN  // square length of startMark
+  isStartMark := TRUE;
+END_IF]]></ST>
       </Implementation>
     </Method>
     <Property Name="nMarks" Id="{d1a014db-64d0-4106-adc4-b24435d88146}" FolderPath="I_MarkDefinition\">
@@ -213,6 +239,7 @@ END_VAR
         <ST><![CDATA[ResetMarkStates();
 
 _nMarks := 0;
+_a := 0;
 
 MEMSET(destAddr:=ADR(sMarkDef), fillByte:=0, SIZEOF(sMarkDef));
 MEMSET(destAddr:=ADR(sLastStartMark), fillByte:=0, SIZEOF(sLastStartMark));
@@ -336,6 +363,7 @@ _bMarkInverted := bMarkInverted;
 _nUses := nUses;
 _fUseLength := _fImageLength/nUses;
 _nMarksPerUse := TO_UDINT(FLOOR(_fUseLength/fC_MinUseLength));
+_a := a;
 
 // checks
 IF fImageLength/nUses < fC_MinUseLength THEN LogError('TeachMarks: Use length too small'); END_IF
@@ -467,13 +495,16 @@ pSelMark := ADR(sMarkDef[nSelMark]);]]></ST>
       <LineId Id="23" Count="0" />
       <LineId Id="66" Count="0" />
     </LineIds>
-    <LineIds Name="FB_MarkDefinition.fMaxLengthStartMark.Get">
+    <LineIds Name="FB_MarkDefinition.fMarkLengthMargin.Get">
       <LineId Id="2" Count="0" />
-      <LineId Id="5" Count="1" />
     </LineIds>
-    <LineIds Name="FB_MarkDefinition.fMinLengthStartMark.Get">
-      <LineId Id="2" Count="0" />
-      <LineId Id="5" Count="1" />
+    <LineIds Name="FB_MarkDefinition.fMaxMarkLength.Get">
+      <LineId Id="9" Count="1" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.fMinMarkLength.Get">
+      <LineId Id="9" Count="1" />
+      <LineId Id="6" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDefinition.getMark">
       <LineId Id="5" Count="0" />
@@ -488,6 +519,11 @@ pSelMark := ADR(sMarkDef[nSelMark]);]]></ST>
       <LineId Id="13" Count="0" />
       <LineId Id="5" Count="0" />
       <LineId Id="17" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDefinition.isStartMark">
+      <LineId Id="13" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDefinition.nMarks.Get">
       <LineId Id="2" Count="0" />
@@ -522,6 +558,7 @@ pSelMark := ADR(sMarkDef[nSelMark]);]]></ST>
     </LineIds>
     <LineIds Name="FB_MarkDefinition.ResetDefinition">
       <LineId Id="25" Count="2" />
+      <LineId Id="46" Count="0" />
       <LineId Id="41" Count="0" />
       <LineId Id="28" Count="1" />
       <LineId Id="39" Count="0" />
@@ -582,6 +619,7 @@ pSelMark := ADR(sMarkDef[nSelMark]);]]></ST>
       <LineId Id="65" Count="1" />
       <LineId Id="57" Count="0" />
       <LineId Id="71" Count="0" />
+      <LineId Id="105" Count="0" />
       <LineId Id="70" Count="0" />
       <LineId Id="72" Count="0" />
       <LineId Id="67" Count="0" />

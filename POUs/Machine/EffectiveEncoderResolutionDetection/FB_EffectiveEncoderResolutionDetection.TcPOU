@@ -144,12 +144,25 @@ VAR_INPUT
   fSpeed : LREAL;       // current speed
 END_VAR
 VAR
-  fDeltaDistance : LREAL;       // Distance that the substrate moved between the detection and the treatment of the information
-END_VAR]]></Declaration>
+  fCurrentTimeStamp : LREAL;
+  fSensor_TimeStamp : LREAL;
+  nDeltaPosition    : DINT;       // distance [SubPx]
+  fDeltaDistance    : LREAL;      // Distance that the substrate moved between the detection and the treatment of the information
+END_VAR
+]]></Declaration>
       <Implementation>
-        <ST><![CDATA[fDeltaDistance := UINT64_TO_LREAL(UInt64Sub64(ULINT_TO_ULARGE(tNowDc), ULINT_TO_ULARGE(tEdge))) * 1E-9 * fSpeed;
-getExactPosition := nPos - TO_DINT(fDeltaDistance); 
-]]></ST>
+        <ST><![CDATA[
+//fDeltaDistance := UINT64_TO_LREAL(UInt64Sub64(ULINT_TO_ULARGE(tNowDc), ULINT_TO_ULARGE(tEdge))) * 1E-9 * fSpeed;
+//getExactPosition := nPos - F_MeterToSubPixel(fPosMeter:=fDeltaDistance, fResoSubPx:=fCurrentResolution);   
+
+// Calculate the original position in our position domain
+fCurrentTimeStamp  := (ULINT_TO_LREAL(tNow) - (GVL_WEU.nC_CurrentTimeStampComp * 1_000)) / 1_000_000.0; // [ms]
+fSensor_TimeStamp := (ULINT_TO_LREAL(tEdge) - (GVL_WEU.nC_SensorTimeStampComp  * 1_000)) / 1_000_000.0; // [ms]
+
+// Treatment of the information
+fDeltaDistance   := (fCurrentTimeStamp - fSensor_TimeStamp) * 0.001 * fSpeed;	      // Distance in pulses that the substrate has traveled between the sensor detection and the PLC treatment
+nDeltaPosition := FC_LREAL_TO_DINT(fDeltaDistance * (1 / (0.0254 / fCurrentResolution)));   // 1/1px*)	(* Travel of the substrate between the time of acquisition and the time of treatment
+getExactPosition := nPos - nDeltaPosition;	                                          // Position where the sheet has been detected]]></ST>
       </Implementation>
     </Method>
     <Method Name="Init" Id="{ac39b667-8b90-4a38-b9db-5deaa270f17b}">
@@ -288,8 +301,7 @@ measure := bActive;]]></ST>
       <LineId Id="18" Count="0" />
     </LineIds>
     <LineIds Name="FB_EffectiveEncoderResolutionDetection.getExactPosition">
-      <LineId Id="8" Count="1" />
-      <LineId Id="5" Count="0" />
+      <LineId Id="25" Count="11" />
     </LineIds>
     <LineIds Name="FB_EffectiveEncoderResolutionDetection.Init">
       <LineId Id="9" Count="0" />

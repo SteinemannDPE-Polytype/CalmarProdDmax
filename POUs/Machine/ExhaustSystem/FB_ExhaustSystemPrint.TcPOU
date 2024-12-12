@@ -61,7 +61,7 @@ IF fb_TonVacuumCheckDelay.Q THEN
 END_IF
 
 
-bExhaustError := NOT bFUReady OR bVacuumErrorLevel;]]></ST>
+bExhaustError := NOT bFUReady OR (bVacuumErrorLevel AND bO_FUActivate);]]></ST>
     </Implementation>
     <Method Name="checkMapping" Id="{cc586209-65da-4391-8b61-ef801610bd07}">
       <Declaration><![CDATA[METHOD PRIVATE checkMapping

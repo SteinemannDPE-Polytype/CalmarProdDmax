@@ -70,7 +70,7 @@ END_VAR]]></Declaration>
   deltaTime_Dc := TO_ULINT(deltaTime_s * TO_LREAL(EC_DCTIME_TICKSPERSEC64));  
   
   // trigger time
-  tTriggerTime := ULARGE_TO_ULINT(UInt64Add64(ULINT_TO_ULARGE(F_GetCurDcTaskTime64()), ULINT_TO_ULARGE(deltaTime_Dc)));
+  tTriggerTime := ULARGE_TO_ULINT(UInt64Add64(ULINT_TO_ULARGE(F_GetCurDcTaskTime64()), ULINT_TO_ULARGE(deltaTime_Dc)));  // TODO: apply the Output Timestamped compensation (analog to Input timestamp)
   setTrigger(bOut1:=TRUE, tTime:=tTriggerTime);
   bTriggerActivating := TRUE;
 END_IF]]></ST>

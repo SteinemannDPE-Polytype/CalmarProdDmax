@@ -3,16 +3,14 @@
   <DUT Name="ST_MarkState" Id="{3261b978-bbc5-48eb-82c2-091ced97e2f3}">
     <Declaration><![CDATA[TYPE ST_MarkState :
 STRUCT
-  bSet        : BOOL;     // mark was set & valid (detected)
+  bSet        : BOOL;     // mark was set (detected)
   bMissed     : BOOL;     // mark was missing (+internally generated)
   bInArea     : BOOL;     // mark withing ok area
   dx          : LREAL;    // x displacement [m]
   dy          : LREAL;    // y displacement [m]
   fLengthReal : LREAL;    // real detected mark length [m]
   nPosXReal   : DINT;     // detected position X absolute [SubPx]
-  bTooShort   : BOOL;     // detected mark was too short
-  bToolLong   : BOOL;     // detected mark was too long
-END_STRUCT
+  END_STRUCT
 END_TYPE
 ]]></Declaration>
   </DUT>
