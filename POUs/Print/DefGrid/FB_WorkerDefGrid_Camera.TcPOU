@@ -38,8 +38,8 @@ VAR
   // Messages
   _pMsgConfig                  : POINTER TO ST_MSG_CONFIG;
   bCamNotAvailable             : BOOL;
-  fbMsg_CamNotAvailable        : FB_MESSAGE;
   bCamModeNotSupported         : BOOL;
+  fbMsg_CamNotAvailable        : FB_MESSAGE;
   fbMsg_CamModeNotSupported    : FB_MESSAGE;
   fbMsg_CamNoConnection        : FB_MESSAGE;
   
@@ -295,11 +295,11 @@ _pMsgConfig := pMsgConfig;
 
 fbMsg_CamNotAvailable.pI_MsgConfig := _pMsgConfig;
 fbMsg_CamNotAvailable.iI_MsgLocation := TO_INT(ePr_BLK_CAMERA);
-fbMsg_CamNotAvailable.iI_MsgNumber := eC_DMAX_CAM_NOTAVAIL;
+fbMsg_CamNotAvailable.iI_MsgNumber := eC_STAG_CAM_NOTAVAIL;
 
 fbMsg_CamModeNotSupported.pI_MsgConfig := _pMsgConfig;
 fbMsg_CamModeNotSupported.iI_MsgLocation := TO_INT(ePr_BLK_CAMERA);
-fbMsg_CamModeNotSupported.iI_MsgNumber := eC_DMAX_CAM_MODE_NOTSUPPORTED; // camera not available
+fbMsg_CamModeNotSupported.iI_MsgNumber := eC_STAG_CAM_MODE_NOTSUPPORTED; // camera not available
 
 fbMsg_CamNoConnection.pI_MsgConfig := _pMsgConfig;
 fbMsg_CamNoConnection.iI_MsgLocation := TO_INT(ePr_BLK_CAMERA);
@@ -704,7 +704,7 @@ END_IF
 // call messages
 fbMsg_CamNotAvailable    (bI_Status:=bCamNotAvailable);
 fbMsg_CamModeNotSupported(bI_Status:=bCamModeNotSupported);
-fbMsg_CamNoConnection    (bI_Status:=bConnError);
+fbMsg_CamNoConnection    (bI_Status:=NOT _bConnectionOk);
 ]]></ST>
       </Implementation>
     </Method>

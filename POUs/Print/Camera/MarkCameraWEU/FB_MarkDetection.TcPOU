@@ -77,20 +77,13 @@ VAR
   _bValid                         : BOOL;             // valid start trigger
   
   // errors
-  nCtrSensorDetectError           : UDINT;            // senor detect errors counter invalid signals
-  nCtrIgnoredMarks                : UDINT;
+  nCtrSensorDetectError           : UDINT;            // error counter for senor detect invalid signals
+  nCtrIgnoredMarks                : UDINT;            // error counter for ignored marks
   bNoStartMarkDetected            : BOOL;             // no start mark detected after x repeats
   bInvalidRepeatLength            : BOOL;             // invalid repeat length (StartMarks too close or too far away from each other)
   bInvalidMarkDetected            : BOOL;
-  bMissingMarks                   : BOOL;
-  
-  //bInvalidMarks_TooLong           : BOOL;             // marks too long
-  //bInvalidMarks_TooShort          : BOOL;             // marks too short
-  //bLenNotInRange_Repeat           : BOOL;             // Effective length not in range
-  //bStartOverrun_Repeat            : BOOL;             // too many starts
-  //bMissingMarks_Repeat            : BOOL;             // ...
-  //bMarksTooShort_Repeat           : BOOL;             // ...
-  
+  _bMarkDetectionErrors           : BOOL;             // invalid sensor signal
+  _bMissingMarks                  : BOOL;             // some "valid"* marks were ignored
   
   // simulation & debug
   _bSimEnable                     : BOOL;             // simulation mode enabled
@@ -257,32 +250,14 @@ ELSE
 END_IF
 
 
-
 // --- Error Handling
+_bMarkDetectionErrors := nCtrSensorDetectError > 0;
+_bMissingMarks        := nCtrIgnoredMarks > 0;
 
-(*
-    // Checks 
-    IF bStartMark AND pMark^.nId <> 1 THEN    // Did we really search a StartMark?
-      LogWarning(F_Concat2('StartMark found while searching for intermediate, ignored', strMark(pMark:=pMark)));
-      bInvalidRepeatLength := TRUE;
-      nCtrIgnoredMarks := nCtrIgnoredMarks + 1;
-    ELSE
-*)
-// -- Substrate supervision
-(*
-nLastX0 := getLastX0();
-// - no detected StartMark within some repeats
-IF (nC_MaxRepeatsWithoutStart * _fSubstrateLength) < (F_SubPixelToMeter(lPosSubPx:=(nCurrentPos - nPosRepeatSupervision), fResSubPx:=_fResolution)) THEN 
-  bNoStartMarkDetected := TRUE;
-END_IF
-IF nLastX0 <> 0 THEN
-  // - no next StartMark recived -> terminate/abort sheet
-  IF (nCurrentPos - nLastX0) > (_fSubstrateLength * fC_MaxSubstrateFactor) THEN
-    bInvalidRepeatLength := TRUE;
-    SheetStop(nNewX0:=0);
-  END_IF
-END_IF
-*)
+// TODO:
+//  - Start mark missing
+//  - Invalid sheet length detecte
+
 
 
 // outputs
@@ -295,6 +270,18 @@ _bValid := TRUE;
     <Folder Name="I_Sim" Id="{fc40c9c0-6ffc-48f9-9a25-0caade00001b}" />
     <Folder Name="I_StartPosDetect" Id="{d37fb0ec-56d2-495c-adf6-ff9180f44f32}" />
     <Folder Name="Sim" Id="{b1696160-437d-44da-b8b0-e17e98d5f336}" />
+    <Method Name="ackErrors" Id="{c760e099-bed4-4b63-998e-3ea29259e07c}">
+      <Declaration><![CDATA[METHOD ackErrors
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nCtrSensorDetectError := 0;
+nCtrIgnoredMarks := 0;
+_bMarkDetectionErrors := FALSE;
+_bMissingMarks := FALSE;]]></ST>
+      </Implementation>
+    </Method>
     <Property Name="bManualTeach" Id="{0f146740-aee9-4ec7-925b-29443b51715f}" FolderPath="I_CameraTrigger\">
       <Declaration><![CDATA[PROPERTY bManualTeach : BOOL
 ]]></Declaration>
@@ -665,7 +652,9 @@ nCtrSensorDetectError := 0;
 nCtrIgnoredMarks := 0;
 bNoStartMarkDetected := FALSE;
 bInvalidRepeatLength := FALSE;
-bInvalidMarkDetected := FALSE;]]></ST>
+bInvalidMarkDetected := FALSE;
+_bMarkDetectionErrors := FALSE;
+_bMissingMarks := FALSE;]]></ST>
       </Implementation>
     </Method>
     <Method Name="SaveToMarkHistory" Id="{a0d33772-1436-4a13-9664-ecc55fc2df79}">
@@ -946,8 +935,8 @@ sRepeatHistory[nRepeatCt].fLen            := _fSubstrateLength * 1000;
 sRepeatHistory[nRepeatCt].fLenEffective   := _fSubstrateLengthEffective * 1000;
 sRepeatHistory[nRepeatCt].fLenDiff        := (_fSubstrateLengthEffective - _fSubstrateLength) * 1000;
 sRepeatHistory[nRepeatCt].bLenNotInRange  := bInvalidRepeatLength;
-sRepeatHistory[nRepeatCt].bInvalidIngoredMarks := bInvalidMarkDetected;
-sRepeatHistory[nRepeatCt].bMissingMarks   := bMissingMarks;
+sRepeatHistory[nRepeatCt].bInvalidIngoredMarks := _bMissingMarks;
+sRepeatHistory[nRepeatCt].bMissingMarks   := _bMissingMarks;
 
 
 IF _iActiveCam<>0 THEN _iActiveCam.CamTriggerDone(); END_IF 
@@ -1164,13 +1153,21 @@ strMark := F_Concat6(
       <LineId Id="14060" Count="0" />
       <LineId Id="13946" Count="0" />
       <LineId Id="13936" Count="0" />
-      <LineId Id="14116" Count="1" />
-      <LineId Id="13746" Count="23" />
-      <LineId Id="13781" Count="1" />
-      <LineId Id="14084" Count="0" />
+      <LineId Id="14116" Count="0" />
+      <LineId Id="14258" Count="0" />
+      <LineId Id="14260" Count="0" />
+      <LineId Id="14289" Count="2" />
+      <LineId Id="14261" Count="0" />
+      <LineId Id="14285" Count="3" />
       <LineId Id="14083" Count="0" />
       <LineId Id="13798" Count="3" />
       <LineId Id="6884" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDetection.ackErrors">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="7" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.bManualTeach.Get">
       <LineId Id="2" Count="0" />
@@ -1298,6 +1295,7 @@ strMark := F_Concat6(
       <LineId Id="47" Count="0" />
       <LineId Id="52" Count="0" />
       <LineId Id="55" Count="0" />
+      <LineId Id="62" Count="1" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.SaveToMarkHistory">
       <LineId Id="7" Count="1" />

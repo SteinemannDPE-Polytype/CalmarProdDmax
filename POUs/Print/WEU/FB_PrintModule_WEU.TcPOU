@@ -22,12 +22,17 @@ VAR
   _nNewStartPosX0     : DINT;   // new startpos X0 deteced by cam
   
   fbEncoderResoDetect: FB_EffectiveEncoderResolutionDetection;     // Effective encoder resolution detection
-  fbFineAlignement   : FB_FineAlignement;     // additional grid corrections, PU Deformation/correction (4p, banana, ...)
+  fbFineAlignement    : FB_FineAlignement;     // additional grid corrections, PU Deformation/correction (4p, banana, ...)
 
+  // messages specific
+  fbMsgWeu            : ARRAY[1..nC_NumMsgWeu] OF FB_MESSAGE;  (*Messages*)
+  
   // view
-  fbView             : FB_PrintModule_WEU_View;    // additional controls for print module visus
+  fbView              : FB_PrintModule_WEU_View;    // additional controls for print module visus
 END_VAR
-]]></Declaration>
+VAR CONSTANT
+  nC_NumMsgWeu        : UDINT := 3;           // number of internal messages
+END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[IF NOT bInit THEN RETURN; END_IF
 
@@ -59,7 +64,7 @@ IF _iStartPos.bStartTrig AND _iStartPos.bValid THEN
 END_IF
 
 // if trigger and CT give register CT for processing --> we have all information to attach CT to local tracking/treating
-IF _bNewCT AND _bNewStartPosX0 THEN    
+IF _bNewCT AND _bNewStartPosX0 AND bActivated THEN    
   _bNewCT := FALSE; _bNewStartPosX0 := FALSE;
   
   LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
@@ -102,6 +107,15 @@ fbView();
 
 // call module base
 SUPER^();
+
+// messages print module
+fbMsgWeu[ 1](bI_Status := bTestMsg OR fbMarkCameraWeu.bMissingMarks);
+fbMsgWeu[ 2](bI_Status := bTestMsg OR _pModuleMachineState^.bDriftControlMissMarks);
+fbMsgWeu[ 3](bI_Status := bTestMsg OR fbMarkCameraWeu.bMarkDetectionErrors);
+
+IF fb_MsgQueue.bO_ReceiptMessage THEN
+  fbMarkCameraWeu.ackErrors();
+END_IF
 
 // simulation
 SimUpdate();
@@ -180,6 +194,15 @@ END_FOR
 
 fbView.init(pModule:=THIS, pPositioning:=ADR(fbPrintPosition));
 setLogLevels(lvl:=E_LogSeverity.Info);
+
+FOR nCtr := 1 TO nC_NumMsgWeu DO
+  fbMsgWeu[nCtr].pI_MsgConfig       := ADR(sL_MsgConfig);
+  fbMsgWeu[nCtr].iI_MsgLocation     := 1;
+END_FOR;
+fbMsgWeu[ 1].iI_MsgNumber      := eCPr_PrintMarkError_Generic;     // mark detection error
+fbMsgWeu[ 2].iI_MsgNumber      := eCMa_DRIFT_CONTR_ERROR;        // drift controller error
+fbMsgWeu[ 3].iI_MsgNumber      := eCPr_SHEET_MARK_DETECTION;   // mark error missing/faulty
+
 
 Init := bInit;   // set in the SUPER class]]></ST>
       </Implementation>
@@ -326,7 +349,14 @@ LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
       <LineId Id="485" Count="0" />
       <LineId Id="483" Count="1" />
       <LineId Id="468" Count="0" />
-      <LineId Id="273" Count="14" />
+      <LineId Id="273" Count="11" />
+      <LineId Id="655" Count="0" />
+      <LineId Id="657" Count="2" />
+      <LineId Id="656" Count="0" />
+      <LineId Id="661" Count="0" />
+      <LineId Id="663" Count="1" />
+      <LineId Id="660" Count="0" />
+      <LineId Id="285" Count="2" />
       <LineId Id="19" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintModule_WEU.Init">
@@ -368,6 +398,11 @@ LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
       <LineId Id="123" Count="0" />
       <LineId Id="122" Count="0" />
       <LineId Id="149" Count="0" />
+      <LineId Id="426" Count="0" />
+      <LineId Id="428" Count="2" />
+      <LineId Id="427" Count="0" />
+      <LineId Id="432" Count="2" />
+      <LineId Id="431" Count="0" />
       <LineId Id="287" Count="0" />
       <LineId Id="286" Count="0" />
     </LineIds>

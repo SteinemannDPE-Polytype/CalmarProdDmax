@@ -1,23 +1,23 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
-  <POU Name="FB_LineCamera106" Id="{eed955d2-a1f9-4a17-b849-a639a208bf07}" SpecialFunc="None">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_LineCamera76" Id="{15ceca3a-7103-4457-a274-7252f0c4f78a}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   QualiVision line camera system
-  DMAX106.   
+  DMAX76.   
 *)
-FUNCTION_BLOCK FB_LineCamera106 EXTENDS FB_LineCamera
+FUNCTION_BLOCK FB_LineCamera76 EXTENDS FB_LineCamera
 
 VAR CONSTANT
-  cCameraWidth106           : DINT := 13440;   (*Camera width [px]*)
-  cCameraMechOffsetTC106    : REAL :=  88.0;   (*Camera mechanical offset at calibration temp [mm]*)
-  cMechOffsetCameraToPU106  : REAL :=  30.31;  (*Camera mechanical offset to PrintUnit [mm]*)
-  cPrintUnitMechOffsetTC106 : REAL := 31.4747; (*PrintUnit mechanical offset at calibration temp [mm]*)
+  cCameraWidth76            : DINT :=  9216;   (*Camera width [px]*)
+  cCameraMechOffsetTC76     : REAL := 101.5;   (*Camera mechanical offset at calibration temp [mm]*)
+  cMechOffsetCameraToPU76   : REAL :=  13.039; (*Camera mechanical offset to PrintUnit [mm]*)
+  cPrintUnitMechOffsetTC76  : REAL := 32.9869; (*PrintUnit mechanical offset at calibration temp [mm]*)
 END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[SUPER^();]]></ST>
     </Implementation>
-    <Method Name="InitLineCamera" Id="{695e7c1d-784c-491a-a112-3e3dd542606f}">
+    <Method Name="InitLineCamera" Id="{e06e6bbe-fd53-41c2-a6db-688c998f8313}">
       <Declaration><![CDATA[METHOD InitLineCamera
 VAR_INPUT
   nPrintUnitResolution         : UDINT;    (*printhead pixel resolution [dpi]*)
@@ -28,10 +28,10 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[(*Init for dmax type*)
-_nCameraWidth           := cCameraWidth106;
-_fCameraMechOffsetTC    := cCameraMechOffsetTC106;
-_fMechOffsetCameraToPU  := cMechOffsetCameraToPU106;
-_fPrintUnitMechOffsetTC := cPrintUnitMechOffsetTC106;
+_nCameraWidth           := cCameraWidth76;
+_fCameraMechOffsetTC    := cCameraMechOffsetTC76;
+_fMechOffsetCameraToPU  := cMechOffsetCameraToPU76;
+_fPrintUnitMechOffsetTC := cPrintUnitMechOffsetTC76;
 
 SUPER^.InitLineCamera( nPrintUnitResolution := nPrintUnitResolution
                       , nPrintUnitSubPx := nPrintUnitSubPx
@@ -39,32 +39,31 @@ SUPER^.InitLineCamera( nPrintUnitResolution := nPrintUnitResolution
                       , iCameraTrigger := iCameraTrigger);]]></ST>
       </Implementation>
     </Method>
-    <Property Name="sName" Id="{4c93f93f-64fc-4113-a181-8344eee37c29}">
+    <Property Name="sName" Id="{8301cae9-7d38-4a93-89ac-c559b839d964}">
       <Declaration><![CDATA[{attribute 'monitoring':='variable'}
 PROPERTY sName : STRING
 ]]></Declaration>
-      <Get Name="Get" Id="{0267b6a1-d2d5-4f89-899f-b45bf1112108}">
+      <Get Name="Get" Id="{85e4ef51-1389-464c-b3b5-e990c62c96db}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[sName := 'LineCam 106';]]></ST>
+          <ST><![CDATA[sName := 'LineCam 76';]]></ST>
         </Implementation>
       </Get>
     </Property>
-    <LineIds Name="FB_LineCamera106">
+    <LineIds Name="FB_LineCamera76">
       <LineId Id="9" Count="0" />
     </LineIds>
-    <LineIds Name="FB_LineCamera106.InitLineCamera">
+    <LineIds Name="FB_LineCamera76.InitLineCamera">
       <LineId Id="28" Count="0" />
       <LineId Id="13" Count="3" />
-      <LineId Id="48" Count="0" />
-      <LineId Id="32" Count="0" />
-      <LineId Id="41" Count="0" />
-      <LineId Id="56" Count="0" />
-      <LineId Id="40" Count="0" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="37" Count="0" />
     </LineIds>
-    <LineIds Name="FB_LineCamera106.sName.Get">
+    <LineIds Name="FB_LineCamera76.sName.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
   </POU>

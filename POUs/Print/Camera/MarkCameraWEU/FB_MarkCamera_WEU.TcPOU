@@ -65,6 +65,37 @@ IF _bCamTriggerStarted THEN sendCamPoints(); END_IF
 fbMarkDefinition.update_view();]]></ST>
     </Implementation>
     <Folder Name="I_CameraTriggerDevice" Id="{4773bc35-df63-4cfd-9fcd-8027e8678bf9}" />
+    <Method Name="ackErrors" Id="{6d381463-10c6-4dda-a89c-e8be47d736f9}">
+      <Declaration><![CDATA[METHOD ackErrors
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbMarkDetection.ackErrors();]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="bMarkDetectionErrors" Id="{7a1a4e25-3606-442c-80f7-39054a32690e}">
+      <Declaration><![CDATA[PROPERTY bMarkDetectionErrors : BOOL]]></Declaration>
+      <Get Name="Get" Id="{bf74de13-e67d-409d-a425-e80bf20f310d}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bMarkDetectionErrors := fbMarkDetection._bMarkDetectionErrors;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bMissingMarks" Id="{16c4d983-afb9-47fc-b3a0-43e8b8f856f1}">
+      <Declaration><![CDATA[PROPERTY bMissingMarks : BOOL]]></Declaration>
+      <Get Name="Get" Id="{bfdb3c45-61da-45e4-90ca-803c164e5fdf}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bMissingMarks := fbMarkDetection._bMissingMarks;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
     <Method Name="CamTriggerDone" Id="{d41794c6-1f76-436d-8466-03ff8773ac59}" FolderPath="I_CameraTriggerDevice\">
       <Declaration><![CDATA[METHOD CamTriggerDone
 ]]></Declaration>
@@ -305,6 +336,15 @@ END_VAR
       <LineId Id="926" Count="0" />
       <LineId Id="1006" Count="0" />
       <LineId Id="974" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkCamera_WEU.ackErrors">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkCamera_WEU.bMarkDetectionErrors.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkCamera_WEU.bMissingMarks.Get">
+      <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkCamera_WEU.CamTriggerDone">
       <LineId Id="22" Count="0" />

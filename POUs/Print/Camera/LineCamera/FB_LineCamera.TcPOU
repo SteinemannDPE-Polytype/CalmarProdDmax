@@ -159,7 +159,7 @@ SimUpdate();
 
 // Messages
 (*fbMsg_NotEnoughTeachPoints( bI_Status:=SEL(_bActivated, FALSE, bNotEnoughTeachPoints), 
-                             iI_MsgNumber:=eC_DMAX_CAM_NOTENGOUGH_TEACH_POINTS, 
+                             iI_MsgNumber:=eC_STAG_CAM_NOTENGOUGH_TEACH_POINTS, 
                              iI_MsgLocation:=ePr_BLK_CAMERA,
                              pI_MsgConfig:=_pMsgConfig);
 *)

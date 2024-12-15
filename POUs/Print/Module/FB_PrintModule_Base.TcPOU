@@ -75,7 +75,7 @@ VAR
   fb_MsgQueue             : FB_MSG_QUEUE;                 (*Message queue*)
   fb_MsgHandler           : FB_MSG_HANDLER;               (*Message handler*)
   sL_MsgConfig            : ST_MSG_CONFIG;                (*Message config*)
-  fbMsg                   : ARRAY [1..nC_NumMsg] OF FB_MESSAGE;  (*Messages*)
+  //fbMsg                   : ARRAY [1..nC_NumMsg] OF FB_MESSAGE;  (*Messages*)
   
   // simulation
   fbSim                   : FB_Sim;
@@ -87,9 +87,9 @@ VAR PERSISTENT
   _fPmMainTrackPos        : LREAL;                 // [m] distance to master reference position (maint tracker)
 END_VAR
 VAR CONSTANT
+  nC_NumMsg               : UDINT := 0;            // number of internal messages
   fC_HeadOffsetPlate      : LREAL := 0.000_2;      // Head offset to base plate [m] (mechanical)
   fC_ProductionSpeedMpMin_Level : LREAL := 5.0;    // [m/min]
-  nC_NumMsg               : UDINT :=  1;           // number of internal messages
   fC_FormatLengthTolerance : LREAL := 100.0;       // [px] tolerance of substrate length job - machine config 
   nC_StopReadyTimeout     : TIME := T#10S;         // Synced stopping of printing, max. timeout to wait for printing end
 END_VAR]]></Declaration>
@@ -123,7 +123,7 @@ nPos_SubPx := _iPrintPosition.getPosition(nPosition_px=>nPos_Px, fPosition_um=>f
 bSpeedReachedForPrinting := (fSpeedMpMin >= fC_ProductionSpeedMpMin_Level);
 
 // run tracker
-nTrackPosMain := F_MeterToSubPixel(fPosMeter:=_fPmDistToPrev, fResoSubPx:=_iPrintPosition.fPrintResolution*_iPrintPosition.fSubPxResolution); 
+nTrackPosMain := F_MeterToSubPixel(fPosMeter:=_fPmMainTrackPos, fResoSubPx:=_iPrintPosition.fPrintResolution*_iPrintPosition.fSubPxResolution); 
 fbCTTracker(nPos:=nPos_SubPx);
 
 
@@ -546,13 +546,14 @@ fb_MsgQueue.pI_MsgInterface  := fbAdsPm.pMsgInterface;
 fb_MsgQueue.cI_MaxElement    := TO_INT(SIZEOF(fbAdsPm.pMsgInterface^.sO_MsgBuffer)/SIZEOF(ST_ADS_MSG));
 
 (*Messages*)
+(*
 FOR nCtr := 1 TO nC_NumMsg DO
-  fbMsg[nCtr].pI_MsgConfig       := ADR(sL_MsgConfig);
-  fbMsg[nCtr].iI_MsgLocation     := 1;
+  fbMsg[nCtr].pI_MsgConfig   := ADR(sL_MsgConfig);
+  fbMsg[nCtr].iI_MsgLocation := 1;
 END_FOR;
 
-fbMsg[ 1].iI_MsgNumber      := eCPr_SHEET_MARK_DETECTION;
-
+fbMsg[ 1].iI_MsgNumber       := ;     // mark detection error
+*)
 Init := bInit := TRUE;
 ]]></ST>
       </Implementation>
@@ -668,7 +669,7 @@ fb_MsgHandler();
 fb_MsgQueue();
 
 // messages print module
-fbMsg[ 1](bI_Status := bTestMsg OR _pModuleMachineState^.bDriftControlMissMarks);
+//fbMsg[ 1](bI_Status := bTestMsg OR );
 
 // message ack
 IF fb_MsgQueue.bO_ReceiptMessage THEN
@@ -1012,7 +1013,11 @@ END_VAR]]></Declaration>
       <LineId Id="1906" Count="0" />
       <LineId Id="1826" Count="1" />
       <LineId Id="1908" Count="2" />
-      <LineId Id="1828" Count="56" />
+      <LineId Id="1828" Count="48" />
+      <LineId Id="1931" Count="0" />
+      <LineId Id="1877" Count="4" />
+      <LineId Id="1930" Count="0" />
+      <LineId Id="1883" Count="1" />
       <LineId Id="1783" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintModule_Base.InitAds">
@@ -1047,7 +1052,8 @@ END_VAR]]></Declaration>
       <LineId Id="48" Count="2" />
       <LineId Id="80" Count="0" />
       <LineId Id="57" Count="0" />
-      <LineId Id="78" Count="1" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="85" Count="0" />
       <LineId Id="65" Count="0" />
       <LineId Id="64" Count="0" />
       <LineId Id="68" Count="0" />

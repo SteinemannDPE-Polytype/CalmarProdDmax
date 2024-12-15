@@ -146,7 +146,7 @@ END_VAR
 // Init messages
 fbMsg_PythonNotRunning.pI_MsgConfig := _pMsgConfigExt;
 fbMsg_PythonNotRunning.iI_MsgLocation := TO_INT(ePr_BLK_PU);
-fbMsg_PythonNotRunning.iI_MsgNumber := eC_DMAX_DEF_SCRIPT_NOT_RUNNING;]]></ST>
+fbMsg_PythonNotRunning.iI_MsgNumber := eC_STAG_DEF_SCRIPT_NOT_RUNNING;]]></ST>
       </Implementation>
     </Method>
     <Method Name="InitWorkerPython" Id="{343b3a60-1392-4b26-a0f9-056258434c15}">

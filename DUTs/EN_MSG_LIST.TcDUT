@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <DUT Name="EN_MSG_LIST" Id="{b779ca97-c3e5-47a6-9087-28060a0419c7}">
     <Declaration><![CDATA[TYPE EN_MSG_LIST :
 (*************************************************************************************************)
@@ -15,10 +15,11 @@
 (*************************************************************************************************)
 (
   // start at                       eCStag_MSG_BASE := 10000,
-  eC_DMAX_CAM_NOTAVAIL                              :=10000,  (*CameraNotAvailable*)
-  eC_DMAX_CAM_MODE_NOTSUPPORTED                     :=10001,  (*CameraModeNotSupported*)
-  eC_DMAX_CAM_NOTENGOUGH_TEACH_POINTS               :=10002,  (*CameraNotEnoughTeachPoints*)
-  eC_DMAX_DEF_SCRIPT_NOT_RUNNING                    :=10003   (*DeformationScriptNotRunning*)
+  eC_STAG_CAM_NOTAVAIL                              :=10000,  (*CameraNotAvailable*)
+  eC_STAG_CAM_MODE_NOTSUPPORTED                     :=10001,  (*CameraModeNotSupported*)
+  eC_STAG_CAM_NOTENGOUGH_TEACH_POINTS               :=10002,  (*CameraNotEnoughTeachPoints*)
+  eC_STAG_DEF_SCRIPT_NOT_RUNNING                    :=10003   (*DeformationScriptNotRunning*)
+  
 );
 END_TYPE
 ]]></Declaration>

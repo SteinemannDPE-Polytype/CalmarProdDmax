@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <Visu Name="_VISU_CameraTrigger" Id="{0a8a3624-dadc-420c-a93e-aadffc477bdb}">
     <XmlArchive>
       <Data>
@@ -1276,10 +1276,10 @@
               <d n="FbMethods" t="CaseInsensitiveHashtable" ckt="String" cvt="Guid">
                 <v>FB_Init</v>
                 <v>f47068f6-05c9-40bb-bb20-d1bae49349fc</v>
-                <v>FB_Reinit</v>
-                <v>6a83222c-270c-4926-8170-375a13ff73fb</v>
                 <v>FB_Exit</v>
                 <v>669a6957-e3ce-453b-b756-1124cb426650</v>
+                <v>FB_Reinit</v>
+                <v>6a83222c-270c-4926-8170-375a13ff73fb</v>
               </d>
               <v n="FbName">"NotImportant"</v>
               <v n="FbGuid">{7dc87704-cbeb-4dce-85ce-852af30f88cc}</v>

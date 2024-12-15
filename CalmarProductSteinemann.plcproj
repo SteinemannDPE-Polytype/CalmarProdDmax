@@ -39,11 +39,12 @@ Fribourg/Switzerland (2021)</Description>
     <Folder Include="POUs\Ink" />
     <Folder Include="POUs\Print" />
     <Folder Include="POUs\Print\Camera" />
-    <Folder Include="POUs\Print\Camera\Mark" />
+    <Folder Include="POUs\Print\Camera\MarkCameraWEU" />
+    <Folder Include="POUs\Print\Camera\LineCamera" />
     <Folder Include="POUs\Print\DefGrid" />
     <Folder Include="POUs\Print\DefGrid\_Test" />
     <Folder Include="POUs\Print\DefGrid\_VISU_Templates" />
-    <Folder Include="POUs\Print\DMAX" />
+    <Folder Include="POUs\Print\Maxliner" />
     <Folder Include="POUs\Print\Ads" />
     <Folder Include="POUs\Print\Global" />
     <Folder Include="POUs\Print\Module" />
@@ -175,15 +176,6 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print\Camera\FB_LineCamera.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Print\Camera\FB_LineCamera106.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Print\Camera\FB_LineCamera76.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="POUs\Print\Camera\FB_MarkCamera.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
@@ -216,102 +208,111 @@ Fribourg/Switzerland (2021)</Description>
     <Compile Include="POUs\Print\Camera\I_CameraTriggerDevice.TcIO">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\E_MarkMode.TcTLEO">
+    <Compile Include="POUs\Print\Camera\LineCamera\FB_LineCamera.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\FB_MarkCamera_WEU.TcPOU">
+    <Compile Include="POUs\Print\Camera\LineCamera\FB_LineCamera106.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Print\Camera\LineCamera\FB_LineCamera76.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Print\Camera\LineCamera\_VISU_LineCamera.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\E_MarkMode.TcTLEO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\FB_MarkCamera_WEU.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\FB_MarkDefinition.TcPOU">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\FB_MarkDefinition.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\FB_MarkDetection.TcPOU">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\FB_MarkDetection.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\FB_MarkDetection_v2.TcPOU">
-      <SubType>Code</SubType>
-      <ExcludeFromBuild>true</ExcludeFromBuild>
-    </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\FB_MarkDetection_v1.TcPOU">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\FB_MarkDetection_v1.TcPOU">
       <SubType>Code</SubType>
       <ExcludeFromBuild>true</ExcludeFromBuild>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\I_MarkDefinition.TcIO">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\I_MarkDefinition.TcIO">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\ST_MarkDefinition.TcDUT">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\ST_MarkDefinition.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\ST_MarkState.TcDUT">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\ST_MarkState.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\ST_MarkView.TcDUT">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\ST_MarkView.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\ST_RepeatHistory.TcDUT">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\ST_RepeatHistory.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\TL_MarkMode.TcTLO">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\TL_MarkMode.TcTLO">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\_VISU_MarkCamera_WEU.TcVIS">
-      <SubType>Code</SubType>
-      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
-    </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\_VISU_MarkDefinition.TcVIS">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\_VISU_MarkCamera_WEU.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\_VISU_MarkDefinition_Details.TcVIS">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\_VISU_MarkDefinition.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\_VISU_MarkDetection.TcVIS">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\_VISU_MarkDefinition_Details.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\_VISU_MarkDetection_Trigger.TcVIS">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\_VISU_MarkDetection.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\_VISU_MarkHistory.TcVIS">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\_VISU_MarkDetection_Trigger.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\_VISU_MarkHistoryEntry.TcVIS">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\_VISU_MarkHistory.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\_VISU_MarkModes.TcVIS">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\_VISU_MarkHistoryEntry.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\_VISU_MarkOrientation.TcVIS">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\_VISU_MarkModes.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\_VISU_MarkOverview.TcVIS">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\_VISU_MarkOrientation.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\_VISU_MarkTriangle.TcVIS">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\_VISU_MarkOverview.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\_VISU_MarkTriangle_Detail.TcVIS">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\_VISU_MarkTriangle.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\_VISU_MarkViewMini.TcVIS">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\_VISU_MarkTriangle_Detail.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\_VISU_RepeatHistory.TcVIS">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\_VISU_MarkViewMini.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
-    <Compile Include="POUs\Print\Camera\Mark\_VISU_RepeatHistoryEntry.TcVIS">
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\_VISU_RepeatHistory.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="POUs\Print\Camera\MarkCameraWEU\_VISU_RepeatHistoryEntry.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
@@ -336,10 +337,6 @@ Fribourg/Switzerland (2021)</Description>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
     <Compile Include="POUs\Print\Camera\_VISU_DeformationPoint.TcVIS">
-      <SubType>Code</SubType>
-      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
-    </Compile>
-    <Compile Include="POUs\Print\Camera\_VISU_LineCamera.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
@@ -799,7 +796,7 @@ Fribourg/Switzerland (2021)</Description>
   </ItemGroup>
   <ItemGroup>
     <PlaceholderResolution Include="CalmarCommons">
-      <Resolution>CalmarCommons, 2.0.0.10 (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCommons, 2.0.0.14 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompDevices">
       <Resolution>CalmarCompDevices, 1.7.5 (WIFAG-Polytype)</Resolution>
@@ -808,7 +805,7 @@ Fribourg/Switzerland (2021)</Description>
       <Resolution>CalmarCompInkSystem, 2.0.1.1 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompPrint">
-      <Resolution>CalmarCompPrint, 2.2.1.16 (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCompPrint, 2.2.1.18 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompSystem">
       <Resolution>CalmarCompSystem, 2.0.0.8 (WIFAG-Polytype)</Resolution>
