@@ -827,11 +827,6 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Content</SubType>
     </Content>
   </ItemGroup>
-  <ItemGroup>
-    <SubObject Include="FB_PrintModule_Base.bEngaged">
-      <ExcludeFromBuild>true</ExcludeFromBuild>
-    </SubObject>
-  </ItemGroup>
   <ProjectExtensions>
     <PlcProjectOptions>
       <XmlArchive>

@@ -83,7 +83,8 @@ VAR
   bTestMsg : BOOL;      // activate message test
 END_VAR
 VAR PERSISTENT
-  _fPmDistToMasterRefPos  : LREAL;                 // [m] distance to master reference position (relative to master CTM attach position)
+  _fPmDistToPrev          : LREAL;                 // [m] distance to previous PM "main" tracking position
+  _fPmMainTrackPos        : LREAL;                 // [m] distance to master reference position (maint tracker)
 END_VAR
 VAR CONSTANT
   fC_HeadOffsetPlate      : LREAL := 0.000_2;      // Head offset to base plate [m] (mechanical)
@@ -122,7 +123,7 @@ nPos_SubPx := _iPrintPosition.getPosition(nPosition_px=>nPos_Px, fPosition_um=>f
 bSpeedReachedForPrinting := (fSpeedMpMin >= fC_ProductionSpeedMpMin_Level);
 
 // run tracker
-nTrackPosMain := F_MeterToSubPixel(fPosMeter:=_fPmDistToMasterRefPos, fResoSubPx:=_iPrintPosition.fPrintResolution*_iPrintPosition.fSubPxResolution); 
+nTrackPosMain := F_MeterToSubPixel(fPosMeter:=_fPmDistToPrev, fResoSubPx:=_iPrintPosition.fPrintResolution*_iPrintPosition.fSubPxResolution); 
 fbCTTracker(nPos:=nPos_SubPx);
 
 
@@ -215,14 +216,16 @@ Messaging();
     <Folder Name="I_Sim" Id="{81e45363-005e-4c1f-a6b7-8aaf440ced18}" />
     <Folder Name="Position" Id="{6c925878-9f7a-4b2f-a23d-94e53f749fe9}" />
     <Folder Name="Status" Id="{52a02388-96b1-4c62-8d85-43524a4e47e6}" />
-    <Property Name="bEngaged" Id="{ea540e5e-8da1-4fdb-8a1a-4685534831ac}" FolderPath="Status\">
-      <Declaration><![CDATA[PROPERTY bEngaged : BOOL]]></Declaration>
+    <Property Name="bActivated" Id="{ea540e5e-8da1-4fdb-8a1a-4685534831ac}" FolderPath="Status\">
+      <Declaration><![CDATA[// module is activated and considered in positioning
+PROPERTY bActivated : BOOL]]></Declaration>
       <Get Name="Get" Id="{c4e4b892-f0ed-4ba2-a0ee-c847e72e966d}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[bEngaged := _pModuleMachineState^.bEngaged;]]></ST>
+          <ST><![CDATA[// TODO: review with machine signal, who is the source if a module is activated
+bActivated := fbAdsPm.bEnable;     // _pModuleMachineState^.bEngaged;]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -396,6 +399,45 @@ END_VAR
           <ST><![CDATA[fDetectToPm := fbWorkerCamera.fDetectToCamOffset + fbWorkerCamera.fCameraToPrintOffset;]]></ST>
         </Implementation>
       </Get>
+    </Property>
+    <Property Name="fPmDistToPrev" Id="{26e0562f-c531-48e0-b7b7-0300485d7172}" FolderPath="Position\">
+      <Declaration><![CDATA[// distance to previous print module (on master tracking pos)
+PROPERTY fPmDistToPrev : LREAL]]></Declaration>
+      <Get Name="Get" Id="{9280dc20-98ef-4a5b-bdd2-3bb4f55463c7}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fPmDistToPrev := _fPmDistToPrev;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{09b73b65-8d37-4bed-a6f0-88cad150d902}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fPmDistToPrev := fPmDistToPrev;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="fPmMainTrackPos" Id="{5517f8cb-ddb4-4312-8704-0fcae1a40614}" FolderPath="Position\">
+      <Declaration><![CDATA[PROPERTY fPmMainTrackPos : LREAL]]></Declaration>
+      <Get Name="Get" Id="{6ba2c842-51fe-4e39-b81d-94bbeaaf6463}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fPmMainTrackPos := _fPmMainTrackPos;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{0472e538-e491-4103-a52b-7d47cdc493c9}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fPmMainTrackPos := fPmMainTrackPos;]]></ST>
+        </Implementation>
+      </Set>
     </Property>
     <Method Name="getInkQuantity" Id="{fb60f234-063a-45f2-8ece-a3c9a431016f}">
       <Declaration><![CDATA[METHOD getInkQuantity : LREAL
@@ -865,50 +907,11 @@ END_VAR]]></Declaration>
       </Implementation>
     </Method>
     <LineIds Name="FB_PrintModule_Base">
-      <LineId Id="6020" Count="1" />
-      <LineId Id="7191" Count="5" />
-      <LineId Id="6027" Count="0" />
-      <LineId Id="7197" Count="0" />
-      <LineId Id="6028" Count="10" />
-      <LineId Id="6736" Count="0" />
-      <LineId Id="6041" Count="1" />
-      <LineId Id="6919" Count="0" />
-      <LineId Id="6918" Count="0" />
-      <LineId Id="6916" Count="0" />
-      <LineId Id="6043" Count="1" />
-      <LineId Id="6366" Count="0" />
-      <LineId Id="6045" Count="0" />
-      <LineId Id="6048" Count="0" />
-      <LineId Id="6376" Count="1" />
-      <LineId Id="6379" Count="4" />
-      <LineId Id="6055" Count="20" />
-      <LineId Id="6910" Count="0" />
-      <LineId Id="7289" Count="0" />
-      <LineId Id="7009" Count="0" />
-      <LineId Id="7286" Count="2" />
-      <LineId Id="6909" Count="0" />
-      <LineId Id="7013" Count="0" />
-      <LineId Id="6079" Count="2" />
-      <LineId Id="6083" Count="1" />
-      <LineId Id="6375" Count="0" />
-      <LineId Id="6085" Count="1" />
-      <LineId Id="6564" Count="0" />
-      <LineId Id="6562" Count="0" />
-      <LineId Id="6087" Count="3" />
-      <LineId Id="6092" Count="8" />
-      <LineId Id="7102" Count="0" />
-      <LineId Id="6102" Count="5" />
-      <LineId Id="7294" Count="0" />
-      <LineId Id="7324" Count="0" />
-      <LineId Id="7352" Count="1" />
-      <LineId Id="6921" Count="0" />
-      <LineId Id="6108" Count="5" />
-      <LineId Id="6822" Count="0" />
-      <LineId Id="6471" Count="0" />
-      <LineId Id="6114" Count="4" />
+      <LineId Id="7536" Count="115" />
       <LineId Id="770" Count="0" />
     </LineIds>
-    <LineIds Name="FB_PrintModule_Base.bEngaged.Get">
+    <LineIds Name="FB_PrintModule_Base.bActivated.Get">
+      <LineId Id="5" Count="0" />
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintModule_Base.bMoving.Get">
@@ -982,6 +985,18 @@ END_VAR]]></Declaration>
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintModule_Base.fDetectToPm.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintModule_Base.fPmDistToPrev.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintModule_Base.fPmDistToPrev.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintModule_Base.fPmMainTrackPos.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintModule_Base.fPmMainTrackPos.Set">
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintModule_Base.getInkQuantity">

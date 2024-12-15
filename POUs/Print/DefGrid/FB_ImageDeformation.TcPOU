@@ -536,7 +536,7 @@ THEN
       _nUpdatedFeature := nCurrentFeature;
     END_IF
   ELSIF _sDefGridSettings.eDeformationType = E_DeformationType.LocalMarks1D THEN
-    UpdateLocal_1D_Marks(nGridCol:=nCurrentCol, nFeatureCt:=nCurrentFeature);
+    updateLocal_1D_Marks(nGridCol:=nCurrentCol, nFeatureCt:=nCurrentFeature);
     _nUpdatedGridCol := nCurrentCol;
     _nUpdatedFeature := nCurrentFeature;
   END_IF
@@ -544,8 +544,8 @@ END_IF
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="UpdateLocal_1D_Marks" Id="{fad2ef48-fad2-4c52-b1ee-769494717330}">
-      <Declaration><![CDATA[METHOD PRIVATE UpdateLocal_1D_Marks : BOOL
+    <Method Name="updateLocal_1D_Marks" Id="{fad2ef48-fad2-4c52-b1ee-769494717330}">
+      <Declaration><![CDATA[METHOD PRIVATE updateLocal_1D_Marks : BOOL
 VAR_INPUT
   nGridCol : UDINT;
   nFeatureCt : UDINT;
@@ -562,6 +562,15 @@ END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[
 {warning 'TODO: implement MarkCorrection 1D correction, linear interpolation'}
+
+//  _nCamPoints           // number of cam points received
+//---- TYPE: ST_DeformationPointAccurate
+// _sCamPoints[1].bSet    // point was written from camera
+// _sCamPoints[1].sPoint.valid   // if false it was a missed point (and generated)
+// 
+
+// we do not know what cam points we will have (no teach information, we don't know when they will arrive)
+//   we create grid when we need to. If we have point or not available...
 
 // based on the update position generate grid coulumns
 FOR col:=_nLocalGridColsGenerated TO nGridCol DO
@@ -581,8 +590,8 @@ FOR col:=_nLocalGridColsGenerated TO nGridCol DO
     
     // - calculate x/y shift and rotation based on available CamPoints
     sTmpPoint.index := TO_DINT(col * _sDefGridSettings.nGridSizeY + row);
-    sTmpPoint.x_ref := 0;
-    sTmpPoint.y_ref := 0;
+    sTmpPoint.x_ref := col * _sDefGridSettings.nGridPitchX;
+    sTmpPoint.y_ref := row * _sDefGridSettings.nGridPitchY;
     sTmpPoint.dx    := dx;
     sTmpPoint.dy    := dy;
     sTmpPoint.col   := TO_DINT(col);
@@ -789,29 +798,19 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.updateDeformation">
-      <LineId Id="215" Count="2" />
-      <LineId Id="273" Count="0" />
-      <LineId Id="218" Count="7" />
-      <LineId Id="302" Count="0" />
-      <LineId Id="226" Count="1" />
-      <LineId Id="229" Count="0" />
-      <LineId Id="271" Count="0" />
-      <LineId Id="270" Count="0" />
-      <LineId Id="272" Count="0" />
-      <LineId Id="259" Count="0" />
-      <LineId Id="230" Count="13" />
-      <LineId Id="289" Count="0" />
-      <LineId Id="287" Count="1" />
-      <LineId Id="290" Count="0" />
-      <LineId Id="244" Count="1" />
-      <LineId Id="285" Count="1" />
-      <LineId Id="284" Count="0" />
-      <LineId Id="52" Count="0" />
+      <LineId Id="313" Count="43" />
       <LineId Id="291" Count="0" />
     </LineIds>
-    <LineIds Name="FB_ImageDeformation.UpdateLocal_1D_Marks">
+    <LineIds Name="FB_ImageDeformation.updateLocal_1D_Marks">
       <LineId Id="331" Count="0" />
       <LineId Id="267" Count="0" />
+      <LineId Id="506" Count="1" />
+      <LineId Id="512" Count="0" />
+      <LineId Id="508" Count="1" />
+      <LineId Id="511" Count="0" />
+      <LineId Id="513" Count="0" />
+      <LineId Id="510" Count="0" />
+      <LineId Id="514" Count="0" />
       <LineId Id="332" Count="0" />
       <LineId Id="268" Count="2" />
       <LineId Id="343" Count="0" />

@@ -37,7 +37,7 @@ VAR CONSTANT
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[]]></ST>
+      <ST><![CDATA[// nothing to do: see work() for cyclic call]]></ST>
     </Implementation>
     <Folder Name="EL2252" Id="{0158c249-6857-46bf-a494-b2f1524d8491}" />
     <Folder Name="I_PrintStatusClient" Id="{622e22de-7c75-455b-8827-a6bdaab0b713}" />
