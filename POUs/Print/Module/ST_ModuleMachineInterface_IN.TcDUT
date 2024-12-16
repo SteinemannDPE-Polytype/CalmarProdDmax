@@ -29,7 +29,7 @@ STRUCT
   fSubstrateLen           : LREAL;            // Substrate length [m]
   fWebStretchCalculated   : LREAL;            // Web strech factor converted
   fLateralRegister        : LREAL;            // Lateral regster [m]
-  fModule2ToModule3       : LREAL;            // Distance between Module 2 and 3 [m]
+  fDistanceToPrevModule   : LREAL;            // Distance to previous module [m]
   bTargetSpeedReached     : BOOL;             // Target speed reached
   fTargetSpeed            : LREAL;            // Target speed [m/s]
   bPrintMarkExist         : BOOL;             // Print markus exist

@@ -125,7 +125,9 @@ VAR_OUTPUT
   nLen : DINT;  // mark length in pulse
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[// pulse elapsed * resolution [pulse/um] => pos in [um]
+        <ST><![CDATA[IF fCurrentResolution = 0 THEN RETURN; END_IF
+
+// pulse elapsed * resolution [pulse/um] => pos in [um]
 nLen := ABS(nOther - nRef);
 IF nLen * fCurrentResolution > nC_MinMarkLength THEN
   // mark long enough
@@ -151,7 +153,8 @@ VAR
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[
+        <ST><![CDATA[IF fCurrentResolution = 0 THEN RETURN; END_IF
+
 //fDeltaDistance := UINT64_TO_LREAL(UInt64Sub64(ULINT_TO_ULARGE(tNowDc), ULINT_TO_ULARGE(tEdge))) * 1E-9 * fSpeed;
 //getExactPosition := nPos - F_MeterToSubPixel(fPosMeter:=fDeltaDistance, fResoSubPx:=fCurrentResolution);   
 
@@ -292,6 +295,8 @@ measure := bActive;]]></ST>
       <LineId Id="8" Count="0" />
     </LineIds>
     <LineIds Name="FB_EffectiveEncoderResolutionDetection.checkMarkLength">
+      <LineId Id="38" Count="0" />
+      <LineId Id="37" Count="0" />
       <LineId Id="16" Count="0" />
       <LineId Id="20" Count="0" />
       <LineId Id="15" Count="0" />
@@ -301,7 +306,9 @@ measure := bActive;]]></ST>
       <LineId Id="18" Count="0" />
     </LineIds>
     <LineIds Name="FB_EffectiveEncoderResolutionDetection.getExactPosition">
-      <LineId Id="25" Count="11" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="26" Count="10" />
     </LineIds>
     <LineIds Name="FB_EffectiveEncoderResolutionDetection.Init">
       <LineId Id="9" Count="0" />

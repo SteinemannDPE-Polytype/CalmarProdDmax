@@ -96,7 +96,7 @@ VAR
   bResetDetection                 : BOOL;             // Reset request for checkForMark() internals
 
   fRealMarkLength                 : LREAL;
-  fRealMarkPosition               : DINT;
+  nRealMarkPosition               : DINT;
   nPosRepeatSupervision           : DINT;             // position sample for supervision of missing StartMarks
   nLastGeneratedStartMarkPosition : DINT;
   bMarkStartDetected              : BOOL;             // mark started
@@ -179,7 +179,7 @@ ELSE
                            , fSpeed := fCurrentSpeed
                            , fDuration := 
                            , fDetectedMarkLength => fRealMarkLength
-                           , nDetectedMarkPosition => fRealMarkPosition
+                           , nDetectedMarkPosition => nRealMarkPosition
                            , bStartMark => bTypeStartMark
                          );
 END_IF
@@ -255,7 +255,7 @@ _bMarkDetectionErrors := nCtrSensorDetectError > 0;
 _bMissingMarks        := nCtrIgnoredMarks > 0;
 
 // TODO:
-//  - Start mark missing
+//  - Check for missing Start mark -> bity
 //  - Invalid sheet length detecte
 
 
@@ -770,7 +770,7 @@ IF bMarkStartDetected AND bMarkEndDetected THEN
   THEN
     // valid
     // - is a startMark type?
-    bStartMark := _pFbMarkDefinition^.isStartMark(fMarkLength:=fLengthByPos);
+    bStartMark := _pFbMarkDefinition^.isStartMark(fMarkLength:=fDetectedMarkLength);
     
     // setup & apply all data to mark structure
     setupMark(
@@ -895,6 +895,10 @@ bSheetActive := TRUE;]]></ST>
 VAR_INPUT
   nNewX0 : DINT;   // new detected X0
 END_VAR
+VAR_INST
+  fSubstrateRealDiff : LREAL;   // [m]
+  nSubstrareRealDiff : DINT;    // [SubPx]
+END_VAR
 VAR
   i : UDINT;
   pLastMark : POINTER TO ST_MarkDefinition;
@@ -923,7 +927,8 @@ ELSIF nNewX0 = 0 AND _pFbMarkDefinition^.nMarksDetected > 1 THEN
   fSLen := (pLastMark^.fPosX/SEL(fD<>0, pLastMark^.fPosX, fD)) * _fSubstrateLength; // estimate real length with last mark
 END_IF
 _fSubstrateLengthEffective := fSLen;
-
+fSubstrateRealDiff := _fSubstrateLengthEffective - _fSubstrateLength;
+nSubstrareRealDiff := (nNewX0 - nDetectedX0) - F_MeterToSubPixel(fPosMeter:=_fSubstrateLength, fResoSubPx:=_fResolution);
 
 // debug history
 FOR i:=0 TO nC_HistorySize-1 DO sRepeatHistory[i].bSelected := FALSE; END_FOR   // clear selection
@@ -933,7 +938,7 @@ sRepeatHistory[nRepeatCt].nIndex          := nRepeatCt+1;
 sRepeatHistory[nRepeatCt].nX0             := nDetectedX0;
 sRepeatHistory[nRepeatCt].fLen            := _fSubstrateLength * 1000;
 sRepeatHistory[nRepeatCt].fLenEffective   := _fSubstrateLengthEffective * 1000;
-sRepeatHistory[nRepeatCt].fLenDiff        := (_fSubstrateLengthEffective - _fSubstrateLength) * 1000;
+sRepeatHistory[nRepeatCt].fLenDiff        := (fSubstrateRealDiff) * 1000;
 sRepeatHistory[nRepeatCt].bLenNotInRange  := bInvalidRepeatLength;
 sRepeatHistory[nRepeatCt].bInvalidIngoredMarks := _bMissingMarks;
 sRepeatHistory[nRepeatCt].bMissingMarks   := _bMissingMarks;
@@ -1104,63 +1109,7 @@ strMark := F_Concat6(
       </Implementation>
     </Method>
     <LineIds Name="FB_MarkDetection">
-      <LineId Id="13631" Count="30" />
-      <LineId Id="13663" Count="20" />
-      <LineId Id="13933" Count="0" />
-      <LineId Id="13684" Count="1" />
-      <LineId Id="14118" Count="0" />
-      <LineId Id="14120" Count="0" />
-      <LineId Id="13686" Count="0" />
-      <LineId Id="14082" Count="0" />
-      <LineId Id="13687" Count="0" />
-      <LineId Id="13689" Count="0" />
-      <LineId Id="13956" Count="0" />
-      <LineId Id="13935" Count="0" />
-      <LineId Id="14081" Count="0" />
-      <LineId Id="13950" Count="0" />
-      <LineId Id="13955" Count="0" />
-      <LineId Id="13951" Count="0" />
-      <LineId Id="14080" Count="0" />
-      <LineId Id="13940" Count="0" />
-      <LineId Id="13952" Count="0" />
-      <LineId Id="14009" Count="0" />
-      <LineId Id="14012" Count="2" />
-      <LineId Id="14017" Count="0" />
-      <LineId Id="14019" Count="1" />
-      <LineId Id="13966" Count="0" />
-      <LineId Id="13958" Count="0" />
-      <LineId Id="13960" Count="0" />
-      <LineId Id="14031" Count="0" />
-      <LineId Id="14072" Count="1" />
-      <LineId Id="14124" Count="0" />
-      <LineId Id="14074" Count="5" />
-      <LineId Id="14043" Count="0" />
-      <LineId Id="14023" Count="0" />
-      <LineId Id="13959" Count="0" />
-      <LineId Id="13962" Count="1" />
-      <LineId Id="13961" Count="0" />
-      <LineId Id="13975" Count="0" />
-      <LineId Id="13972" Count="1" />
-      <LineId Id="14049" Count="0" />
-      <LineId Id="14103" Count="4" />
-      <LineId Id="14102" Count="0" />
-      <LineId Id="14059" Count="0" />
-      <LineId Id="14062" Count="0" />
-      <LineId Id="14064" Count="0" />
-      <LineId Id="14123" Count="0" />
-      <LineId Id="14066" Count="5" />
-      <LineId Id="14061" Count="0" />
-      <LineId Id="14060" Count="0" />
-      <LineId Id="13946" Count="0" />
-      <LineId Id="13936" Count="0" />
-      <LineId Id="14116" Count="0" />
-      <LineId Id="14258" Count="0" />
-      <LineId Id="14260" Count="0" />
-      <LineId Id="14289" Count="2" />
-      <LineId Id="14261" Count="0" />
-      <LineId Id="14285" Count="3" />
-      <LineId Id="14083" Count="0" />
-      <LineId Id="13798" Count="3" />
+      <LineId Id="14542" Count="135" />
       <LineId Id="6884" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.ackErrors">
@@ -1419,6 +1368,7 @@ strMark := F_Concat6(
       <LineId Id="63" Count="5" />
       <LineId Id="110" Count="0" />
       <LineId Id="131" Count="0" />
+      <LineId Id="199" Count="0" />
       <LineId Id="147" Count="0" />
       <LineId Id="134" Count="0" />
       <LineId Id="166" Count="0" />

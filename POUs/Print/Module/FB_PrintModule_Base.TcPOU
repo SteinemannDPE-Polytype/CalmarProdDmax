@@ -610,10 +610,10 @@ fbAdsPm.config(
 
 (* -- PG PrintGroup*)
 FOR nCtr := 1 TO GVL_WEU.nC_MaxWorkerPrintPerPm DO
-  fbAdsPg[nCtr].aName := F_Concat2('Printline ', TO_STRING(nCtr));
+  fbAdsPg[nCtr].aName := F_Concat4(fbAdsPm.aName, ' - ', 'Printline ', TO_STRING(nCtr));
   fbAdsPg[nCtr].config(
        bShiftPositionX_Exist     := TRUE
-     , aShiftPositionX_Unit      := 'DINT'
+     , aShiftPositionX_Unit      := 'um'
      , lShiftPositionX_Min       := 0
      , lShiftPositionX_Max       := 2_000_000
      
@@ -788,6 +788,7 @@ VAR
   sPhFdlCfg_ImgMap : ST_PH_FileDownloadCfg;
   aName : T_MaxString;
   nOldPg : UDINT;
+  nPg, nPc : UDINT;
   nRelativeCtr : UDINT;
 END_VAR
 ]]></Declaration>
@@ -831,15 +832,18 @@ FOR i := 1 TO _nPc DO
 END_FOR
 
 // PH -------------------------------------------
+nOldPg := 1; nRelativeCtr := 1;
 FOR i := 1 TO _nPh DO
+  nPc := _nPhToPc_Mapping[i];
+  nPg := _nPcToPgAbsoluteIdx[nPc];
   // check config
-  IF _pPh[i] = 0 OR _pPc[_nPhToPc_Mapping[i]] = 0 THEN LogError(F_Concat4('SetupHw: invalid ph mapping','_pPh[',TO_STRING(i),']=0'));
+  IF _pPh[i] = 0 OR _pPc[nPc] = 0 THEN LogError(F_Concat4('SetupHw: invalid ph mapping','_pPh[',TO_STRING(i),']=0'));
     CONTINUE;
 	END_IF
   
   // build ads name
-  IF nOldPg <> _nPcToPgAbsoluteIdx[i] THEN nRelativeCtr := 1; nOldPg := _nPcToPgAbsoluteIdx[i]; END_IF  // create cb counter relative to pg
-  aName := F_Concat4('Printhead', TO_STRING(_nPcToPgAbsoluteIdx[i]), '.', TO_STRING(nRelativeCtr));
+  IF nOldPg <> nPg THEN nRelativeCtr := 1; nOldPg := nPg; END_IF  // create cb counter relative to pg
+  aName := F_Concat4('Printhead', TO_STRING(nPg), '.', TO_STRING(nRelativeCtr));
   nRelativeCtr := nRelativeCtr + 1;
   
   _pPh[i]^.init(    aName                 := aName
@@ -868,7 +872,7 @@ FOR i := 1 TO _nPh DO
                   , fVoltageScale_Max     := 110.0 
                   );
 
-  _pPh[i]^.initTempMonitor(fPhTempDeviation:=1, tTempMonitor:=T#45S);   // overwrite default temperatur deviation
+  _pPh[i]^.initTempMonitor(fPhTempDeviation:=1.5, tTempMonitor:=T#45S);   // overwrite default temperatur deviation
   
   // edit default file download config for ImageMap file --> disable file downloader
   _pPh[i]^.getFileDownloadConfig(E_PhFileSelection.eImageMap, stConfig=>sPhFdlCfg_ImgMap);
@@ -1093,7 +1097,12 @@ END_VAR]]></Declaration>
       <LineId Id="143" Count="0" />
       <LineId Id="142" Count="0" />
       <LineId Id="144" Count="0" />
-      <LineId Id="153" Count="91" />
+      <LineId Id="153" Count="35" />
+      <LineId Id="257" Count="0" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="260" Count="1" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="191" Count="53" />
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintModule_Base.trigger">
