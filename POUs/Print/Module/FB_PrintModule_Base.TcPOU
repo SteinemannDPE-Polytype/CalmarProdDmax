@@ -174,13 +174,13 @@ FOR nCtr := 1 TO GVL_WEU.nC_MaxWorkerPrintPerPm DO
     bPrintStopRequest     := _pModuleMachineState^.bStopRequest,
                             // Print StartPosition Distance to detected X0 of CT
     fPrintStartOffset     :=   fPrintOffsetX                                    // NOTE: dynamic corrections done in Worker (dropSpeedComp / global grid dx / other point corrections))
-                             - TO_LREAL(fbAdsPm.nGeneralShiftX) / 1_000_000     // ! negative direction => change requested by STAG (14.08.2024)
+                             - TO_LREAL(fbAdsPm.nGeneralShiftX) / 1_000_000     // ! negative direction to match PUC UI => change requested by STAG (14.08.2024)
                              + TO_LREAL(fbAdsPg[nCtr].nPositionX) / 1_000_000,
     fPrintYOffset         := LIMIT(
                               0,
                                 F_SubPixelToMeter(TO_DINT(nYShift_PcRamCenter), _iPrintPosition.fPrintResolution)              // y-offset for centered image in ph
                                 + fPrintOffsetY
-                                + TO_LREAL(fbAdsPm.nGeneralShiftY) / 1_000_000
+                                - TO_LREAL(fbAdsPm.nGeneralShiftY) / 1_000_000    // ! negative direction to match PUC UI => change requested by STAG (16.12.2024)
                                 + TO_LREAL(fbAdsPg[nCtr].nPositionY) / 1_000_000
                                 + _pModuleMachineState^.fLateralRegister  // lateral register from machine
                               ,2*F_SubPixelToMeter(TO_DINT(nYShift_PcRamCenter), _iPrintPosition.fPrintResolution)

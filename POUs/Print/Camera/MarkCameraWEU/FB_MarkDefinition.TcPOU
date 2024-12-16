@@ -34,7 +34,7 @@ VAR CONSTANT
   fC_MinUseLength     : LREAL := 0.04;  // minimal "use" length
   fC_MarkLengthMargin : LREAL := 0.1;   // [factor to a langth of mark] for mark length margin (to allow some jitter)
   //view
-  nShSzX_px : UDINT := 500;
+  nShSzX_px : UDINT := 700;
   nShSzY_px : UDINT := 180;
 END_VAR]]></Declaration>
     <Implementation>

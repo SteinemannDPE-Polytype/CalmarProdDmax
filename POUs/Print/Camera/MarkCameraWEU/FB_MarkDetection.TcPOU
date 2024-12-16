@@ -81,7 +81,8 @@ VAR
   nCtrIgnoredMarks                : UDINT;            // error counter for ignored marks
   bNoStartMarkDetected            : BOOL;             // no start mark detected after x repeats
   bInvalidRepeatLength            : BOOL;             // invalid repeat length (StartMarks too close or too far away from each other)
-  bInvalidMarkDetected            : BOOL;
+  bInvalidSignalDetected          : BOOL;             // invalid mark signal in repeat (and ignored)
+  bInvalidMarkDetected            : BOOL;             // invalid mark found in repeat (ignored)
   _bMarkDetectionErrors           : BOOL;             // invalid sensor signal
   _bMissingMarks                  : BOOL;             // some "valid"* marks were ignored
   
@@ -191,10 +192,14 @@ IF bFound THEN
   IF nMarkSelection = 1 AND NOT bTypeStartMark THEN  
     // err - search start mark but other valid found
     nCtrIgnoredMarks := nCtrIgnoredMarks + 1;   // ignored
+    bInvalidMarkDetected := TRUE;
+    IF _bVerbose THEN LogInfo('Start Mark searched but intermediate found -> ignore mark'); END_IF
     
   ELSIF nMarkSelection > 1 AND bTypeStartMark THEN   
     // err - search intermediate but found start mark
     nCtrIgnoredMarks := nCtrIgnoredMarks + 1;   // ignored
+    bInvalidMarkDetected := TRUE;
+    IF _bVerbose THEN LogInfo('Start Mark found but searched intermediate -> ignore mark'); END_IF
     
   ELSIF nMarkSelection = 1 AND bTypeStartMark THEN
     // ok - start mark   
@@ -223,6 +228,8 @@ IF bFound THEN
   ELSE
     // err = not covered check
     nCtrIgnoredMarks := nCtrIgnoredMarks + 1;
+    bInvalidMarkDetected := TRUE;
+    IF _bVerbose THEN LogInfo('Case not covered -> ignore mark'); END_IF
   END_IF 
 
 ELSE
@@ -652,6 +659,7 @@ nCtrSensorDetectError := 0;
 nCtrIgnoredMarks := 0;
 bNoStartMarkDetected := FALSE;
 bInvalidRepeatLength := FALSE;
+bInvalidSignalDetected := FALSE;
 bInvalidMarkDetected := FALSE;
 _bMarkDetectionErrors := FALSE;
 _bMissingMarks := FALSE;]]></ST>
@@ -737,6 +745,7 @@ IF rfEdgeSensor.FT AND NOT bInhibitTrigger THEN
   IF NOT bMarkStartDetected THEN
     // ignore
     nCtrSensorDetectError := nCtrSensorDetectError + 1;
+    bInvalidSignalDetected := TRUE;
     LogLvl(Lvl:=E_LogSeverity.Debug, Msg:='Missing rising trigger edge before falling edge');
     bResetDetection := TRUE;
   ELSE
@@ -749,6 +758,7 @@ END_IF
 IF bMarkStartDetected AND (nCurrentPos - nRisingPos) > nAbortMarkAfterDist THEN      // abort after waiting for end
   // Abort - Expected falling edge missed
   nCtrSensorDetectError := nCtrSensorDetectError + 1;
+  bInvalidSignalDetected := TRUE;
   LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('Mark end not given after [SubPx]:', TO_STRING(nAbortMarkAfterDist)));
   bResetDetection := TRUE;   // reset detection logic
 END_IF;
@@ -785,8 +795,9 @@ IF bMarkStartDetected AND bMarkEndDetected THEN
     searchForMark := TRUE;              // a valid mark detected
   ELSE 
     // error
-    nCtrIgnoredMarks := nCtrIgnoredMarks + 1;
-    LogLvl(lvl:=E_LogSeverity.Debug, Msg:='Invalid mark lenght found while searching - ignored');
+    nCtrSensorDetectError := nCtrSensorDetectError + 1;
+    bInvalidSignalDetected := TRUE;
+    IF _bVerbose THEN LogInfo('Invalid mark lenght found while searching - ignore mark'); END_IF
 	END_IF
   
   bResetDetection := TRUE;   // reset detection logic
@@ -866,6 +877,8 @@ _bStartTrig := TRUE;
 bDetectionRunning := TRUE;
 bNoStartMarkDetected := FALSE;
 bInvalidRepeatLength := FALSE;
+bInvalidSignalDetected := FALSE;
+bInvalidMarkDetected := FALSE;
 
 // (force) terminate a sheet/repeat
 IF bSheetActive THEN 
@@ -940,8 +953,8 @@ sRepeatHistory[nRepeatCt].fLen            := _fSubstrateLength * 1000;
 sRepeatHistory[nRepeatCt].fLenEffective   := _fSubstrateLengthEffective * 1000;
 sRepeatHistory[nRepeatCt].fLenDiff        := (fSubstrateRealDiff) * 1000;
 sRepeatHistory[nRepeatCt].bLenNotInRange  := bInvalidRepeatLength;
-sRepeatHistory[nRepeatCt].bInvalidIngoredMarks := _bMissingMarks;
-sRepeatHistory[nRepeatCt].bMissingMarks   := _bMissingMarks;
+sRepeatHistory[nRepeatCt].bInvalidIngoredMarks := bInvalidMarkDetected;
+sRepeatHistory[nRepeatCt].bMissingMarks   := bInvalidSignalDetected;
 
 
 IF _iActiveCam<>0 THEN _iActiveCam.CamTriggerDone(); END_IF 
@@ -1109,7 +1122,16 @@ strMark := F_Concat6(
       </Implementation>
     </Method>
     <LineIds Name="FB_MarkDetection">
-      <LineId Id="14542" Count="135" />
+      <LineId Id="14542" Count="62" />
+      <LineId Id="14933" Count="0" />
+      <LineId Id="14805" Count="0" />
+      <LineId Id="14605" Count="3" />
+      <LineId Id="14934" Count="0" />
+      <LineId Id="14804" Count="0" />
+      <LineId Id="14609" Count="27" />
+      <LineId Id="14935" Count="0" />
+      <LineId Id="14803" Count="0" />
+      <LineId Id="14637" Count="40" />
       <LineId Id="6884" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.ackErrors">
@@ -1244,6 +1266,7 @@ strMark := F_Concat6(
       <LineId Id="47" Count="0" />
       <LineId Id="52" Count="0" />
       <LineId Id="55" Count="0" />
+      <LineId Id="68" Count="0" />
       <LineId Id="62" Count="1" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.SaveToMarkHistory">
@@ -1269,11 +1292,15 @@ strMark := F_Concat6(
       <LineId Id="708" Count="0" />
       <LineId Id="649" Count="5" />
       <LineId Id="833" Count="0" />
-      <LineId Id="655" Count="8" />
+      <LineId Id="655" Count="7" />
+      <LineId Id="956" Count="0" />
+      <LineId Id="663" Count="0" />
       <LineId Id="715" Count="0" />
       <LineId Id="664" Count="4" />
       <LineId Id="834" Count="0" />
-      <LineId Id="669" Count="5" />
+      <LineId Id="669" Count="3" />
+      <LineId Id="954" Count="0" />
+      <LineId Id="673" Count="1" />
       <LineId Id="676" Count="0" />
       <LineId Id="837" Count="0" />
       <LineId Id="677" Count="4" />
@@ -1296,7 +1323,9 @@ strMark := F_Concat6(
       <LineId Id="854" Count="0" />
       <LineId Id="856" Count="0" />
       <LineId Id="884" Count="0" />
-      <LineId Id="857" Count="1" />
+      <LineId Id="857" Count="0" />
+      <LineId Id="955" Count="0" />
+      <LineId Id="953" Count="0" />
       <LineId Id="855" Count="0" />
       <LineId Id="702" Count="2" />
       <LineId Id="810" Count="0" />
@@ -1333,6 +1362,7 @@ strMark := F_Concat6(
       <LineId Id="22" Count="0" />
       <LineId Id="21" Count="0" />
       <LineId Id="79" Count="2" />
+      <LineId Id="95" Count="1" />
       <LineId Id="45" Count="0" />
       <LineId Id="16" Count="1" />
       <LineId Id="48" Count="0" />
