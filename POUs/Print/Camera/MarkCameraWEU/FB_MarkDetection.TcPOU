@@ -83,6 +83,7 @@ VAR
   bInvalidRepeatLength            : BOOL;             // invalid repeat length (StartMarks too close or too far away from each other)
   bInvalidSignalDetected          : BOOL;             // invalid mark signal in repeat (and ignored)
   bInvalidMarkDetected            : BOOL;             // invalid mark found in repeat (ignored)
+
   _bMarkDetectionErrors           : BOOL;             // invalid sensor signal
   _bMissingMarks                  : BOOL;             // some "valid"* marks were ignored
   
@@ -204,11 +205,12 @@ IF bFound THEN
   ELSIF nMarkSelection = 1 AND bTypeStartMark THEN
     // ok - start mark   
     IF _pFbMarkDefinition^.nMarks = 1 THEN    // only one mark --> TERMINATE + START
-      SheetStart(pMark:=pMarkSearch);        // start sheet/repeat
-      IF bR_TerminateLast THEN SheetStop(nNewX0:=0); END_IF  // TERMINATE already after single mark scanned
-    ELSE                                     // more marks --> START + NEXT
-      SheetStart(pMark:=pMarkSearch);        // start sheet/repeat
-      nMarkSelection := nMarkSelection + 1;  // next mark
+      //IF (nCurrentPos - _nX0) > (_fSubstrateLength * fC_MinSubstrateFactor ) THEN
+        SheetStart(pMark:=pMarkSearch);       // start sheet/repeat
+        IF bR_TerminateLast THEN SheetStop(nNewX0:=0); END_IF  // TERMINATE already after single mark scanned
+    ELSE                                      // more marks --> START + NEXT
+      SheetStart(pMark:=pMarkSearch);         // start sheet/repeat
+      nMarkSelection := nMarkSelection + 1;   // next mark
     END_IF
     
   ELSIF nMarkSelection > 1 AND NOT bTypeStartMark THEN
@@ -258,8 +260,7 @@ END_IF
 
 
 // --- Error Handling
-_bMarkDetectionErrors := nCtrSensorDetectError > 0;
-_bMissingMarks        := nCtrIgnoredMarks > 0;
+checkForErrors();
 
 // TODO:
 //  - Check for missing Start mark -> bity
@@ -374,6 +375,38 @@ END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[calcCycleTime := (TO_LREAL(tCurrent) - TO_LREAL(tLastTimeStamp)) * 1E-9;
 tLastTimeStamp  := tCurrent;  // memory timestamp]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="checkForErrors" Id="{d86f2540-7e0c-4e67-964e-a94e40bde82c}">
+      <Declaration><![CDATA[METHOD PRIVATE checkForErrors
+VAR_INST
+  nCtrSensorDetectError_mem       : UDINT;            // error counter for senor detect invalid signals
+  nCtrIgnoredMarks_mem            : UDINT;            // error counter for ignored marks
+  tErrorReport                    : TON;              // check if error increases
+  nNumChecks                      : UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+IF nCtrIgnoredMarks > 0 OR nCtrSensorDetectError > 0 THEN 
+  // run check timer while error exists
+  tErrorReport(IN:=TRUE, PT:=T#15S);
+
+ELSE
+  nNumChecks := 0; nCtrSensorDetectError_mem := 0; nCtrIgnoredMarks_mem := 0;
+  tErrorReport(IN:=FALSE);
+END_IF
+
+
+IF tErrorReport.Q THEN
+  // check if errors did increase some marks -> set error
+  tErrorReport(IN:=FALSE);  // stop, restart timer
+  IF nCtrSensorDetectError > nCtrSensorDetectError_mem + 3 AND nNumChecks>2 THEN _bMarkDetectionErrors := TRUE; END_IF
+  IF nCtrIgnoredMarks > nCtrIgnoredMarks_mem + 3           AND nNumChecks>2 THEN _bMissingMarks := TRUE; END_IF
+  nCtrSensorDetectError_mem := nCtrSensorDetectError; 
+  nCtrIgnoredMarks_mem := nCtrIgnoredMarks;
+  nNumChecks := nNumChecks + 1;
+END_IF]]></ST>
       </Implementation>
     </Method>
     <Method Name="Disable" Id="{11fdf59e-4145-49d1-a134-a7f58450fd1d}" FolderPath="I_CameraTrigger\">
@@ -1128,10 +1161,13 @@ strMark := F_Concat6(
       <LineId Id="14605" Count="3" />
       <LineId Id="14934" Count="0" />
       <LineId Id="14804" Count="0" />
-      <LineId Id="14609" Count="27" />
+      <LineId Id="14609" Count="3" />
+      <LineId Id="15075" Count="0" />
+      <LineId Id="14613" Count="23" />
       <LineId Id="14935" Count="0" />
       <LineId Id="14803" Count="0" />
-      <LineId Id="14637" Count="40" />
+      <LineId Id="14637" Count="27" />
+      <LineId Id="14666" Count="11" />
       <LineId Id="6884" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.ackErrors">
@@ -1161,6 +1197,21 @@ strMark := F_Concat6(
     <LineIds Name="FB_MarkDetection.calcCycleTime">
       <LineId Id="5" Count="0" />
       <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDetection.checkForErrors">
+      <LineId Id="10" Count="1" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="19" Count="1" />
+      <LineId Id="33" Count="2" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="12" Count="1" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="27" Count="1" />
+      <LineId Id="36" Count="1" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.Disable">
       <LineId Id="4" Count="0" />

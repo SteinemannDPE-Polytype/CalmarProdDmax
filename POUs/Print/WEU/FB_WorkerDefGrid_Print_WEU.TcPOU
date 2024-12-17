@@ -264,6 +264,17 @@ sRepeatHistory[nRepeatCt].fLenEffective  := _nPosXS - sRepeatHistory[SEL(nRepeat
 ]]></ST>
       </Implementation>
     </Method>
+    <Property Name="bJobActive" Id="{8d05e057-9131-4682-b6e9-f206f93057fd}">
+      <Declaration><![CDATA[PROPERTY bJobActive : BOOL]]></Declaration>
+      <Get Name="Get" Id="{635dcf08-0a3c-4c91-b00e-013bfbbe8d62}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bJobActive := _bJobActive;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
     <Property Name="bPausePrintCanEx" Id="{c9206e32-815b-4ac5-8772-1e5e371622f0}" FolderPath="I_PrintSubsystem\">
       <Declaration><![CDATA[PROPERTY bPausePrintCanEx : BOOL
 ]]></Declaration>
@@ -1192,6 +1203,9 @@ sim();]]></ST>
       <LineId Id="471" Count="0" />
       <LineId Id="6" Count="0" />
       <LineId Id="112" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Print_WEU.bJobActive.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print_WEU.bPausePrintCanEx.Get">

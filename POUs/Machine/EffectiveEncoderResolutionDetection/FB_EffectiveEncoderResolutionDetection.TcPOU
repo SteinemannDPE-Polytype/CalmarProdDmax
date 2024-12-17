@@ -17,7 +17,8 @@ VAR_INPUT
   fCurrentResolution          : LREAL;       // current used resolution (given from machine), encoder step size
   fEncoderPulseDistMin        : LREAL;       // defines the min sensor distance in pulse, range minimum
   fEncoderPulseDistMax        : LREAL;       // defines the max sensor distance in pulse, range maximum
-
+  fMinMarkLength              : LREAL:=2000; // minimal mark lenght to accept a measurement [um]
+  fMaxMarkLength              : LREAL:=6000; // maximal mark lenght to accept a measurement [um]
 END_VAR
 VAR_OUTPUT
   bUpdate                     : BOOL;        // a valid new measurment
@@ -123,17 +124,21 @@ VAR_INPUT
 END_VAR
 VAR_OUTPUT
   nLen : DINT;  // mark length in pulse
+END_VAR
+VAR
+  fMarkLen : LREAL;  // [um]
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF fCurrentResolution = 0 THEN RETURN; END_IF
 
 // pulse elapsed * resolution [pulse/um] => pos in [um]
 nLen := ABS(nOther - nRef);
-IF nLen * fCurrentResolution > nC_MinMarkLength THEN
+fMarkLen := nLen * fCurrentResolution;
+IF fMarkLen > fMinMarkLength AND fMarkLen < fMaxMarkLength THEN
   // mark long enough
   checkMarkLength := TRUE;
 ELSE
-  IF bVerbose THEN LogWarning(F_Concat5('Mark to short: ', TO_STRING(nLen * fCurrentResolution), '<', TO_STRING(nC_MinMarkLength), 'um')); END_IF
+  IF bVerbose THEN LogWarning(F_Concat5('Mark length invalid: ', TO_STRING(fMarkLen), 'um', ' too short or too long', '')); END_IF
 END_IF]]></ST>
       </Implementation>
     </Method>
@@ -299,6 +304,7 @@ measure := bActive;]]></ST>
       <LineId Id="37" Count="0" />
       <LineId Id="16" Count="0" />
       <LineId Id="20" Count="0" />
+      <LineId Id="49" Count="0" />
       <LineId Id="15" Count="0" />
       <LineId Id="17" Count="0" />
       <LineId Id="19" Count="0" />

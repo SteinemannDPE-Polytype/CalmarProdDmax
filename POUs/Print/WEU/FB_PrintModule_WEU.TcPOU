@@ -21,7 +21,7 @@ VAR
   _bNewStartPosX0     : BOOL;   // a new startpos detected by cam
   _nNewStartPosX0     : DINT;   // new startpos X0 deteced by cam
   
-  fbEncoderResoDetect: FB_EffectiveEncoderResolutionDetection;     // Effective encoder resolution detection
+  fbEncoderResoDetect : FB_EffectiveEncoderResolutionDetection;     // Effective encoder resolution detection
   fbFineAlignement    : FB_FineAlignement;     // additional grid corrections, PU Deformation/correction (4p, banana, ...)
 
   // messages specific
@@ -64,6 +64,7 @@ IF _iStartPos.bStartTrig AND _iStartPos.bValid THEN
 END_IF
 
 // if trigger and CT give register CT for processing --> we have all information to attach CT to local tracking/treating
+//  Merge CT & StartTrigger information
 IF _bNewCT AND _bNewStartPosX0 AND bActivated THEN    
   _bNewCT := FALSE; _bNewStartPosX0 := FALSE;
   
@@ -92,6 +93,8 @@ fbEncoderResoDetect(
   fEncoderPulseDistMin:=_pModuleMachineState^.fEncoderDetectPulseMin,
   fEncoderPulseDistMax:=_pModuleMachineState^.fEncoderDetectPulseMax,
   nDisInPulseFilterSz:=_pModuleMachineState^.nEncoderDetectFilterSz,
+  fMinMarkLength:=(1.5 + 0.1) * _pModuleMachineState^.fMarkBaseSize,  // 0.5*a + a
+  fMaxMarkLength:=(3 + 0.1) * _pModuleMachineState^.fMarkBaseSize,
   //bUpdate=>,
   fDisInPulse=>_pModuleMachineFeedback^.fEncoderStepsMeasured
 );
@@ -330,7 +333,9 @@ LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
       <LineId Id="586" Count="0" />
       <LineId Id="579" Count="0" />
       <LineId Id="585" Count="0" />
-      <LineId Id="561" Count="2" />
+      <LineId Id="561" Count="0" />
+      <LineId Id="698" Count="0" />
+      <LineId Id="562" Count="1" />
       <LineId Id="575" Count="0" />
       <LineId Id="570" Count="0" />
       <LineId Id="623" Count="0" />
@@ -347,6 +352,7 @@ LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
       <LineId Id="486" Count="0" />
       <LineId Id="481" Count="1" />
       <LineId Id="485" Count="0" />
+      <LineId Id="696" Count="1" />
       <LineId Id="483" Count="1" />
       <LineId Id="468" Count="0" />
       <LineId Id="273" Count="11" />
