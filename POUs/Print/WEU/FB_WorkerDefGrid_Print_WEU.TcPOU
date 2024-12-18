@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
   <POU Name="FB_WorkerDefGrid_Print_WEU" Id="{40ec5b58-a08c-49a3-8c49-35e7e7ec45f8}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Print_WEU EXTENDS FB_WorkerDefGrid IMPLEMENTS I_PrintSubsystem
 VAR_INPUT
@@ -873,7 +873,7 @@ WHILE pChargedCols^ < LIMIT(0, FLOOR(fCurrentPreCharge), sDefGridSettings.nGridS
   IF nAvailPoints >= sDefGridSettings.nGridSizeY * (pChargedCols^+1) THEN // Complete next column available?
     
     nAvailPoints_mem := 0;
-    LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('Charge CG col: ', TO_STRING(pChargedCols^)));
+    LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat4('CT: ', TO_STRING(pCT^.pCT^.iId),' Charge CG col: ', TO_STRING(pChargedCols^)));
     
     pMaxDx^ := 0;   // per columns
     

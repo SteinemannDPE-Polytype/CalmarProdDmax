@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
   <POU Name="FB_PrintModule_WEU" Id="{bf81d19f-9fa7-4acb-8cca-087a288b3f4d}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_PrintModule_WEU EXTENDS FB_PrintModule_Base
 VAR_INPUT
@@ -51,34 +51,42 @@ fbMarkCameraWeu(
   fMarkDistFromCenter := _pModuleMachineState^.fMarkToPrintdataCenterY
 );
 
-// check for new start trigger
-IF _iStartPos.bStartTrig AND _iStartPos.bValid THEN
+// -------------------------
+// Synchronize CT (EvPos) received from CTManger (Main) to the local StartTrigger detection and positioning
+// -- reset triggers if not active
+IF NOT bReadyForPrinting THEN
+  _bNewCT := 0; _bNewStartPosX0 := 0;
+END_IF
+// -- new StartTrigger (X0)
+IF _iStartPos.bStartTrig AND _iStartPos.bValid AND bActivated AND bReadyForPrinting THEN
   // buffer/save new start trigger
   _bNewStartPosX0 := TRUE;
   _nNewStartPosX0 := _iStartPos.nStartPositionX0;      // save detected start position for next CT to be applied to this module¨
   
   LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2(
-    F_Concat2(_pModuleSetup^.aName, ' New StartPos:'),
+    F_Concat2(_pModuleSetup^.aName, ' New StartTrigger detected:'),
     F_Concat2(' at position X0:', TO_STRING(_nNewStartPosX0))
   ));
+  
+  IF _bNewCT THEN   // we have an attached CT
+      LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
+      F_Concat2(_pModuleSetup^.aName, ' Track NewCT:'),
+      F_Concat2(' internal (print)Pos X0:', TO_STRING(_nNewStartPosX0)),
+      F_Concat2(' with CT:', _iNewCT.print(0))
+    ));
+    
+    _iNewCT.nPosPrint_X0 := _nNewStartPosX0;                        // set print pos to new dected in this module position domain
+    fbCTTracker.RegisterCT(iCT:=_iNewCT, nX0:=_nNewStartPosX0);     // register ct for tracking in modules position and tracking system
+  ELSE
+    // spurious trigger (CTs not yet arrived at PMx, but receive some StartTriggers
+    LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3('StartTrigger at Pos X0:', TO_STRING(_nNewStartPosX0), ' but no CT received'));
+	END_IF
+  
+  // reset internals (saved triggers)
+  _bNewCT := FALSE; _iNewCT := 0; 
+  _bNewStartPosX0 := FALSE;
 END_IF
 
-// if trigger and CT give register CT for processing --> we have all information to attach CT to local tracking/treating
-//  Merge CT & StartTrigger information
-IF _bNewCT AND _bNewStartPosX0 AND bActivated THEN    
-  _bNewCT := FALSE; _bNewStartPosX0 := FALSE;
-  
-  LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
-    F_Concat2(_pModuleSetup^.aName, ' Track NewCT:'),
-    F_Concat2(' internal (print)Pos X0:', TO_STRING(_nNewStartPosX0)),
-    F_Concat2(' with CT:', _iNewCT.print(0))
-  ));
-  
-  _iNewCT.nPosPrint_X0 := _nNewStartPosX0;                        // set print pos to new dected in this module position domain
-  fbCTTracker.RegisterCT(iCT:=_iNewCT, nX0:=_nNewStartPosX0);     // register ct for tracking in modules position and tracking system
-  
-  _iNewCT := 0; _nNewStartPosX0:=0; // reset internals
-END_IF
 
 // Neutral fibre calculation with additional mark sensors
 fbEncoderResoDetect(
@@ -305,7 +313,7 @@ _bNewCT := TRUE;
 _iNewCT := sEvPos.iCT;
 
 LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
-  F_Concat2(_pModuleSetup^.aName, 'NewCT:'),
+  F_Concat2(_pModuleSetup^.aName, ' NewCT PosEv:'),
   F_Concat2(' at (Main)TrackPos:', TO_STRING(sEvPos.nTrigPos)),
   F_Concat2(' with CT:', sEvPos.iCT.print(0))
 ));
@@ -322,31 +330,25 @@ LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
       <LineId Id="510" Count="1" />
       <LineId Id="323" Count="0" />
       <LineId Id="322" Count="0" />
+      <LineId Id="799" Count="0" />
       <LineId Id="580" Count="0" />
-      <LineId Id="577" Count="0" />
-      <LineId Id="576" Count="0" />
-      <LineId Id="584" Count="0" />
-      <LineId Id="581" Count="0" />
-      <LineId Id="578" Count="0" />
-      <LineId Id="591" Count="0" />
-      <LineId Id="587" Count="2" />
-      <LineId Id="586" Count="0" />
-      <LineId Id="579" Count="0" />
-      <LineId Id="585" Count="0" />
-      <LineId Id="561" Count="0" />
-      <LineId Id="698" Count="0" />
-      <LineId Id="562" Count="1" />
-      <LineId Id="575" Count="0" />
-      <LineId Id="570" Count="0" />
-      <LineId Id="623" Count="0" />
-      <LineId Id="572" Count="0" />
-      <LineId Id="574" Count="0" />
-      <LineId Id="565" Count="0" />
-      <LineId Id="592" Count="0" />
-      <LineId Id="596" Count="0" />
-      <LineId Id="583" Count="0" />
-      <LineId Id="594" Count="1" />
-      <LineId Id="564" Count="0" />
+      <LineId Id="800" Count="0" />
+      <LineId Id="821" Count="0" />
+      <LineId Id="819" Count="1" />
+      <LineId Id="818" Count="0" />
+      <LineId Id="801" Count="0" />
+      <LineId Id="741" Count="8" />
+      <LineId Id="829" Count="0" />
+      <LineId Id="843" Count="0" />
+      <LineId Id="835" Count="7" />
+      <LineId Id="830" Count="0" />
+      <LineId Id="844" Count="0" />
+      <LineId Id="846" Count="0" />
+      <LineId Id="845" Count="0" />
+      <LineId Id="832" Count="2" />
+      <LineId Id="831" Count="0" />
+      <LineId Id="750" Count="0" />
+      <LineId Id="852" Count="0" />
       <LineId Id="469" Count="8" />
       <LineId Id="480" Count="0" />
       <LineId Id="486" Count="0" />

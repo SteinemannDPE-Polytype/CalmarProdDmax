@@ -1,13 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
   <POU Name="FB_WorkerDefGrid_Inspection" Id="{d49e7280-4879-45fa-a34b-5703a36a2e59}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Inspection EXTENDS FB_WorkerDefGrid
 VAR_INPUT
   EL2252_Feedback      AT%I* : BYTE := 16#FF;   (*(optional from version > EL2252-0000-0018) Output feedback bit coded, needs activation in PDO config of terminal
-                                              BIT 0: Output Kanal 1
-                                              BIT 1: Tristate Kanal 1
-                                              BIT 2: Output Kanal 2
-                                              BIT 3: Tristate Kanal 2*)
+                                                      BIT 0: Output Kanal 1
+                                                      BIT 1: Tristate Kanal 1
+                                                      BIT 2: Output Kanal 2
+                                                      BIT 3: Tristate Kanal 2*)
   nCurrentPosition           : DINT;            // current position in [SubPx]
   fCurrentSpeed              : LREAL;           // current speed in [m/s]
   fMaxMachineSpeed           : LREAL;           // max. machine speed in [m/s]
@@ -15,8 +15,8 @@ END_VAR
 VAR_OUTPUT
   // IOs
   EL2252_Activate      AT%Q* : BYTE;            (*Oututs activation command (0->3 activate)*)
-  EL2252_StartTime     AT%Q* : T_DCTIME64;      (*Outputs activation timestamp*)
   EL2252_Output1       AT%Q* : BOOL;            (*Output1 bool state*)
+  EL2252_StartTime     AT%Q* : T_DCTIME64;      (*Outputs activation timestamp*)
 END_VAR
 VAR
   // timestamp output  
@@ -31,6 +31,7 @@ VAR
   bTriggerResetting, bResetActive : BOOL;     // output is currently set
   tResetTime : T_DCTIME64;
   nDelta_SubPx : DINT;
+  bVerbose : BOOL;
 END_VAR
 VAR CONSTANT
   tC_CommTimeout : LREAL := 10.0/1000;   // 10ms in [s]
@@ -67,6 +68,7 @@ END_VAR]]></Declaration>
   IF fCurrentSpeed = 0 THEN RETURN; END_IF   // crash avoid
   // delta in time
   deltaTime_s  := deltaPosNowToTrigger_m/fCurrentSpeed;
+  IF bVerbose THEN LogInfo(F_Concat4('deltaTime', TO_STRING(deltaTime_s), ' deltaPosNowToTrigger_SubPx:', TO_STRING(deltaPosNowToTrigger_SubPx))); END_IF
   deltaTime_Dc := TO_ULINT(deltaTime_s * TO_LREAL(EC_DCTIME_TICKSPERSEC64));  
   
   // trigger time
@@ -223,6 +225,7 @@ END_IF]]></ST>
       <LineId Id="77" Count="0" />
       <LineId Id="84" Count="0" />
       <LineId Id="64" Count="0" />
+      <LineId Id="100" Count="0" />
       <LineId Id="79" Count="0" />
       <LineId Id="87" Count="0" />
       <LineId Id="81" Count="0" />
