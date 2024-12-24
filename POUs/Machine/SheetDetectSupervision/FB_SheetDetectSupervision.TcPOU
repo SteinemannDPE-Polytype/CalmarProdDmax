@@ -102,7 +102,7 @@ IF RemSheetDetectSupervisionPar.bR_Enable THEN
       ObSheetDetectFree := FALSE;
     END_IF
   END_IF
-  IF rfTrig_MachineStopped.FT THEN
+  IF rfTrig_MachineStopped.RT THEN
     ObSheetJamPrintingSystem   := FALSE;
   END_IF
 ELSE
