@@ -18,8 +18,9 @@
   eC_STAG_CAM_NOTAVAIL                              :=10000,  (*CameraNotAvailable*)
   eC_STAG_CAM_MODE_NOTSUPPORTED                     :=10001,  (*CameraModeNotSupported*)
   eC_STAG_CAM_NOTENGOUGH_TEACH_POINTS               :=10002,  (*CameraNotEnoughTeachPoints*)
-  eC_STAG_DEF_SCRIPT_NOT_RUNNING                    :=10003   (*DeformationScriptNotRunning*)
-  
+  eC_STAG_DEF_SCRIPT_NOT_RUNNING                    :=10003,  (*DeformationScriptNotRunning*)
+  eC_STAG_CAM_TEACH_ERROR                           :=10004,  (*CameraTeachError*)
+  eC_STAG_IMAGELENGTH_NOT_SUPPORTED                 :=10005   (*ImageLengthNotSupported*)
 );
 END_TYPE
 ]]></Declaration>
