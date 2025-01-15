@@ -25,6 +25,11 @@ VAR
   _bTeachOk                     : BOOL;
   _nTeachedPoints               : UDINT;
   _nDetectedMarks               : UDINT;
+  
+  // status
+  _bTeachError                  : BOOL;     // teach was not successful
+  _bImageLengthError            : BOOL;     // invalid image/repeat length
+  _bMarkDefinitionError         : BOOL;     // invalid mark definition
 END_VAR
 VAR CONSTANT
   fC_MinImageLength : LREAL := 0.05;  // minimal "repeat" length
@@ -34,7 +39,7 @@ VAR PERSISTENT
   bMarkInverted : BOOL;             // mark triangle are flipped on x axis
   nUsePerRepeat : UDINT := 4;       // number of "use" per repeat
   fMarkSpec_a   : LREAL := 0.005;   // mark spec a [m] - mark width
-  fMarkSpec_b   : LREAL := 0.005;   // mark spec b [m] - (optional) trianlge length
+  fMarkSpec_b   : LREAL := 0.005;   // mark spec b [m] - (optional) triangle length
   fMarkSpec_c   : LREAL := 0.005;   // mark spec c [m] - start mark distance to 0
 END_VAR]]></Declaration>
     <Implementation>
@@ -64,17 +69,33 @@ IF _bCamTriggerStarted THEN sendCamPoints(); END_IF
 
 fbMarkDefinition.update_view();]]></ST>
     </Implementation>
+    <Folder Name="Errors" Id="{a01e90ed-adf1-4c3e-a3f6-2cabd0d609d0}" />
     <Folder Name="I_CameraTriggerDevice" Id="{4773bc35-df63-4cfd-9fcd-8027e8678bf9}" />
-    <Method Name="ackErrors" Id="{6d381463-10c6-4dda-a89c-e8be47d736f9}">
+    <Method Name="ackErrors" Id="{6d381463-10c6-4dda-a89c-e8be47d736f9}" FolderPath="Errors\">
       <Declaration><![CDATA[METHOD ackErrors
 VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[fbMarkDetection.ackErrors();]]></ST>
+        <ST><![CDATA[_bTeachError := FALSE;
+_bImageLengthError := FALSE;
+_bMarkDefinitionError := FALSE;
+
+fbMarkDetection.ackErrors();]]></ST>
       </Implementation>
     </Method>
-    <Property Name="bMarkDetectionErrors" Id="{7a1a4e25-3606-442c-80f7-39054a32690e}">
+    <Property Name="bImageLengthInvalid" Id="{8ce60234-4f56-4d8f-b2aa-0e2e0adae3b0}" FolderPath="Errors\">
+      <Declaration><![CDATA[PROPERTY bImageLengthInvalid : BOOL]]></Declaration>
+      <Get Name="Get" Id="{ca2b44a6-2f71-42bc-8246-d8f9916a6bd7}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bImageLengthInvalid := _bImageLengthError;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bMarkDetectionErrors" Id="{7a1a4e25-3606-442c-80f7-39054a32690e}" FolderPath="Errors\">
       <Declaration><![CDATA[PROPERTY bMarkDetectionErrors : BOOL]]></Declaration>
       <Get Name="Get" Id="{bf74de13-e67d-409d-a425-e80bf20f310d}">
         <Declaration><![CDATA[VAR
@@ -85,7 +106,7 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Property Name="bMissingMarks" Id="{16c4d983-afb9-47fc-b3a0-43e8b8f856f1}">
+    <Property Name="bMissingMarks" Id="{16c4d983-afb9-47fc-b3a0-43e8b8f856f1}" FolderPath="Errors\">
       <Declaration><![CDATA[PROPERTY bMissingMarks : BOOL]]></Declaration>
       <Get Name="Get" Id="{bfdb3c45-61da-45e4-90ca-803c164e5fdf}">
         <Declaration><![CDATA[VAR
@@ -93,6 +114,17 @@ END_VAR
 ]]></Declaration>
         <Implementation>
           <ST><![CDATA[bMissingMarks := fbMarkDetection._bMissingMarks;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bTeachError" Id="{d32145c6-71bd-404c-9468-3a12da2d9f73}" FolderPath="Errors\">
+      <Declaration><![CDATA[PROPERTY bTeachError : BOOL]]></Declaration>
+      <Get Name="Get" Id="{b090c8ba-d759-47b7-a0ca-23e6705d2988}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bTeachError := _bTeachError;]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -197,7 +229,7 @@ _bInitialized := TRUE;]]></ST>
       <Declaration><![CDATA[METHOD mJobStart : BOOL]]></Declaration>
       <Implementation>
         <ST><![CDATA[// parameter checks
-IF fImageLength < fC_MinImageLength THEN LogError('JobStart: Repeat length (ImageLength) too small'); END_IF
+IF fImageLength < fC_MinImageLength THEN _bImageLengthError:=TRUE; LogError('JobStart: Repeat length (ImageLength) too small'); END_IF
 
 // mark mode selection based on machine configuration
 // No marks => None
@@ -216,10 +248,12 @@ fMarkSpec_a := fMarkSizeDefault;
 fMarkSpec_c := fMarkDistRepeatToStartMark;
 //fMarkSpec_b := ;
 
+IF fMarkSpec_a = 0 THEN _bMarkDefinitionError := TRUE; LogError(F_Concat2('JobStart: MarkLength invalid "a"=', TO_STRING(fMarkSpec_a))); END_IF
+IF eMarkMode = E_MarkMode.OneTriangle AND fMarkSpec_b = 0 THEN _bMarkDefinitionError := TRUE; LogError(F_Concat2('JobStart: MarkLength invalid "c"=', TO_STRING(fMarkSpec_c))); END_IF
 
 // Teach marks based on job and configuration
 IF eCameraMode <> E_CameraMode.NoCorrection THEN
-  fbMarkDefinition.TeachMarks(
+  _bTeachError := NOT fbMarkDefinition.TeachMarks(
     fImageLength:=fImageLength, 
     fImageWidth:=fImageWidth, 
     eMarkMode:=eMarkMode,
@@ -228,7 +262,7 @@ IF eCameraMode <> E_CameraMode.NoCorrection THEN
     c:=fMarkSpec_c,
     nUses:=nUsePerRepeat,
     bMarkInverted:=bMarkInverted
-);
+  );
 END_IF]]></ST>
       </Implementation>
     </Method>
@@ -338,12 +372,19 @@ END_VAR
       <LineId Id="974" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkCamera_WEU.ackErrors">
+      <LineId Id="9" Count="3" />
       <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkCamera_WEU.bImageLengthInvalid.Get">
+      <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkCamera_WEU.bMarkDetectionErrors.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkCamera_WEU.bMissingMarks.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkCamera_WEU.bTeachError.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkCamera_WEU.CamTriggerDone">
@@ -399,6 +440,7 @@ END_VAR
       <LineId Id="70" Count="0" />
       <LineId Id="69" Count="0" />
       <LineId Id="41" Count="0" />
+      <LineId Id="74" Count="1" />
       <LineId Id="73" Count="0" />
       <LineId Id="72" Count="0" />
       <LineId Id="42" Count="6" />

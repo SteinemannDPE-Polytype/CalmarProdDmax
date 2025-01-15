@@ -312,6 +312,7 @@ VAR_INPUT
 END_VAR
 VAR
   i : UDINT;
+  bErr : BOOL;
   numMarks : UDINT;
   sNewMark : ST_MarkDefinition;
 END_VAR
@@ -322,8 +323,8 @@ ResetDefinition();
 
 // 
 numMarks := _nUses*_nMarksPerUse;
-IF numMarks = 0 THEN numMarks := 1; END_IF   // at least one mark
-IF numMarks > 50 THEN numMarks:=50; LogError('TeachAuto: too many marks, limited to max. internal=50'); END_IF
+IF numMarks = 0 THEN numMarks := 1; bErr:=TRUE; END_IF   // at least one mark
+IF numMarks > 50 THEN numMarks:=50; bErr:=TRUE; LogError('TeachAuto: too many marks, limited to max. internal=50'); END_IF
 
 _fDistBetweenMarks := _fImageLength/numMarks;
 
@@ -337,11 +338,15 @@ FOR i:=1 TO numMarks DO
   sNewMark.bInvertedX := bInverted;
   
   RegisterMark(sMark:=sNewMark);
-END_FOR]]></ST>
+END_FOR
+
+TeachAuto := NOT bErr;]]></ST>
       </Implementation>
     </Method>
     <Method Name="TeachMarks" Id="{0862f9ff-112d-4178-95a2-88b41209d52d}" FolderPath="Teaching\">
-      <Declaration><![CDATA[(*Setup mark definition, teach marks for job x*)
+      <Declaration><![CDATA[(*Setup mark definition, teach marks for job x
+  :return: TRUE if OK
+*)
 METHOD TeachMarks : BOOL
 VAR_INPUT
   fImageLength             : LREAL := 1;      // Image length [m]
@@ -354,6 +359,9 @@ VAR_INPUT
   nUses   : UDINT;  // use per repeat
   bMarkInverted  : BOOL;   // triangles are flipped Y
 END_VAR
+VAR
+  bOk, bErr : BOOL;
+END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[_fImageLength := fImageLength;
@@ -365,19 +373,23 @@ _fUseLength := _fImageLength/nUses;
 _nMarksPerUse := TO_UDINT(FLOOR(_fUseLength/fC_MinUseLength));
 _a := a;
 
+bOK := bErr := FALSE;
+
 // checks
-IF fImageLength/nUses < fC_MinUseLength THEN LogError('TeachMarks: Use length too small'); END_IF
+IF fImageLength/nUses < fC_MinUseLength THEN bErr:=TRUE; LogError('TeachMarks: Use length too small'); END_IF
 
 // Teach new marks
 IF    eMarkMode = E_MarkMode.AutoDefault THEN
-  TeachAuto(a:=a, c:=c, bInverted:=bMarkInverted);
+  bOk := TeachAuto(a:=a, c:=c, bInverted:=bMarkInverted);
 ELSIF eMarkMode = E_MarkMode.OneDefault THEN
-  TeachOneMark(a:=a, c:=c, bInverted:=bMarkInverted);
+  bOk := TeachOneMark(a:=a, c:=c, bInverted:=bMarkInverted);
 ELSIF eMarkMode = E_MarkMode.OneTriangle THEN
-  TeachOneTriangle(a:=a, b:=b, c:=c, bInverted:=bMarkInverted);
+  bOk := TeachOneTriangle(a:=a, b:=b, c:=c, bInverted:=bMarkInverted);
 ELSIF eMarkMode = E_MarkMode.None THEN
-  TeachOneSimMark();
-END_IF]]></ST>
+  bOk := TeachOneSimMark();
+END_IF
+
+TeachMarks := bOk AND NOT bErr;]]></ST>
       </Implementation>
     </Method>
     <Method Name="TeachOneMark" Id="{b29aa47a-aa65-45ec-a32e-d33a1e8344f2}" FolderPath="Teaching\">
@@ -408,7 +420,8 @@ sNewMark.fPosY := 0;
 sNewMark.bInvertedX := bInverted;
 
 RegisterMark(sMark:=sNewMark);
-]]></ST>
+
+TeachOneMark := TRUE;]]></ST>
       </Implementation>
     </Method>
     <Method Name="TeachOneSimMark" Id="{453a94e7-603c-485c-9e23-e7ac2a920742}" FolderPath="Teaching\">
@@ -437,7 +450,8 @@ sNewMark.fPosY := 0;
 sNewMark.bInvertedX := FALSE;
 
 RegisterMark(sMark:=sNewMark);
-]]></ST>
+
+TeachOneSimMark := TRUE;]]></ST>
       </Implementation>
     </Method>
     <Method Name="TeachOneTriangle" Id="{c2c1a8d2-eed4-4e97-9356-e7bcd531caed}" FolderPath="Teaching\">
@@ -469,7 +483,8 @@ sNewMark.fPosY := 0;
 sNewMark.bInvertedX := bInverted;  
 
 RegisterMark(sMark:=sNewMark);
-]]></ST>
+
+TeachOneTriangle := TRUE;]]></ST>
       </Implementation>
     </Method>
     <Method Name="update_view" Id="{41a8142f-4950-483a-a733-e026dfe68780}">
@@ -613,12 +628,15 @@ pSelMark := ADR(sMarkDef[nSelMark]);]]></ST>
       <LineId Id="29" Count="5" />
       <LineId Id="25" Count="0" />
       <LineId Id="37" Count="0" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="123" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDefinition.TeachMarks">
       <LineId Id="53" Count="3" />
       <LineId Id="65" Count="1" />
       <LineId Id="57" Count="0" />
       <LineId Id="71" Count="0" />
+      <LineId Id="127" Count="1" />
       <LineId Id="105" Count="0" />
       <LineId Id="70" Count="0" />
       <LineId Id="72" Count="0" />
@@ -630,6 +648,8 @@ pSelMark := ADR(sMarkDef[nSelMark]);]]></ST>
       <LineId Id="91" Count="0" />
       <LineId Id="89" Count="1" />
       <LineId Id="18" Count="0" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="123" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDefinition.TeachOneMark">
       <LineId Id="39" Count="1" />
@@ -637,6 +657,7 @@ pSelMark := ADR(sMarkDef[nSelMark]);]]></ST>
       <LineId Id="91" Count="7" />
       <LineId Id="34" Count="0" />
       <LineId Id="25" Count="0" />
+      <LineId Id="111" Count="0" />
       <LineId Id="37" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDefinition.TeachOneSimMark">
@@ -647,6 +668,7 @@ pSelMark := ADR(sMarkDef[nSelMark]);]]></ST>
       <LineId Id="93" Count="5" />
       <LineId Id="34" Count="0" />
       <LineId Id="25" Count="0" />
+      <LineId Id="121" Count="0" />
       <LineId Id="37" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDefinition.TeachOneTriangle">
@@ -656,6 +678,7 @@ pSelMark := ADR(sMarkDef[nSelMark]);]]></ST>
       <LineId Id="103" Count="6" />
       <LineId Id="34" Count="0" />
       <LineId Id="25" Count="0" />
+      <LineId Id="123" Count="0" />
       <LineId Id="37" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDefinition.update_view">

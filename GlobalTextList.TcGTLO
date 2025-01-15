@@ -973,6 +973,11 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"6407"</v>
+              <v n="TextDefault">"Comp."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"10565"</v>
               <v n="TextDefault">"Compensation temperatur extension"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -1343,6 +1348,21 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"5571"</v>
+              <v n="TextDefault">"Eject"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"4244"</v>
+              <v n="TextDefault">"Ejected"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"6817"</v>
+              <v n="TextDefault">"Ejected=1"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"2388"</v>
               <v n="TextDefault">"EjectTriggerLength"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -1378,8 +1398,18 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"1980"</v>
+              <v n="TextDefault">"Encoder"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"7568"</v>
               <v n="TextDefault">"Encoder Filter"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"4996"</v>
+              <v n="TextDefault">"encoder filter active"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -1390,6 +1420,11 @@
             <o>
               <v n="TextID">"5880"</v>
               <v n="TextDefault">"Encoder speed compensation reference speed"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2208"</v>
+              <v n="TextDefault">"EncoderReso"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -1488,6 +1523,16 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"4278"</v>
+              <v n="TextDefault">"f (%d)"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2541"</v>
+              <v n="TextDefault">"F=%d"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"1765"</v>
               <v n="TextDefault">"Fast Stop Request"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -1513,8 +1558,23 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"3286"</v>
+              <v n="TextDefault">"filter active"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"682"</v>
+              <v n="TextDefault">"filter active (green)"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"12495"</v>
               <v n="TextDefault">"Filter depth"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1635"</v>
+              <v n="TextDefault">"filter=%d"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -1562,6 +1622,11 @@
               <v n="TextDefault">"fsf
 sdfsd
 sdfsd"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"5979"</v>
+              <v n="TextDefault">"F[%d]"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -2090,6 +2155,26 @@ sdfsd"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"6002"</v>
+              <v n="TextDefault">"MaxMas"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"4885"</v>
+              <v n="TextDefault">"MaxMaster"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"516"</v>
+              <v n="TextDefault">"MaxModule"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"6815"</v>
+              <v n="TextDefault">"MaxPM"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"4790"</v>
               <v n="TextDefault">"MaxSubstrate Factor"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -2147,6 +2232,41 @@ sdfsd"</v>
             <o>
               <v n="TextID">"10619"</v>
               <v n="TextDefault">"Min. Use Length"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2528"</v>
+              <v n="TextDefault">"MinM"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"5381"</v>
+              <v n="TextDefault">"MinMa"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"6191"</v>
+              <v n="TextDefault">"MinMas"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"3216"</v>
+              <v n="TextDefault">"MinMaster"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"3134"</v>
+              <v n="TextDefault">"MinMstrer"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2492"</v>
+              <v n="TextDefault">"MinProd"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2310"</v>
+              <v n="TextDefault">"MinProd."</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -2800,6 +2920,11 @@ sdfsd"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"6555"</v>
+              <v n="TextDefault">"Selected for printing"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"14908"</v>
               <v n="TextDefault">"Selection MasterModule"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -2980,6 +3105,11 @@ sdfsd"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"6688"</v>
+              <v n="TextDefault">"speed compensationa active"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"10686"</v>
               <v n="TextDefault">"Speed Exceeded"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -3027,6 +3157,11 @@ sdfsd"</v>
             <o>
               <v n="TextID">"1654"</v>
               <v n="TextDefault">"Speed [sheet/h]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1220"</v>
+              <v n="TextDefault">"SpeedComp"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -3142,6 +3277,11 @@ sdfsd"</v>
             <o>
               <v n="TextID">"5130"</v>
               <v n="TextDefault">"t: %d"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"4402"</v>
+              <v n="TextDefault">"Target"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -3597,6 +3737,11 @@ sdfsd"</v>
             <o>
               <v n="TextID">"7467"</v>
               <v n="TextDefault">"y_ref_P [mm]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2747"</v>
+              <v n="TextDefault">"Z Axis"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>

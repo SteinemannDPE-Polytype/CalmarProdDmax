@@ -17,8 +17,10 @@ VAR
   _fSpeedMpMin              : LREAL;                // speed in [m/min]
 END_VAR
 VAR PERSISTENT
-  // config values changable during runtime (recipe, visu, property)
+  // config - values changable during runtime (recipe, visu, property)
+  // - encoder settings 
   _fEncoderResolution       : LREAL := 2.00475;     // Encoder resolution
+  // - speed compensation
   _bEnSpeedComp             : BOOL  := FALSE;
   _fSpeedCompFactor         : LREAL := 0.0;         // TODO: define value
   _fSpeedCompRefSpeed       : LREAL := 0.0;         // TODO: define value
@@ -32,6 +34,7 @@ VAR
 
   // internal vars
   _bMoving                  : BOOL;
+  
   _bStarted                 : BOOL;
   fEncoderReso              : LREAL;                // used encoder resolution (config + speedcomp)
   rTrigMoving               : R_TRIG;

@@ -27,6 +27,7 @@ VAR
     
   // status
   bInit                   : BOOL;   // initialized
+  bSelectedForPrint       : BOOL;   // selected for printing
   bReadyForPrinting       : BOOL;   // Module ready for printing
   bHardwareHold           : BOOL;   // hw hold
   
@@ -63,9 +64,8 @@ VAR
   nPos_SubPx, nPos_Px     : DINT;
   nPos_SubPx_mem          : DINT;
   fPos_um                 : LREAL;
-  nTrackPosMain           : DINT;      // tracking position of module in main position []
-  rT_SyncRequest          : R_TRIG;
-  tSyncDelay              : TON;
+  nTrackPosMain           : DINT;      // tracker attach position - module position relative to pos reference in main tracker [m]
+
   bHwSyncCmd              : BOOL;
   sCamGridSettings        : ST_CameraGridSettings;
   bOnePgActive            : BOOL;
@@ -83,56 +83,54 @@ VAR
   bTestMsg : BOOL;      // activate message test
 END_VAR
 VAR PERSISTENT
-  _fPmDistToPrev          : LREAL;                 // [m] distance to previous PM "main" tracking position
-  _fPmMainTrackPos        : LREAL;                 // [m] distance to master reference position (maint tracker)
+  _fPmDistToPrev          : LREAL;                 // [m] distance to previous PM (in main domain)
+  _fPmMainTrackPos        : LREAL;                 // [m] distance to master reference position (in main tracker)
 END_VAR
 VAR CONSTANT
   nC_NumMsg               : UDINT := 0;            // number of internal messages
   fC_HeadOffsetPlate      : LREAL := 0.000_2;      // Head offset to base plate [m] (mechanical)
-  fC_ProductionSpeedMpMin_Level : LREAL := 5.0;    // [m/min]
+  fC_MinimalProductionSpeed_in_MpMin: LREAL := 5.0;    // [m/min]
   fC_FormatLengthTolerance : LREAL := 100.0;       // [px] tolerance of substrate length job - machine config 
   nC_StopReadyTimeout     : TIME := T#10S;         // Synced stopping of printing, max. timeout to wait for printing end
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[IF NOT bInit THEN RETURN; END_IF
 
-bReadyForPrinting :=     _pModuleMachineState^.bEngaged 
-                     AND _pModuleMachineState^.bPrintActivated
-                     AND _pModuleMachineState^.bUnitInPrintPosition
-                     AND _pModuleMachineState^.bTargetSpeedReached    // do not evaluate marks while machine ramping up  
-                     AND NOT _pModuleMachineState^.bStopRequest       // do not evaluate marks while machine is stopping
-                     AND NOT _pModuleMachineState^.bEStop
-                     AND NOT _pModuleMachineState^.bSleep;
-
-// sync trigger generation
-rT_SyncRequest(CLK:=bReadyForPrinting);
-IF rT_SyncRequest.Q OR _iPrintPosition.bStarted THEN  // OR rT_JobActive.Q 
-  tSyncDelay(IN:=TRUE, PT:=T#2MS);   // a Sync delay to workaround a sync sent to CB while a Start or Prepare Command
-END_IF
-tSyncDelay(Q=>bHwSyncCmd);
-IF tSyncDelay.Q THEN 
-  tSyncDelay(IN:=FALSE);
-END_IF
-
 // positioning
-fSpeed := _iPrintPosition.getSpeed(fSpeedMpMin=>fSpeedMpMin);
-// get position 
+// - get position 
 nPos_SubPx := _iPrintPosition.getPosition(nPosition_px=>nPos_Px, fPosition_um=>fPos_um);
-// (disabled) security measure (jetting when not really moving or not in position)
-//nPos_SubPx := nPos_SubPx_mem := SEL(bReadyForPrinting AND _iPrintPosition.bMoving, nPos_SubPx_mem, nPos_SubPx);
-bSpeedReachedForPrinting := (fSpeedMpMin >= fC_ProductionSpeedMpMin_Level);
+// (disabled) nPos_SubPx := nPos_SubPx_mem := SEL(bReadyForPrinting AND _iPrintPosition.bMoving, nPos_SubPx_mem, nPos_SubPx);   // security measure (jetting when not really moving or not in position
+// - get speed
+fSpeed := _iPrintPosition.getSpeed(fSpeedMpMin=>fSpeedMpMin);
 
-// run tracker
+{warnign 'TODO: if implemented in machine'} //_fPmDistToPrev := _pModuleMachineState^.fDistanceToPrevModule;
+
+// enable, control, release signals
+//   engaged -> selected and prepared for production
+//   printActivated -> machine & axis position ready for printing
+//   InitInPrintPosition -> module in pos to allow printing
+bSelectedForPrint        := fbAdsPm.bEnable AND _pModuleMachineState^.bEngaged;
+bSpeedReachedForPrinting := (fSpeedMpMin >= fC_MinimalProductionSpeed_in_MpMin);
+// ready for printing (enable detection)
+bReadyForPrinting        :=      bSelectedForPrint                                // selected and ready for production (from machine)
+                            AND _pModuleMachineState^.bPrintActivated             // machine & axis ready for printing
+                            AND _pModuleMachineState^.bUnitInPrintPosition        // module in printing position -> allowed to print
+                            AND bSpeedReachedForPrinting                          // speed bigger than min speed for printing
+                            AND _pModuleMachineState^.bTargetSpeedReached         // do not evaluate marks while machine ramping up  
+                            AND NOT _pModuleMachineState^.bStopRequest            // do not evaluate marks while machine is stopping
+                            AND NOT _pModuleMachineState^.bEStop
+                            AND NOT _pModuleMachineState^.bSleep;
+bHardwareHold            := NOT bSpeedReachedForPrinting OR 
+                            NOT _pModuleMachineState^.bPrintActivated OR 
+                            NOT _pModuleMachineState^.bUnitInPrintPosition OR 
+                                _pModuleMachineState^.bFastStopRequest;
+bHwSyncCmd               := checkHwSyncRequest();                                 // sync trigger generation
+
+// pos for attach in main tracker
 nTrackPosMain := F_MeterToSubPixel(fPosMeter:=_fPmMainTrackPos, fResoSubPx:=_iPrintPosition.fPrintResolution*_iPrintPosition.fSubPxResolution); 
+// run tracker
 fbCTTracker(nPos:=nPos_SubPx);
 
-
-// what happens when PM slows down e.g. NotAus with endless printing (safety measure), maybe not needed with new Jm (stop after a repeat)
- // - enabled & > production min speed
-bHardwareHold :=  NOT bSpeedReachedForPrinting OR 
-                  NOT _pModuleMachineState^.bPrintActivated OR 
-                  NOT _pModuleMachineState^.bUnitInPrintPosition OR 
-                  _pModuleMachineState^.bFastStopRequest;
 
 // call hardware
 (* -- PC PrintController*)
@@ -216,19 +214,6 @@ Messaging();
     <Folder Name="I_Sim" Id="{81e45363-005e-4c1f-a6b7-8aaf440ced18}" />
     <Folder Name="Position" Id="{6c925878-9f7a-4b2f-a23d-94e53f749fe9}" />
     <Folder Name="Status" Id="{52a02388-96b1-4c62-8d85-43524a4e47e6}" />
-    <Property Name="bActivated" Id="{ea540e5e-8da1-4fdb-8a1a-4685534831ac}" FolderPath="Status\">
-      <Declaration><![CDATA[// module is activated and considered in positioning
-PROPERTY bActivated : BOOL]]></Declaration>
-      <Get Name="Get" Id="{c4e4b892-f0ed-4ba2-a0ee-c847e72e966d}">
-        <Declaration><![CDATA[VAR
-END_VAR
-]]></Declaration>
-        <Implementation>
-          <ST><![CDATA[// TODO: review with machine signal, who is the source if a module is activated
-bActivated := fbAdsPm.bEnable;     // _pModuleMachineState^.bEngaged;]]></ST>
-        </Implementation>
-      </Get>
-    </Property>
     <Property Name="bMoving" Id="{221d6673-eef6-4227-854c-aecf58c38c13}" FolderPath="Position\">
       <Declaration><![CDATA[{attribute 'monitoring':='call'}
 PROPERTY bMoving : BOOL]]></Declaration>
@@ -238,6 +223,19 @@ END_VAR
 ]]></Declaration>
         <Implementation>
           <ST><![CDATA[bMoving := _iPrintPosition.bMoving;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bSelectedForProduction" Id="{ea540e5e-8da1-4fdb-8a1a-4685534831ac}" FolderPath="Status\">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'call'}
+// module is selected for production (and considered in positioning)
+PROPERTY bSelectedForProduction : BOOL]]></Declaration>
+      <Get Name="Get" Id="{c4e4b892-f0ed-4ba2-a0ee-c847e72e966d}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bSelectedForProduction := bSelectedForPrint;]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -304,6 +302,29 @@ IF nFormatTolerance < ABS(fbWorkerPrint[1].fImageLength -  _pModuleMachineState^
   checkFormatLength := TRUE;
 END_IF
 ]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="checkHwSyncRequest" Id="{b2d58b58-8238-4e17-8aae-855a0099d460}" FolderPath="Position\">
+      <Declaration><![CDATA[METHOD PROTECTED checkHwSyncRequest : BOOL
+VAR_INST
+  rT_SyncRequest : R_TRIG;
+  tSyncDelay     : TON;
+END_VAR
+VAR_OUTPUT
+  bHwSyncReq : BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[rT_SyncRequest(CLK:=bReadyForPrinting);
+IF rT_SyncRequest.Q OR _iPrintPosition.bStarted THEN  // OR rT_JobActive.Q 
+  tSyncDelay(IN:=TRUE, PT:=T#2MS);   // a Sync delay to workaround a sync sent to CB while a Start or Prepare Command
+END_IF
+tSyncDelay(Q=>bHwSyncReq);
+IF tSyncDelay.Q THEN 
+  tSyncDelay(IN:=FALSE);
+END_IF
+
+
+checkHwSyncRequest := bHwSyncReq;]]></ST>
       </Implementation>
     </Method>
     <Method Name="checkReadyForStop" Id="{dc5c40d2-e125-4612-9d08-2c3bf657ed24}">
@@ -918,14 +939,38 @@ END_VAR
       </Implementation>
     </Method>
     <LineIds Name="FB_PrintModule_Base">
-      <LineId Id="7536" Count="115" />
+      <LineId Id="7930" Count="0" />
+      <LineId Id="8149" Count="0" />
+      <LineId Id="8152" Count="0" />
+      <LineId Id="8155" Count="1" />
+      <LineId Id="8158" Count="0" />
+      <LineId Id="8163" Count="0" />
+      <LineId Id="8162" Count="0" />
+      <LineId Id="8175" Count="0" />
+      <LineId Id="8174" Count="0" />
+      <LineId Id="8164" Count="0" />
+      <LineId Id="8160" Count="0" />
+      <LineId Id="8168" Count="2" />
+      <LineId Id="8172" Count="0" />
+      <LineId Id="8268" Count="0" />
+      <LineId Id="8360" Count="0" />
+      <LineId Id="7932" Count="2" />
+      <LineId Id="8361" Count="0" />
+      <LineId Id="7935" Count="3" />
+      <LineId Id="8146" Count="2" />
+      <LineId Id="8143" Count="0" />
+      <LineId Id="8165" Count="1" />
+      <LineId Id="7962" Count="0" />
+      <LineId Id="7964" Count="0" />
+      <LineId Id="8176" Count="0" />
+      <LineId Id="7965" Count="0" />
+      <LineId Id="7973" Count="77" />
       <LineId Id="770" Count="0" />
     </LineIds>
-    <LineIds Name="FB_PrintModule_Base.bActivated.Get">
-      <LineId Id="5" Count="0" />
+    <LineIds Name="FB_PrintModule_Base.bMoving.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_PrintModule_Base.bMoving.Get">
+    <LineIds Name="FB_PrintModule_Base.bSelectedForProduction.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintModule_Base.bSimEnable.Get">
@@ -950,6 +995,11 @@ END_VAR
       <LineId Id="23" Count="1" />
       <LineId Id="41" Count="0" />
       <LineId Id="25" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintModule_Base.checkHwSyncRequest">
+      <LineId Id="8" Count="7" />
+      <LineId Id="18" Count="1" />
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintModule_Base.checkReadyForStop">

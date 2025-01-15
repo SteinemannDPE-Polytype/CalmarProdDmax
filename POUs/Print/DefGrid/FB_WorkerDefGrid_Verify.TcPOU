@@ -6,11 +6,16 @@ VAR_OUTPUT
   bWateGateActive   AT%Q* : BOOL;     //  wate gate activation pulse
 END_VAR
 VAR
-  lastEjected   : BOOL;   // stores state if last CT was ejected 
+  bLastEject   : BOOL;   // stores state if last CT TRUE:=Eject, FALSE:=OK
   tpEjectPulse  : TP := (PT:=T#80MS);
   
   // print manager reference
   _pPm : POINTER TO FB_ProdManager_DMAX;
+  
+  // view verify history
+  tpShowResult : TP := (PT:=T#700MS);
+  nStateHistory : ARRAY[1..20] OF UINT;   // 2=???, 1=Eject, 0=OK
+  nStateHistory_FillColor : ARRAY[1..20] OF UDINT; 
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[
@@ -47,12 +52,27 @@ END_VAR]]></Declaration>
   IF iCT.pCT^.lPrOutput = EN_PrinterOutput.trash THEN
     // create eject trigger
     tpEjectPulse(IN:=TRUE);
-    lastEjected := TRUE;
+    bLastEject := TRUE;
     LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('Eject CT: ', _pAttachedCt^.print(0)));
   ELSE
     tpEjectPulse(IN:=FALSE);
-    lastEjected := FALSE;
+    bLastEject := FALSE;
 	END_IF
+  
+  // show state
+  MEMMOVE(destAddr:=ADR(nStateHistory[1+1]),           srcAddr:=ADR(nStateHistory[1]),           n:=((SIZEOF(nStateHistory)/SIZEOF(nStateHistory[1]))-1)*SIZEOF(nStateHistory[1]));
+  MEMMOVE(destAddr:=ADR(nStateHistory_FillColor[1+1]), srcAddr:=ADR(nStateHistory_FillColor[1]), n:=((SIZEOF(nStateHistory_FillColor)/SIZEOF(nStateHistory_FillColor[1]))-1)*SIZEOF(nStateHistory_FillColor[1]));
+  
+  nStateHistory[1] := SEL(bLastEject=TRUE, 0, 1);
+
+  IF iCT.bProductPresent AND iCT.bValid THEN        nStateHistory_FillColor[1] := 16#FF000000 OR WebColors.LightGreen.lCode;
+  ELSIF iCT.bProductPresent AND NOT iCT.bValid AND iCT.pCT^.lPrOutput = EN_PrinterOutput.trash THEN nStateHistory_FillColor[1] := 16#FF000000 OR WebColors.LightSalmon.lCode;   
+  ELSIF iCT.bProductPresent AND NOT iCT.bValid AND iCT.pCT^.lPrOutput <> EN_PrinterOutput.trash THEN nStateHistory_FillColor[1] := 16#FF000000 OR WebColors.LightGray.lCode;
+	ELSIF NOT iCT.bProductPresent THEN                nStateHistory_FillColor[1] := 16#FF000000 OR WebColors.LightGray.lCode;
+  END_IF
+
+  tpShowResult(IN:=FALSE);
+  tpShowResult(IN:=TRUE);
   
 END_IF]]></ST>
       </Implementation>
@@ -116,6 +136,8 @@ END_VAR
 // output signal handling
 tpEjectPulse(Q=>bWateGateActive);
 fT_Pulse(CLK:=bWateGateActive);
+tpShowResult();
+//IF tpShowResult.IN:=TRUE AND NOT tpShowResult.Q THEN tpShowResult(IN:=FALSE); END_IF   // reset pulse
 
 // release
 IF tpEjectPulse.IN THEN
@@ -156,6 +178,19 @@ END_IF]]></ST>
       <LineId Id="82" Count="2" />
       <LineId Id="42" Count="0" />
       <LineId Id="37" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="110" Count="1" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="96" Count="1" />
+      <LineId Id="92" Count="0" />
       <LineId Id="8" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Verify.InitWorkerVerify">
@@ -176,7 +211,9 @@ END_IF]]></ST>
     <LineIds Name="FB_WorkerDefGrid_Verify.work">
       <LineId Id="65" Count="0" />
       <LineId Id="96" Count="1" />
-      <LineId Id="99" Count="6" />
+      <LineId Id="99" Count="1" />
+      <LineId Id="115" Count="1" />
+      <LineId Id="101" Count="4" />
       <LineId Id="107" Count="0" />
       <LineId Id="110" Count="0" />
       <LineId Id="91" Count="0" />
