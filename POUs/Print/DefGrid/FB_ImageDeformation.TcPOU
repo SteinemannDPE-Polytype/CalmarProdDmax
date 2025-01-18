@@ -26,9 +26,9 @@ VAR
   _nLocalGridColsGenerated: UDINT;          // already generated "local" grid columns XYR [0..x]
 
   _fStartDeformPos  : LREAL;                // position [Px] where deformation started on ct
-  //_fLastDeformPos   : LREAL;              // last executed position/grid of Update()
   _nUpdatedGridCol  : UDINT;                // already updated grid column
   _nUpdatedFeature  : UDINT;                // number of updated features (a distance)
+  _fPrintLengthOriginal  : LREAL;           // image depth in [m]
   _fPrintLengthEffective : LREAL;           // effective printing length in [m]
   // others
   _nErrorId         : UDINT := 0;
@@ -60,6 +60,7 @@ IF bUsePy THEN
 END_IF
 ]]></ST>
     </Implementation>
+    <Folder Name="local" Id="{7d9d6a73-3e32-4699-8d69-4376438515c1}" />
     <Method Name="abort" Id="{17ebfcd2-e342-43b8-8f26-960c2f17ffae}">
       <Declaration><![CDATA[METHOD abort : BOOL
 VAR_INPUT
@@ -233,6 +234,99 @@ END_VAR
         </Implementation>
       </Set>
     </Property>
+    <Method Name="genGridEstimate" Id="{3bf7fe14-5c96-40cb-a99a-342320289c9c}" FolderPath="local\">
+      <Declaration><![CDATA[METHOD PRIVATE genGridEstimate : BOOL
+VAR_INPUT
+  fGridColPos : LREAL;    // grid column position in image [px]
+END_VAR
+VAR_OUTPUT
+  dx : LREAL;
+  dy : LREAL;
+END_VAR
+VAR
+  x_strechFactor : LREAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// find out best strategy
+// - by interpolating previous marks
+// - by repeating last deformation
+// - by effective sheetlength (dangerous in case of gaps in pre-printed substrate)
+
+
+// do we know the effective sheet length? <== not yet known in CT!!!
+IF _fPrintLengthOriginal <> 0 AND _fPrintLengthEffective <> _fPrintLengthOriginal THEN 
+  x_strechFactor := _fPrintLengthEffective / _fPrintLengthOriginal;
+ELSE
+  x_strechFactor := 1; 
+END_IF
+
+
+
+IF _nCamPoints = 0 THEN
+  dx := 0; dy := 0;
+
+ELSIF _nCamPoints = 1 THEN
+  // repeat last cam point
+  dx := _sCamPoints[_nCamPoints-1].sPoint.dx;
+  dy := _sCamPoints[_nCamPoints-1].sPoint.dy;
+
+ELSIF _nCamPoints = 2 THEN
+  // repeat last cam point 
+  dx := _sCamPoints[_nCamPoints-1].sPoint.dx;
+  dy := _sCamPoints[_nCamPoints-1].sPoint.dy;
+
+ELSIF _nCamPoints >= 3 THEN
+  dx := _sCamPoints[_nCamPoints-1].sPoint.dx;
+  dy := _sCamPoints[_nCamPoints-1].sPoint.dy;
+
+  //(_sCamPoints[_nCamPoints-1].sPoint.dx - _sCamPoints[_nCamPoints-2].sPoint.dx) * 
+
+ELSE  
+  dx := 0; dy := 0;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="getCamNeighbourPoint" Id="{d035fbd4-9bd3-4321-8aa9-a0c89957e889}">
+      <Declaration><![CDATA[// get neighbour camera point
+// :returns: TRUE if present
+METHOD PRIVATE getCamNeighbourPoint : BOOL
+VAR_INPUT
+  fPos    : LREAL;   // [px]
+  nOffset : DINT;    // 0=previous, 1=next
+END_VAR
+VAR_OUTPUT
+  Pn : ST_CameraPointTbl;
+END_VAR
+VAR
+  i : DINT;
+  foundIdx : DINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[foundIdx := -1;
+FOR i:=0 TO TO_DINT(_nCamPoints)-1 DO
+  // previous search
+  IF nOffset = 0 THEN
+    IF _sCamPoints[i].sPoint.x_ref <= fpos THEN
+      foundIdx := i;
+    ELSE
+      EXIT;
+    END_IF
+    
+  // next searchs  
+  ELSIF nOffset = 1 THEN
+    IF _sCamPoints[i].sPoint.x_ref > fpos THEN
+      foundIdx := i;
+      EXIT;
+    END_IF
+  END_IF
+END_FOR
+
+IF foundIdx >= 0 THEN
+  Pn := _sCamPoints[foundIdx];
+  getCamNeighbourPoint := TRUE;  
+END_IF]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="getDeformationPoint" Id="{1cd9dbbd-2016-42cd-ace0-52bf27c0c8ca}">
       <Declaration><![CDATA[(*
   get a deformation point.
@@ -378,7 +472,6 @@ _nDySum           := 0;
 
 _nLocalGridColsGenerated:=0;
 _fStartDeformPos:=0;
-//_fLastDeformPos:=0;
 _nUpdatedGridCol := 0;
 _nUpdatedFeature := 0;
 _nErrorId := 0;
@@ -407,11 +500,13 @@ END_VAR
     <Method Name="startDeformation" Id="{123edd95-85fc-4472-8049-f2e45168ccb9}">
       <Declaration><![CDATA[METHOD startDeformation
 VAR_INPUT
-  fStartDefPos : LREAL;  // Px
+  fStartDefPos : LREAL;  // [Px]
+  fImageLength : LREAL;  // [m] original image length
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[_fStartDeformPos := fStartDefPos;
-//_fLastDeformPos := fStartDefPos;
+_fPrintLengthOriginal := fImageLength;
+_fPrintLengthEffective := fImageLength;
 _nUpdatedGridCol := 0;
 _nUpdatedFeature := 0;
 _nCamPoint_MaxRefX := 0;
@@ -514,13 +609,14 @@ IF FLOOR(fPosRel_CamFeature) > _nUpdatedFeature   // by CameraFeature pitch (to 
    //FLOOR(fPosRel_GridCol) > _nUpdatedGridCol    // by Grid Pitch  // AND _nUpdatedGridCol <= _sDefGridSettings.nGridSizeX
 THEN
 
-  nCurrentCol := TO_UDINT(FLOOR(fPosRel_GridCol));;
+  nCurrentCol := TO_UDINT(FLOOR(fPosRel_GridCol));
   nCurrentFeature :=  TO_UDINT(FLOOR(fPosRel_CamFeature));
 
   // debug info
   LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=
-    F_Concat5(
+    F_Concat6(
         F_Concat2('update at: ', TO_STRING(fPosRel_Deform)),
+        F_Concat3(' feature(', TO_STRING(fPosRel_CamFeature), ')'),
         F_Concat2(' CamP: ', TO_STRING(_nCamPoints)),
         F_Concat2(' maxX: ', TO_STRING(_nCamPoint_MaxRefX)),
         F_Concat2(' GridP: ', TO_STRING(_nGridPoints)),
@@ -544,7 +640,7 @@ END_IF
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="updateLocal_1D_Marks" Id="{fad2ef48-fad2-4c52-b1ee-769494717330}">
+    <Method Name="updateLocal_1D_Marks" Id="{fad2ef48-fad2-4c52-b1ee-769494717330}" FolderPath="local\">
       <Declaration><![CDATA[METHOD PRIVATE updateLocal_1D_Marks : BOOL
 VAR_INPUT
   nGridCol : UDINT;
@@ -553,55 +649,92 @@ END_VAR
 VAR
   row, col : UDINT;
   ct : DINT;
+  col_pos_px : LREAL;   // column position in [px]
   sTmpPoint : ST_DeformationPointAccurate;
   dx, dy : LREAL;
+  generateGridForCol : BOOL;
+  Pn0, Pn1 : ST_CameraPointTbl;
+  bn0, bn1 : BOOL;
+  bFirstCol, bLastCol : BOOL;
+  relativePosX : LREAL;
 END_VAR
 VAR_INST
   fTrig_Done : F_TRIG;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[
-{warning 'TODO: implement MarkCorrection 1D correction, linear interpolation'}
+        <ST><![CDATA[bFirstCol := SEL(nGridCol=0, FALSE, TRUE);
+bLastCol  := SEL(nGridCol=_sDefGridSettings.nGridSizeX-1, FALSE, TRUE);
 
-//  _nCamPoints           // number of cam points received
-//---- TYPE: ST_DeformationPointAccurate
-// _sCamPoints[1].bSet    // point was written from camera
-// _sCamPoints[1].sPoint.valid   // if false it was a missed point (and generated)
-// 
-
-// we do not know what cam points we will have (no teach information, we don't know when they will arrive)
-//   we create grid when we need to. If we have point or not available...
-
-// based on the update position generate grid coulumns
-FOR col:=_nLocalGridColsGenerated TO nGridCol DO
-  FOR row:=0 TO _sDefGridSettings.nGridSizeY -1 DO
-
-    CASE eTestGridSelection OF
-      0: dx := 0; dy := SEL(_nCamPoints>0 AND _sCamPoints[0].bSet , 0, -1*_sCamPoints[0].sPoint.dy);  // dy of start-mark for a "lateral" offset, negative  dy -> dy correction
-      1: dx := dy := 0;     // no deformation on ct 
-      2: dx := nTestGridFactor; dy := 0;                                                               // dx static (Factor)
-      3: dx := 0; dy := nTestGridFactor;                                                               // dy static (Factor)
-      4: dx := 0; dy := TO_LREAL(col) * nTestGridFactor;                                               // dx = factor * col
-      5: dx := TO_LREAL(col) * nTestGridFactor; dy := 0;                                               // dy = factor * col
-      6: dx := SEL(row=1, 0, nTestGridFactor ); dy := 0;                                               // dx row 1 = factor ( test BOF)
-    ELSE
-      dx := dy := 0;
-    END_CASE
+ct := 0;
+FOR col:=_nLocalGridColsGenerated TO nGridCol DO      // loop over not yet gnerated columns 
+  LogLvl(Lvl:=E_LogSeverity.Debug, Msg:= F_Concat2(F_Concat2('check grid for col: ', TO_STRING(col)), ''));
+  
+  col_pos_px := nGridCol * _sDefGridSettings.nGridPitchX;
+  dx:=0; dy:=0;
+  
+  bn0 := getCamNeighbourPoint(fPos:=col_pos_px, nOffset:=0, Pn=>Pn0);
+  bn1 := getCamNeighbourPoint(fPos:=col_pos_px, nOffset:=1, Pn=>Pn1);
+  
+  IF bn0 AND bn1 THEN
+    // we have neighbour points --> interpolate displacement inbetween
+    LogInfo(' > intermediate, cam points known - interpolate');
+    // dx/dy interpolation between previous and next cam point    
+    relativePosX := (col_pos_px-Pn0.sPoint.x_ref) / (Pn1.sPoint.x_ref-Pn0.sPoint.x_ref);    // relative position of col between two cam points
+    dx := Pn0.sPoint.dx + (Pn1.sPoint.dx - Pn0.sPoint.dx) * relativePosX;
+    dy := Pn0.sPoint.dy + (Pn1.sPoint.dy - Pn0.sPoint.dy) * relativePosX;
+    generateGridForCol:=TRUE;
     
-    // - calculate x/y shift and rotation based on available CamPoints
-    sTmpPoint.index := TO_DINT(col * _sDefGridSettings.nGridSizeY + row);
-    sTmpPoint.x_ref := col * _sDefGridSettings.nGridPitchX;
-    sTmpPoint.y_ref := row * _sDefGridSettings.nGridPitchY;
-    sTmpPoint.dx    := dx;
-    sTmpPoint.dy    := dy;
-    sTmpPoint.col   := TO_DINT(col);
-    sTmpPoint.row   := TO_DINT(row);
-    sTmpPoint.valid := TRUE;
-    storeDeformationPoint(sPoint:=sTmpPoint);    // save point to table
-  END_FOR
-  ct := ct + 1;
+  ELSIF bFirstCol THEN
+    // generate first col when we have a cam point -> deformation from first point
+    LogInfo(' > first border grid column (dy only, dx not possible at beginning');
+    IF    bn0 THEN dx:=Pn0.sPoint.dx; dy:=Pn0.sPoint.dy; generateGridForCol:=TRUE;
+    ELSIF bn1 THEN dx:=Pn1.sPoint.dx; dy:=Pn1.sPoint.dy; generateGridForCol:=TRUE;
+    END_IF
+    
+  ELSE
+    // not framed by two points toward the end
+  
+    // purge columen if no valid cam data with some time(cols)
+    IF nGridCol - _nLocalGridColsGenerated >= 3 OR bLastCol THEN 
+      //  repeat previous cam correction
+      IF bn1 THEN
+        dx := Pn1.sPoint.dx;
+        dy := Pn1.sPoint.dy;
+      ELSIF bn0 THEN
+        dx := Pn0.sPoint.dx;
+        dy := Pn0.sPoint.dy;
+      ELSE
+        ;
+			END_IF
+       
+      generateGridForCol := TRUE;
+    END_IF    
+  END_IF
+  
+  // generate grid for column  
+  IF generateGridForCol THEN
+    LogLvl(Lvl:=E_LogSeverity.Warning, Msg:= F_Concat6('generate grid for col: ', TO_STRING(col), ' dx=', TO_STRING(dx), '/dy=', TO_STRING(dy)));
+
+    // check for cam points and generate grid
+    FOR row:=0 TO _sDefGridSettings.nGridSizeY -1 DO    // all points per col
+      //LogLvl(Lvl:=E_LogSeverity.Debug, Msg:= F_Concat2(F_Concat2('gen grid point c:', TO_STRING(col)), F_Concat2('/r:', TO_STRING(row))));
+      // - calculate x/y shift and rotation based on available CamPoints
+      sTmpPoint.index := TO_DINT(col * _sDefGridSettings.nGridSizeY + row);
+      sTmpPoint.x_ref := col * _sDefGridSettings.nGridPitchX;
+      sTmpPoint.y_ref := row * _sDefGridSettings.nGridPitchY;
+      sTmpPoint.dx    := dx;
+      sTmpPoint.dy    := dy;
+      sTmpPoint.col   := TO_DINT(col);
+      sTmpPoint.row   := TO_DINT(row);
+      sTmpPoint.valid := TRUE;
+      storeDeformationPoint(sPoint:=sTmpPoint);    // save point to table
+    END_FOR
+    
+    _nLocalGridColsGenerated := _nLocalGridColsGenerated + 1;
+  END_IF
+  
 END_FOR
-_nLocalGridColsGenerated := _nLocalGridColsGenerated + TO_UDINT(ct);
+
 
 // set state variables which would be updated in PyUpdate/PyExed
 _tExecutionTime := T#2MS;
@@ -699,6 +832,60 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
     <LineIds Name="FB_ImageDeformation.fPrintLengthEffective.Set">
       <LineId Id="2" Count="0" />
     </LineIds>
+    <LineIds Name="FB_ImageDeformation.genGridEstimate">
+      <LineId Id="8" Count="3" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="43" Count="2" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="81" Count="1" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.getCamNeighbourPoint">
+      <LineId Id="25" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="29" Count="1" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="27" Count="1" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="37" Count="1" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="35" Count="0" />
+    </LineIds>
     <LineIds Name="FB_ImageDeformation.getDeformationPoint">
       <LineId Id="37" Count="0" />
       <LineId Id="41" Count="2" />
@@ -740,7 +927,8 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.reset">
-      <LineId Id="93" Count="24" />
+      <LineId Id="93" Count="20" />
+      <LineId Id="115" Count="2" />
       <LineId Id="35" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.sDefGridSettings.Get">
@@ -751,7 +939,7 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
     </LineIds>
     <LineIds Name="FB_ImageDeformation.startDeformation">
       <LineId Id="9" Count="0" />
-      <LineId Id="12" Count="0" />
+      <LineId Id="28" Count="1" />
       <LineId Id="22" Count="1" />
       <LineId Id="19" Count="0" />
       <LineId Id="21" Count="0" />
@@ -798,31 +986,59 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.updateDeformation">
-      <LineId Id="313" Count="43" />
+      <LineId Id="313" Count="23" />
+      <LineId Id="367" Count="0" />
+      <LineId Id="337" Count="19" />
       <LineId Id="291" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.updateLocal_1D_Marks">
-      <LineId Id="331" Count="0" />
-      <LineId Id="267" Count="0" />
-      <LineId Id="506" Count="1" />
-      <LineId Id="512" Count="0" />
-      <LineId Id="508" Count="1" />
-      <LineId Id="511" Count="0" />
-      <LineId Id="513" Count="0" />
-      <LineId Id="510" Count="0" />
-      <LineId Id="514" Count="0" />
-      <LineId Id="332" Count="0" />
-      <LineId Id="268" Count="2" />
-      <LineId Id="343" Count="0" />
-      <LineId Id="334" Count="1" />
-      <LineId Id="479" Count="0" />
-      <LineId Id="461" Count="0" />
-      <LineId Id="459" Count="0" />
-      <LineId Id="463" Count="2" />
-      <LineId Id="344" Count="1" />
-      <LineId Id="336" Count="0" />
-      <LineId Id="457" Count="0" />
-      <LineId Id="271" Count="24" />
+      <LineId Id="773" Count="0" />
+      <LineId Id="772" Count="0" />
+      <LineId Id="638" Count="0" />
+      <LineId Id="612" Count="0" />
+      <LineId Id="560" Count="0" />
+      <LineId Id="684" Count="0" />
+      <LineId Id="692" Count="0" />
+      <LineId Id="688" Count="0" />
+      <LineId Id="718" Count="0" />
+      <LineId Id="695" Count="0" />
+      <LineId Id="693" Count="1" />
+      <LineId Id="689" Count="0" />
+      <LineId Id="738" Count="6" />
+      <LineId Id="737" Count="0" />
+      <LineId Id="745" Count="0" />
+      <LineId Id="701" Count="0" />
+      <LineId Id="727" Count="0" />
+      <LineId Id="702" Count="3" />
+      <LineId Id="765" Count="0" />
+      <LineId Id="720" Count="0" />
+      <LineId Id="766" Count="1" />
+      <LineId Id="721" Count="2" />
+      <LineId Id="776" Count="0" />
+      <LineId Id="780" Count="0" />
+      <LineId Id="785" Count="0" />
+      <LineId Id="778" Count="0" />
+      <LineId Id="786" Count="1" />
+      <LineId Id="783" Count="0" />
+      <LineId Id="782" Count="0" />
+      <LineId Id="779" Count="0" />
+      <LineId Id="774" Count="0" />
+      <LineId Id="736" Count="0" />
+      <LineId Id="726" Count="0" />
+      <LineId Id="697" Count="2" />
+      <LineId Id="623" Count="0" />
+      <LineId Id="685" Count="1" />
+      <LineId Id="622" Count="0" />
+      <LineId Id="615" Count="1" />
+      <LineId Id="626" Count="8" />
+      <LineId Id="617" Count="1" />
+      <LineId Id="676" Count="0" />
+      <LineId Id="621" Count="0" />
+      <LineId Id="624" Count="0" />
+      <LineId Id="603" Count="0" />
+      <LineId Id="595" Count="0" />
+      <LineId Id="788" Count="0" />
+      <LineId Id="285" Count="10" />
       <LineId Id="441" Count="0" />
       <LineId Id="422" Count="0" />
       <LineId Id="432" Count="6" />

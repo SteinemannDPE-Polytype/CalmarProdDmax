@@ -271,10 +271,6 @@ ELSE
     END_IF
     
   END_IF
-  // search if intermediate mark was missed -> create a virtual one
-  IF pMarkSearch^.nId > 1 AND (nCurrentPos - getLastX0() - getMaxMarkPosition(pMark:=pMarkSearch)) > 0 THEN
-
-  END_IF
 END_IF
 
 
@@ -1201,11 +1197,7 @@ strMark := F_Concat6(
       <LineId Id="16037" Count="0" />
       <LineId Id="16031" Count="0" />
       <LineId Id="16029" Count="0" />
-      <LineId Id="15966" Count="20" />
-      <LineId Id="16004" Count="1" />
-      <LineId Id="16023" Count="0" />
-      <LineId Id="16003" Count="0" />
-      <LineId Id="15987" Count="15" />
+      <LineId Id="15966" Count="36" />
       <LineId Id="6884" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.ackErrors">

@@ -10,12 +10,12 @@
     <GenerateTpy>false</GenerateTpy>
     <Name>Steinemann</Name>
     <ProgramVersion>3.1.4023.0</ProgramVersion>
-    <Application>{49d8a267-5c4f-4de2-8ca6-d6de79d1e2de}</Application>
-    <TypeSystem>{7b49c092-3162-4c5a-952b-e1b3a298eba2}</TypeSystem>
-    <Implicit_Task_Info>{529708f9-e938-47f8-8bdc-77e0c90ced37}</Implicit_Task_Info>
-    <Implicit_KindOfTask>{3d07aa67-050c-438c-98e0-f9bc5548b872}</Implicit_KindOfTask>
-    <Implicit_Jitter_Distribution>{16d81fa0-13c7-4d29-a136-833127f063f5}</Implicit_Jitter_Distribution>
-    <LibraryReferences>{ba6a19c6-5744-48f5-a170-b3a0509f6030}</LibraryReferences>
+    <Application>{079041b9-fc1b-4e24-b97a-12366167fdbe}</Application>
+    <TypeSystem>{5c35e2ae-0fce-4413-98e7-8ca54180a337}</TypeSystem>
+    <Implicit_Task_Info>{d499e44b-21bf-475e-8923-a33dfc2ccd1b}</Implicit_Task_Info>
+    <Implicit_KindOfTask>{3ca70461-6168-4364-a74c-76f2924632e7}</Implicit_KindOfTask>
+    <Implicit_Jitter_Distribution>{83d4ad81-1518-48b1-8f5d-e4f72756726b}</Implicit_Jitter_Distribution>
+    <LibraryReferences>{b142593d-9d56-4366-a694-28266b38dd63}</LibraryReferences>
     <Released>false</Released>
     <ProjectVersion>3.0.0</ProjectVersion>
     <Company>WIFAG-Polytype</Company>
@@ -377,7 +377,7 @@ Fribourg/Switzerland (2021)</Description>
     </Compile>
     <Compile Include="POUs\Print\DefGrid\FB_ImageDeformation.TcPOU">
       <SubType>Code</SubType>
-      <LinkAlways>true</LinkAlways>
+      <External>false</External>
     </Compile>
     <Compile Include="POUs\Print\DefGrid\FB_DefGridParamMediator.TcPOU">
       <SubType>Code</SubType>
@@ -804,19 +804,19 @@ Fribourg/Switzerland (2021)</Description>
   </ItemGroup>
   <ItemGroup>
     <PlaceholderResolution Include="CalmarCommons">
-      <Resolution>CalmarCommons, 2.0.0.14 (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCommons, 2.0.2 (Polytype AG)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompDevices">
-      <Resolution>CalmarCompDevices, 1.7.5 (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCompDevices, 1.7.7 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompInkSystem">
-      <Resolution>CalmarCompInkSystem, 2.0.1.1 (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCompInkSystem, 2.0.2 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompPrint">
-      <Resolution>CalmarCompPrint, 2.2.1.18 (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCompPrint, 2.2.1.20 (Polytype AG)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompSystem">
-      <Resolution>CalmarCompSystem, 2.0.0.8 (WIFAG-Polytype)</Resolution>
+      <Resolution>CalmarCompSystem, 2.0.1 (WIFAG-Polytype)</Resolution>
     </PlaceholderResolution>
     <PlaceholderResolution Include="CalmarCompTcpIp">
       <Resolution>CalmarCompTcpIp, 1.0.4 (WIFAG-Polytype)</Resolution>

@@ -3,7 +3,7 @@
   <POU Name="FB_CTManagerDefGrid" Id="{64e24f37-1762-4987-94b6-1c2daabf0872}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_CTManagerDefGrid EXTENDS FB_CTManager
 VAR
-  fbContainerInstances    : ARRAY[0..lC_MAX_CTS-1] OF FB_ContainerDefGrid;   // NOTE: 0 based array like base in library
+  fbContainerInstances    : ARRAY[0..nC_MAX_CTS-1] OF FB_ContainerDefGrid;   // NOTE: 0 based array like base in library
   nCtr, nIndx : UDINT;
 END_VAR
 ]]></Declaration>
@@ -14,7 +14,7 @@ SUPER^();
 // call specific CT implementation
 nCtr := 0;
 WHILE nCtr < nListCount DO
-  nIndx := ((nListTail + nCtr) MOD lC_MAX_CTS);    // calculate element index in list
+  nIndx := ((nListTail + nCtr) MOD nC_MAX_CTS);    // calculate element index in list
   
   // cyclic call of CT body
   fbContainerInstances[nIndx]();
@@ -94,7 +94,7 @@ END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF iCT = 0 THEN LogError(Msg:='GetContainerInstance invalid container'); RETURN; END_IF
 nCtSel := iCT.pCT^.nMemIndex;
-IF nCtSel < lC_MAX_CTS THEN
+IF nCtSel < nC_MAX_CTS THEN
   GetContainerInstance := ADR( fbContainerInstances[nCtSel] );
 END_IF]]></ST>
       </Implementation>
@@ -107,7 +107,7 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[// init FB_CTManager(base) list (interface I_CT) with specific Container instances (FBs) 
-FOR nCtr := 0 TO lC_MAX_CTS-1 DO
+FOR nCtr := 0 TO nC_MAX_CTS-1 DO
   iContainerList[nCtr] := fbContainerInstances[nCtr];
   fbContainerInstances[nCtr].LogLevel := E_LogSeverity.Info;
 END_FOR
@@ -140,7 +140,7 @@ END_VAR
         <ST><![CDATA[// logLevel update from manager to all containers
 IF LogLevel <> _LogLvl_mem THEN 
   nCtr := 0;
-  WHILE nCtr < lC_MAX_CTS DO
+  WHILE nCtr < nC_MAX_CTS DO
     fbContainerInstances[nCtr].LogLevel := LogLevel;
     nCtr := nCtr + 1;
   END_WHILE
