@@ -250,7 +250,7 @@ END_VAR]]></Declaration>
         <ST><![CDATA[fBImageDeformation.sDefGridSettings := sDefGridSettings;                  // apply grid setting
 fBImageDeformation.startDeformation(                                      // start deformation process
   fStartDefPos:=fStartDeformationPos,     // reference position at current position [Px]
-  fImageLength:=pJob^.fImageDepth         // fSubstrateDepth            //update with intended length
+  fImageLength:=pJob^.fImageDepth / 1000        // fSubstrateDepth            //update with intended length
 );
 ]]></ST>
       </Implementation>

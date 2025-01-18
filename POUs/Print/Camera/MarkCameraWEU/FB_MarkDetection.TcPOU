@@ -671,8 +671,8 @@ END_VAR
       <Implementation>
         <ST><![CDATA[rfTrig_ManuTrigger(CLK:=bManualTrigger);
 
-IF rfTrig_ManuTrigger.RT THEN
-  LogWarning('manualTrigger not yet implemented');
+IF rfTrig_ManuTrigger.RT THEN 
+  // LogWarning('manualTrigger not yet implemented');
 END_IF
 
 manualTrigger := rfTrig_ManuTrigger.RT;]]></ST>
@@ -1040,12 +1040,26 @@ VAR_INST
   rand : DRAND;
   rlrand : LREAL;
   l : LREAL;
+  rf_ManuTrigger : RF_TRIG;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF pMark = 0 THEN RETURN; END_IF
 
 // when sim enabled AND auto-trigger then create a StartMark after every sheet/repeat length
 //  then generate every following intermediate mark with a given length
+rf_ManuTrigger(CLK:=bManualTrigger);
+IF rf_ManuTrigger.RT THEN
+  setupMark(
+    pMark:=pMark,
+    nDetectedPos:=nCurrentPos,
+    fRealMarkLength:=F_MeterToSubPixelReal(fPosMeter:=pMark^.fSqLength + (pMark^.fTrLength/2), fResoSubPx:=_fResolution),
+    bMissed:=FALSE
+  );
+  If pMark^.nId = 1 THEN bStartMark := TRUE; END_IF
+  SimMarks := TRUE;
+  RETURN;
+END_IF
+
 
 IF NOT bMarkOn THEN  // start new mark
   // create rising edge
@@ -1502,7 +1516,15 @@ strMark := F_Concat6(
       <LineId Id="9" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.SimMarks">
-      <LineId Id="178" Count="39" />
+      <LineId Id="178" Count="3" />
+      <LineId Id="237" Count="1" />
+      <LineId Id="242" Count="5" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="239" Count="0" />
+      <LineId Id="250" Count="0" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="236" Count="0" />
+      <LineId Id="182" Count="35" />
       <LineId Id="219" Count="1" />
       <LineId Id="42" Count="0" />
     </LineIds>

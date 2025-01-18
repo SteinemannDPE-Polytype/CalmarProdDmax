@@ -6,7 +6,7 @@
 {attribute 'to_string'}
 TYPE E_GridTypeSelection :
 (
-  Default             := 0,  // Dy constant of Start Mark (for all others), like a lateral shift from start mark
+  Default             := 0,  // Default deformation based on cam points
   None                := 1,  // No deformation calculated all dx/dy=0
   Test_AllDxFactor    := 2,  // Dx constant for all = factor
   Test_AllDyFactor    := 3,  // Dy constant for all = factor
