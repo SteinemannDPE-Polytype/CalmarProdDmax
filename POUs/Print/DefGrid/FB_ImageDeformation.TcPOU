@@ -28,8 +28,8 @@ VAR
   _fStartDeformPos  : LREAL;                // position [Px] where deformation started on ct
   _nUpdatedGridCol  : UDINT;                // already updated grid column
   _nUpdatedFeature  : UDINT;                // number of updated features (a distance)
-  _fPrintLengthOriginal  : LREAL;           // image depth in [m]
-  _fPrintLengthEffective : LREAL;           // effective printing length in [m]
+  _fPrintLengthOriginal  : LREAL;           // intended image depth in [m]
+  _fPrintLengthEffective : LREAL;           // effective detected printing length in [m] (not yet used, but could be used for more accureate dx calculation in the future)
   // others
   _nErrorId         : UDINT := 0;
   _sTempPoint       : ST_DeformationPointAccurate; 
@@ -234,58 +234,6 @@ END_VAR
         </Implementation>
       </Set>
     </Property>
-    <Method Name="genGridEstimate" Id="{3bf7fe14-5c96-40cb-a99a-342320289c9c}" FolderPath="local\">
-      <Declaration><![CDATA[METHOD PRIVATE genGridEstimate : BOOL
-VAR_INPUT
-  fGridColPos : LREAL;    // grid column position in image [px]
-END_VAR
-VAR_OUTPUT
-  dx : LREAL;
-  dy : LREAL;
-END_VAR
-VAR
-  x_strechFactor : LREAL;
-END_VAR]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[// find out best strategy
-// - by interpolating previous marks
-// - by repeating last deformation
-// - by effective sheetlength (dangerous in case of gaps in pre-printed substrate)
-
-
-// do we know the effective sheet length? <== not yet known in CT!!!
-IF _fPrintLengthOriginal <> 0 AND _fPrintLengthEffective <> _fPrintLengthOriginal THEN 
-  x_strechFactor := _fPrintLengthEffective / _fPrintLengthOriginal;
-ELSE
-  x_strechFactor := 1; 
-END_IF
-
-
-
-IF _nCamPoints = 0 THEN
-  dx := 0; dy := 0;
-
-ELSIF _nCamPoints = 1 THEN
-  // repeat last cam point
-  dx := _sCamPoints[_nCamPoints-1].sPoint.dx;
-  dy := _sCamPoints[_nCamPoints-1].sPoint.dy;
-
-ELSIF _nCamPoints = 2 THEN
-  // repeat last cam point 
-  dx := _sCamPoints[_nCamPoints-1].sPoint.dx;
-  dy := _sCamPoints[_nCamPoints-1].sPoint.dy;
-
-ELSIF _nCamPoints >= 3 THEN
-  dx := _sCamPoints[_nCamPoints-1].sPoint.dx;
-  dy := _sCamPoints[_nCamPoints-1].sPoint.dy;
-
-  //(_sCamPoints[_nCamPoints-1].sPoint.dx - _sCamPoints[_nCamPoints-2].sPoint.dx) * 
-
-ELSE  
-  dx := 0; dy := 0;
-END_IF]]></ST>
-      </Implementation>
-    </Method>
     <Method Name="getCamNeighbourPoint" Id="{d035fbd4-9bd3-4321-8aa9-a0c89957e889}">
       <Declaration><![CDATA[// get neighbour camera point
 // :returns: TRUE if present
@@ -325,6 +273,30 @@ IF foundIdx >= 0 THEN
   Pn := _sCamPoints[foundIdx];
   getCamNeighbourPoint := TRUE;  
 END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="getCamPointX" Id="{c0640797-3514-4276-a363-51a286e4c249}">
+      <Declaration><![CDATA[// get neighbour camera point
+// :returns: TRUE if present
+METHOD PRIVATE getCamPointX : BOOL
+VAR_INPUT
+  nIdx : UDINT;    // 0=last, 1=first, 2=second
+END_VAR
+VAR_OUTPUT
+  Pn : ST_CameraPointTbl;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nIdx = 0 THEN
+  Pn := _sCamPoints[_nCamPoints-1];  // return first cam point
+  getCamPointX := TRUE;
+ELSIF nIdx <= _nCamPoints THEN
+  Pn := _sCamPoints[nIdx-1];
+  getCamPointX := TRUE;
+ELSE
+  //error
+  Pn := _sCamPoints[0];   // error return first as fallback 
+END_IF
+]]></ST>
       </Implementation>
     </Method>
     <Method Name="getDeformationPoint" Id="{1cd9dbbd-2016-42cd-ace0-52bf27c0c8ca}">
@@ -651,15 +623,21 @@ VAR
   ct : DINT;
   col_pos_px : LREAL;   // column position in [px]
   sTmpPoint : ST_DeformationPointAccurate;
+  
   dx, dy : LREAL;
   generateGridForCol : BOOL;
   Pn0, Pn1 : ST_CameraPointTbl;
+  pPx : POINTER TO ST_CameraPointTbl;
   bn0, bn1 : BOOL;
   bFirstCol, bLastCol : BOOL;
+  fPointDist : LREAL;
   relativePosX : LREAL;
 END_VAR
 VAR_INST
   fTrig_Done : F_TRIG;
+END_VAR
+VAR CONSTANT
+  fC_SignConversion : LREAL := -1; 
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[bFirstCol := SEL(nGridCol=0, FALSE, TRUE);
@@ -677,46 +655,53 @@ FOR col:=_nLocalGridColsGenerated TO nGridCol DO      // loop over not yet gnera
   
   IF bn0 AND bn1 THEN
     // we have neighbour points --> interpolate displacement inbetween
-    // dx/dy interpolation between previous and next cam point    
-    relativePosX := (col_pos_px-Pn0.sPoint.x_ref) / (Pn1.sPoint.x_ref-Pn0.sPoint.x_ref);    // relative position of col between two cam points
-    dx := Pn0.sPoint.dx + (Pn1.sPoint.dx - Pn0.sPoint.dx) * relativePosX;
-    dy := Pn0.sPoint.dy + (Pn1.sPoint.dy - Pn0.sPoint.dy) * relativePosX;
+    // dx/dy interpolation between previous and next cam point
+    fPointDist := Pn1.sPoint.x_ref-Pn0.sPoint.x_ref;
+    fPointDist := SEL(fPointDist=0, fPointDist, 1);    // avoid 0 division crash
+    relativePosX := (col_pos_px-Pn0.sPoint.x_ref) / (fPointDist);    // relative position of col between two cam points
+    dx := fC_SignConversion * (Pn0.sPoint.dx + (Pn1.sPoint.dx - Pn0.sPoint.dx) * relativePosX);
+    dy := fC_SignConversion * (Pn0.sPoint.dy + (Pn1.sPoint.dy - Pn0.sPoint.dy) * relativePosX);
     generateGridForCol:=TRUE;
     
   ELSIF bFirstCol THEN
     // generate first col when we have a cam point -> deformation from first point
-    IF    bn0 THEN dx:=Pn0.sPoint.dx; dy:=Pn0.sPoint.dy; generateGridForCol:=TRUE;
-    ELSIF bn1 THEN dx:=Pn1.sPoint.dx; dy:=Pn1.sPoint.dy; generateGridForCol:=TRUE;
+    IF    bn0 THEN dx:=fC_SignConversion*Pn0.sPoint.dx; dy:=fC_SignConversion*Pn0.sPoint.dy; generateGridForCol:=TRUE;
+    ELSIF bn1 THEN dx:=fC_SignConversion*Pn1.sPoint.dx; dy:=fC_SignConversion*Pn1.sPoint.dy; generateGridForCol:=TRUE;
     END_IF
     
   ELSE
     // not framed by two points toward the end, purge colums if no valid cam point is given next
     IF nGridCol - _nLocalGridColsGenerated >= 3 OR bLastCol THEN 
-      //  repeat previous cam correction
-      IF bn1 THEN
-        dx := Pn1.sPoint.dx;
-        dy := Pn1.sPoint.dy;
-      ELSIF bn0 THEN
-        dx := Pn0.sPoint.dx;
-        dy := Pn0.sPoint.dy;
+      IF _nCamPoints > 1 THEN
+        // calc deformation based on first and last point
+        bn0 := getCamPointX(nIdx:=1, Pn=>Pn0);  // first
+        bn0 := getCamPointX(nIdx:=0, Pn=>Pn1);  // last
+        fPointDist := Pn1.sPoint.x_ref-Pn0.sPoint.x_ref;      // distance of the two points
+        fPointDist := SEL(fPointDist=0, fPointDist, 1);                // avoid 0 division crash
+        relativePosX := (col_pos_px-Pn0.sPoint.x_ref) / (fPointDist);    // relative position of col between two cam points
+        dx := fC_SignConversion * (Pn0.sPoint.dx + (Pn1.sPoint.dx - Pn0.sPoint.dx) * relativePosX);
+        dy := fC_SignConversion * (Pn0.sPoint.dy + (Pn1.sPoint.dy - Pn0.sPoint.dy) * relativePosX);
       ELSE
-        ;
-			END_IF
-       
+        // repeat first correction (we do not have more information)
+        pPx := SEL(bn1, ADR(Pn0), ADR(Pn1));
+        dx := fC_SignConversion * pPx^.sPoint.dx;
+        dy := fC_SignConversion * pPx^.sPoint.dy;
+      END_IF
+      
       generateGridForCol := TRUE;
     END_IF    
   END_IF
   
-  // some test grid stuff (overwrite calculation)
+  // SIMULATION: some test grid (overwrite calculation)
   IF eTestGridSelection <> E_GridTypeSelection.Default THEN
     CASE eTestGridSelection OF
-      0: dx := dx; dy := dy;  // keep calculated
-      1: dx := dy := 0;     // no deformation on ct 
-      2: dx := nTestGridFactor; dy := 0;                                                               // dx static (Factor)
-      3: dx := 0; dy := nTestGridFactor;                                                               // dy static (Factor)
-      4: dx := 0; dy := TO_LREAL(col) * nTestGridFactor;                                               // dx = factor * col
-      5: dx := TO_LREAL(col) * nTestGridFactor; dy := 0;                                               // dy = factor * col
-      6: dx := SEL(row=1, 0, nTestGridFactor ); dy := 0;                                               // dx row 1 = factor ( test BOF)
+      0: dx := dx; dy := dy;                                        // default usekeep calculated
+      1: dx := dy := 0;                                             // no deformation on ct 
+      2: dx := nTestGridFactor; dy := 0;                            // dx static (Factor)
+      3: dx := 0; dy := nTestGridFactor;                            // dy static (Factor)
+      4: dx := 0; dy := TO_LREAL(col) * nTestGridFactor;            // dx = factor * col
+      5: dx := TO_LREAL(col) * nTestGridFactor; dy := 0;            // dy = factor * col
+      6: dx := SEL(row=1, 0, nTestGridFactor ); dy := 0;            // dx row 1 = factor ( test BOF)
     END_CASE
     generateGridForCol := TRUE;
   END_IF  
@@ -756,18 +741,7 @@ bPythonBusy := SEL(_nGridPoints >= _sDefGridSettings.nGridPoints, TRUE, FALSE); 
 
 fTrig_Done(CLK:=bPythonBusy);
 IF fTrig_Done.Q THEN
-  // calculate effective printing length
-  IF _nCamPoints > 0 THEN
-    FOR ct := TO_DINT(_nCamPoints)-1 TO 0 BY -1 DO
-      sTmpPoint := _sCamPoints[ct].sPoint;     // get last valid point
-      IF sTmpPoint.valid THEN
-        // update effective printing length
-        {warning 'TODO: calc effective length based on deformations'}
-        _fPrintLengthEffective := _fPrintLengthEffective; // crashes: sTmpPoint.x_ref/(sTmpPoint.x_ref + sTmpPoint.dx) * _fPrintLengthEffective;
-        EXIT;
-      END_IF
-    END_FOR
-  END_IF
+  ;
 END_IF
 
 bPythonDeformationDone := NOT bPythonBusy;]]></ST>
@@ -843,38 +817,6 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
     <LineIds Name="FB_ImageDeformation.fPrintLengthEffective.Set">
       <LineId Id="2" Count="0" />
     </LineIds>
-    <LineIds Name="FB_ImageDeformation.genGridEstimate">
-      <LineId Id="8" Count="3" />
-      <LineId Id="76" Count="0" />
-      <LineId Id="64" Count="0" />
-      <LineId Id="69" Count="0" />
-      <LineId Id="67" Count="0" />
-      <LineId Id="72" Count="0" />
-      <LineId Id="70" Count="0" />
-      <LineId Id="73" Count="0" />
-      <LineId Id="71" Count="0" />
-      <LineId Id="75" Count="0" />
-      <LineId Id="74" Count="0" />
-      <LineId Id="60" Count="0" />
-      <LineId Id="38" Count="0" />
-      <LineId Id="12" Count="0" />
-      <LineId Id="61" Count="0" />
-      <LineId Id="13" Count="0" />
-      <LineId Id="32" Count="0" />
-      <LineId Id="30" Count="1" />
-      <LineId Id="41" Count="0" />
-      <LineId Id="40" Count="0" />
-      <LineId Id="43" Count="2" />
-      <LineId Id="33" Count="0" />
-      <LineId Id="26" Count="0" />
-      <LineId Id="81" Count="1" />
-      <LineId Id="80" Count="0" />
-      <LineId Id="79" Count="0" />
-      <LineId Id="78" Count="0" />
-      <LineId Id="46" Count="0" />
-      <LineId Id="49" Count="0" />
-      <LineId Id="5" Count="0" />
-    </LineIds>
     <LineIds Name="FB_ImageDeformation.getCamNeighbourPoint">
       <LineId Id="25" Count="0" />
       <LineId Id="5" Count="0" />
@@ -895,6 +837,17 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="31" Count="0" />
       <LineId Id="34" Count="0" />
       <LineId Id="36" Count="0" />
+      <LineId Id="35" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.getCamPointX">
+      <LineId Id="68" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="77" Count="1" />
+      <LineId Id="74" Count="1" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="72" Count="0" />
       <LineId Id="35" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.getDeformationPoint">
@@ -1003,69 +956,24 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="291" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.updateLocal_1D_Marks">
-      <LineId Id="773" Count="0" />
-      <LineId Id="772" Count="0" />
-      <LineId Id="638" Count="0" />
-      <LineId Id="612" Count="0" />
-      <LineId Id="560" Count="0" />
-      <LineId Id="684" Count="0" />
-      <LineId Id="692" Count="0" />
-      <LineId Id="688" Count="0" />
-      <LineId Id="718" Count="0" />
-      <LineId Id="695" Count="0" />
-      <LineId Id="693" Count="1" />
-      <LineId Id="689" Count="0" />
-      <LineId Id="738" Count="1" />
-      <LineId Id="741" Count="3" />
-      <LineId Id="737" Count="0" />
-      <LineId Id="745" Count="0" />
-      <LineId Id="701" Count="0" />
-      <LineId Id="727" Count="0" />
-      <LineId Id="703" Count="2" />
-      <LineId Id="765" Count="0" />
-      <LineId Id="720" Count="0" />
-      <LineId Id="766" Count="0" />
-      <LineId Id="722" Count="1" />
-      <LineId Id="776" Count="0" />
-      <LineId Id="780" Count="0" />
-      <LineId Id="785" Count="0" />
-      <LineId Id="778" Count="0" />
-      <LineId Id="786" Count="1" />
-      <LineId Id="783" Count="0" />
-      <LineId Id="782" Count="0" />
-      <LineId Id="779" Count="0" />
-      <LineId Id="774" Count="0" />
-      <LineId Id="736" Count="0" />
-      <LineId Id="726" Count="0" />
-      <LineId Id="697" Count="0" />
-      <LineId Id="809" Count="0" />
-      <LineId Id="816" Count="0" />
-      <LineId Id="825" Count="0" />
-      <LineId Id="817" Count="7" />
-      <LineId Id="812" Count="0" />
-      <LineId Id="826" Count="0" />
-      <LineId Id="811" Count="0" />
-      <LineId Id="698" Count="1" />
-      <LineId Id="623" Count="0" />
-      <LineId Id="685" Count="1" />
-      <LineId Id="622" Count="0" />
-      <LineId Id="615" Count="1" />
-      <LineId Id="808" Count="0" />
-      <LineId Id="626" Count="8" />
-      <LineId Id="617" Count="1" />
-      <LineId Id="676" Count="0" />
-      <LineId Id="621" Count="0" />
-      <LineId Id="624" Count="0" />
-      <LineId Id="603" Count="0" />
-      <LineId Id="595" Count="0" />
-      <LineId Id="788" Count="0" />
-      <LineId Id="285" Count="10" />
-      <LineId Id="441" Count="0" />
-      <LineId Id="422" Count="0" />
-      <LineId Id="432" Count="6" />
-      <LineId Id="420" Count="1" />
-      <LineId Id="443" Count="0" />
-      <LineId Id="300" Count="0" />
+      <LineId Id="871" Count="15" />
+      <LineId Id="1036" Count="1" />
+      <LineId Id="887" Count="13" />
+      <LineId Id="983" Count="0" />
+      <LineId Id="1000" Count="0" />
+      <LineId Id="1008" Count="0" />
+      <LineId Id="1010" Count="0" />
+      <LineId Id="1039" Count="1" />
+      <LineId Id="1002" Count="2" />
+      <LineId Id="985" Count="0" />
+      <LineId Id="987" Count="0" />
+      <LineId Id="989" Count="0" />
+      <LineId Id="991" Count="1" />
+      <LineId Id="984" Count="0" />
+      <LineId Id="998" Count="0" />
+      <LineId Id="912" Count="52" />
+      <LineId Id="1066" Count="0" />
+      <LineId Id="977" Count="1" />
       <LineId Id="13" Count="0" />
     </LineIds>
   </POU>

@@ -137,6 +137,7 @@ END_VAR
 // stream lasting points to Worker Camera
 IF _bCamTriggerStarted THEN
   sendCamPoints();
+  _iCameraSink.fPrintLengthEffective := fbMarkDetection.fEffectiveImageLength;
 END_IF
 
 SUPER^.CamTriggerDone();]]></ST>
@@ -372,7 +373,9 @@ END_VAR
       <LineId Id="974" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkCamera_WEU.ackErrors">
-      <LineId Id="9" Count="3" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="12" Count="0" />
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkCamera_WEU.bImageLengthInvalid.Get">
@@ -388,10 +391,7 @@ END_VAR
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkCamera_WEU.CamTriggerDone">
-      <LineId Id="22" Count="0" />
-      <LineId Id="39" Count="3" />
-      <LineId Id="38" Count="0" />
-      <LineId Id="28" Count="0" />
+      <LineId Id="45" Count="7" />
       <LineId Id="8" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkCamera_WEU.eCameraMode.Get">

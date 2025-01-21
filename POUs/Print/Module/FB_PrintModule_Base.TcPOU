@@ -30,6 +30,7 @@ VAR
   bSelectedForPrint       : BOOL;   // selected for printing
   bReadyForPrinting       : BOOL;   // Module ready for printing
   bHardwareHold           : BOOL;   // hw hold
+  _bGridLimited           : BOOL;   // calculated grid was limited before sending
   
   // instances
   fbCTTracker             : FB_CTTracker;
@@ -190,6 +191,14 @@ FOR nCtr := 1 TO GVL_WEU.nC_MaxWorkerPrintPerPm DO
   );
 END_FOR
 
+// collect printWorker status
+FOR nCtr := 1 TO GVL_WEU.nC_MaxWorkerPrintPerPm DO
+  IF fbWorkerPrint[nCtr].bWorkerEnable THEN
+    _bGridLimited := fbWorkerPrint[nCtr].bGridWasLimited OR _bGridLimited; 
+	END_IF
+END_FOR
+
+// One PG (printWorker) active
 bOnePgActive := FALSE;
 FOR nCtr := 1 TO GVL_WEU.nC_MaxWorkerPrintPerPm DO 
   IF fbAdsPg[nCtr].bEnable THEN bOnePgActive := TRUE; END_IF 
@@ -964,7 +973,15 @@ END_VAR
       <LineId Id="7964" Count="0" />
       <LineId Id="8176" Count="0" />
       <LineId Id="7965" Count="0" />
-      <LineId Id="7973" Count="77" />
+      <LineId Id="7973" Count="58" />
+      <LineId Id="8491" Count="0" />
+      <LineId Id="8457" Count="0" />
+      <LineId Id="8459" Count="0" />
+      <LineId Id="8486" Count="0" />
+      <LineId Id="8488" Count="1" />
+      <LineId Id="8458" Count="0" />
+      <LineId Id="8487" Count="0" />
+      <LineId Id="8032" Count="18" />
       <LineId Id="770" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintModule_Base.bMoving.Get">

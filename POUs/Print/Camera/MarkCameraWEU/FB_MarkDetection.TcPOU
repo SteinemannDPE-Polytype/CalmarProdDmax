@@ -45,7 +45,8 @@ VAR
   _bUseCameraTrigger              : BOOL;             // (cam specific setting) Generate camera trigger output
   _bUseCameraTriggerFeedback      : BOOL;             // (cam specific setting) Evaluate camera triggered feedback
   _bCamManualTeachMode            : BOOL;             // cam in manual teach mode
-  _fSubstrateLength               : LREAL;            // Substrate length in [m] (should be repeat length)
+  _fImageLength                   : LREAL;            // Image length in [m] configured (should be repeat length)
+  _fImageLengthEffective          : LREAL;            // Image length in [m] detected
   _fTriggerDistance               : LREAL;            // Distance between Sensor and Trigger [m]
   _fTriggerLength                 : LREAL := 10;      // Length of trigger signal in ms, min. 3 bus cycles
   _iActiveCam                     : I_CameraTriggerDevice;  // active camera interface (set by Enable() on I_CameraTrigger)
@@ -64,7 +65,6 @@ VAR
   isMarkMissing                   : BOOL;
   nMarkSelection                  : UDINT := 1;       // Current selected mask to search
   pMarkSearch                     : POINTER TO ST_MarkDefinition;
-  _fSubstrateLengthEffective      : LREAL;            // Substrate length in [m]
 
   
   // time calculations
@@ -114,7 +114,7 @@ VAR
   sMarkHistory : ARRAY[0..nC_HistorySize-1] OF ST_MarkDefinition;   // history of detected marks
   nMarkHistoryCt : UDINT;            // history entry selector
   // test
-  bSim_Mark_Displacement : BOOL;
+  nSim_Mark_Displacement : UINT;
   fSim_Dx_Fix, fSim_Dy_Fix : LREAL;     // simulate some fix deviation of detected marks [m]
 END_VAR
 VAR PERSISTENT
@@ -138,7 +138,7 @@ IF NOT bInitOk THEN RETURN; END_IF
 // General calculations
 bSpeedValid   := fCurrentSpeed > fC_MinimalSpeed;                // speed valid (ignore trigger if not moving)
 bCamValid     := SEL(_iActiveCam<>0, FALSE, TRUE);               // camera valid (ignore trigger otherwise)
-bMarksTeached    := (_fSubstrateLength > 0 AND _pFbMarkDefinition^.nMarks > 0);
+bMarksTeached    := (_fImageLength > 0 AND _pFbMarkDefinition^.nMarks > 0);
 tNowDc        := F_GetCurDcTaskTime64();                         // current dc time (most accurate time stamp we have)
 fCycleTime    := calcCycleTime(tCurrent:=tNowDc);                // calculate cycle time of this fb
 bTriggerArmed :=  bCamValid AND bSpeedValid AND bEnable AND bMarksTeached AND (bAutomaticMode OR _bCamManualTeachMode OR _bSimEnable);   // trigger
@@ -459,6 +459,17 @@ ELSE
 END_IF;]]></ST>
       </Implementation>
     </Method>
+    <Property Name="fEffectiveImageLength" Id="{5f0a74fd-d3e5-49f0-bb7c-e2e30f7cc3dc}">
+      <Declaration><![CDATA[PROPERTY fEffectiveImageLength : LREAL]]></Declaration>
+      <Get Name="Get" Id="{c0fd7068-48f6-4726-9ded-704eb89843e5}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fEffectiveImageLength := _fImageLengthEffective;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
     <Property Name="fSubstrateGap" Id="{fa816ede-3849-4429-8dd8-f67f2bed0f5c}" FolderPath="Sim\">
       <Declaration><![CDATA[PROPERTY fSubstrateGap : LREAL]]></Declaration>
       <Set Name="Set" Id="{11757de8-9549-4089-9527-c78d4f65c2a0}">
@@ -489,7 +500,7 @@ END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF pMark = 0 THEN RETURN; END_IF
 
-nImageLength := F_MeterToSubPixel(fPosMeter:=_fSubstrateLength + _fSubstrateGap, fResoSubPx:=_fResolution);
+nImageLength := F_MeterToSubPixel(fPosMeter:=_fImageLength + _fSubstrateGap, fResoSubPx:=_fResolution);
 IF nImageLength = 0 THEN RETURN; END_IF
 
 
@@ -877,8 +888,7 @@ END_VAR
         <ST><![CDATA[IF NOT bInitOk THEN RETURN;END_IF;
 
 (*reduced by margin (for endless mode with potential smaller printed repetition)*)
-_fSubstrateLength := fSubstrateLength;
-//_nSubstrateLength := F_MeterToSubPixel(fPosMeter:=_fSubstrateLength, fResoSubPx:=_fResolution);]]></ST>
+_fImageLength := fSubstrateLength;]]></ST>
       </Implementation>
     </Method>
     <Method Name="setupMark" Id="{14fe248f-e037-45a6-bbe7-87d9d8a20d1b}">
@@ -909,7 +919,10 @@ pMark^.sState.dx := getMarkDistanceEffective(pMark:=pMark) - pMark^.fPosX;
 pMark^.sState.dy := ((pMark^.sState.fLengthReal - pMark^.fSqLength)/pMark^.fTrLength)*pMark^.fHeight-(pMark^.fHeight/2);
 
 // use (overwrite) with some simulation values
-IF bSim_Mark_Displacement THEN pMark^.sState.dx := fSim_Dx_Fix; pMark^.sState.dy := fSim_Dy_Fix; END_IF
+IF    nSim_Mark_Displacement = 1 THEN pMark^.sState.dx := fSim_Dx_Fix; pMark^.sState.dy := fSim_Dy_Fix; 
+ELSIF nSim_Mark_Displacement = 2 THEN pMark^.sState.dx := fSim_Dx_Fix * pMark^.nId; pMark^.sState.dy := fSim_Dy_Fix * pMark^.nId;
+END_IF
+
 
 // if marks are inverted (flipped along x-axis), the correction is inverted
 IF pMark^.bInvertedX THEN  pMark^.sState.dy := -1*pMark^.sState.dy; END_IF
@@ -936,6 +949,7 @@ END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[_nX0 := pMark^.sState.nPosXReal - F_MeterToSubPixel(fPosMeter:=pMark^.fPosX, fResoSubPx:=_fResolution);
 _bStartTrig := TRUE;
+_fImageLengthEffective := _fImageLength;
 bDetectionRunning := TRUE;
 bNoStartMarkDetected := FALSE;
 bInvalidRepeatLength := FALSE;
@@ -985,25 +999,25 @@ END_VAR]]></Declaration>
         <ST><![CDATA[// - terminate
 IF _bVerbose THEN LogInfo(F_Concat2('SheetStop()', '')); END_IF
 
-fSLen := _fSubstrateLength;  // (default) original length
+fSLen := _fImageLength;  // (default) original length
 
 // calculate effective sheet length
 nDetectedX0 := getLastX0();   // get sampled X0
 IF nNewX0 <> 0 AND nDetectedX0 <> 0 THEN
   // real diff between two starts
   fD := F_SubPixelToMeter(lPosSubPx:=nNewX0 - nDetectedX0, fResSubPx:=_fResolution);
-  IF fD < (_fSubstrateLength * fC_MaxSubstrateFactor) THEN
+  IF fD < (_fImageLength * fC_MaxSubstrateFactor) THEN
     fSLen := fD;
   END_IF 
 ELSIF nNewX0 = 0 AND _pFbMarkDefinition^.nMarksDetected > 1 THEN
   // calculate based on last detected mark (a strech factor)
   pLastMark:= _pFbMarkDefinition^.getMark(nIdx:=0);     // get last available mark
   fD := getMarkDistanceEffective(pMark:=pLastMark); 
-  fSLen := (pLastMark^.fPosX/SEL(fD<>0, pLastMark^.fPosX, fD)) * _fSubstrateLength; // estimate real length with last mark
+  fSLen := (pLastMark^.fPosX/SEL(fD<>0, pLastMark^.fPosX, fD)) * _fImageLength; // estimate real length with last mark
 END_IF
-_fSubstrateLengthEffective := fSLen;
-fSubstrateRealDiff := _fSubstrateLengthEffective - _fSubstrateLength;
-nSubstrareRealDiff := (nNewX0 - nDetectedX0) - F_MeterToSubPixel(fPosMeter:=_fSubstrateLength, fResoSubPx:=_fResolution);
+_fImageLengthEffective := fSLen;
+fSubstrateRealDiff := _fImageLengthEffective - _fImageLength;
+nSubstrareRealDiff := (nNewX0 - nDetectedX0) - F_MeterToSubPixel(fPosMeter:=_fImageLength, fResoSubPx:=_fResolution);
 
 // debug history
 FOR i:=0 TO nC_HistorySize-1 DO sRepeatHistory[i].bSelected := FALSE; END_FOR   // clear selection
@@ -1011,8 +1025,8 @@ nRepeatCt := (nRepeatCt + 1) MOD nC_HistorySize;
 sRepeatHistory[nRepeatCt].bSelected       := TRUE;
 sRepeatHistory[nRepeatCt].nIndex          := nRepeatCt+1;
 sRepeatHistory[nRepeatCt].nX0             := nDetectedX0;
-sRepeatHistory[nRepeatCt].fLen            := _fSubstrateLength * 1000;
-sRepeatHistory[nRepeatCt].fLenEffective   := _fSubstrateLengthEffective * 1000;
+sRepeatHistory[nRepeatCt].fLen            := _fImageLength * 1000;
+sRepeatHistory[nRepeatCt].fLenEffective   := _fImageLengthEffective * 1000;
 sRepeatHistory[nRepeatCt].fLenDiff        := (fSubstrateRealDiff) * 1000;
 sRepeatHistory[nRepeatCt].bLenNotInRange  := bInvalidRepeatLength;
 sRepeatHistory[nRepeatCt].bInvalidIngoredMarks := nInvalidMarkDetectedPerRepeat > 0;
@@ -1065,7 +1079,7 @@ IF NOT bMarkOn THEN  // start new mark
   // create rising edge
   IF pMark^.nId = 1 THEN
     // wait for next StartPosition
-    IF F_SubPixelToMeter(lPosSubPx:=ABS(nCurrentPos - nLastGeneratedStartMarkPosition), fResSubPx:=_fResolution) >= _fSubstrateLength + _fSubstrateGap THEN
+    IF F_SubPixelToMeter(lPosSubPx:=ABS(nCurrentPos - nLastGeneratedStartMarkPosition), fResSubPx:=_fResolution) >= _fImageLength + _fSubstrateGap THEN
       nLastGeneratedStartMarkPosition := nCurrentPos;      // save start mark pos
       fStartMarkOffset := pMark^.fPosX;   // save start mark displacement from X0
       pMark^.sState.nPosXReal := nCurrentPos;  // save rising edge
@@ -1135,7 +1149,7 @@ IF NOT bMarkOn THEN  // start new mark
     IF pMark^.nId = 1 THEN
       // wait for next StartPosition
       fDistToLastStart := F_SubPixelToMeter(lPosSubPx:=ABS(nCurrentPos - nLastGeneratedStartMarkPosition), fResSubPx:=_fResolution); 
-      IF fDistToLastStart >= _fSubstrateLength + _fSubstrateGap THEN
+      IF fDistToLastStart >= _fImageLength + _fSubstrateGap THEN
         
         nPosMarkStarted := nCurrentPos;
         SimMarkLength := F_MeterToSubPixelReal(fPosMeter:=pMark^.fSqLength + (pMark^.fTrLength/2), fResoSubPx:=_fResolution); // mark length default
@@ -1198,20 +1212,7 @@ strMark := F_Concat6(
       </Implementation>
     </Method>
     <LineIds Name="FB_MarkDetection">
-      <LineId Id="15860" Count="48" />
-      <LineId Id="16025" Count="0" />
-      <LineId Id="15909" Count="56" />
-      <LineId Id="16026" Count="1" />
-      <LineId Id="16034" Count="0" />
-      <LineId Id="16028" Count="0" />
-      <LineId Id="16035" Count="0" />
-      <LineId Id="16030" Count="0" />
-      <LineId Id="16036" Count="0" />
-      <LineId Id="16032" Count="0" />
-      <LineId Id="16037" Count="0" />
-      <LineId Id="16031" Count="0" />
-      <LineId Id="16029" Count="0" />
-      <LineId Id="15966" Count="36" />
+      <LineId Id="16296" Count="154" />
       <LineId Id="6884" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.ackErrors">
@@ -1275,6 +1276,9 @@ strMark := F_Concat6(
       <LineId Id="99" Count="0" />
       <LineId Id="96" Count="2" />
       <LineId Id="70" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MarkDetection.fEffectiveImageLength.Get">
+      <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.fSubstrateGap.Set">
       <LineId Id="2" Count="0" />
@@ -1435,7 +1439,6 @@ strMark := F_Concat6(
       <LineId Id="8" Count="1" />
       <LineId Id="6" Count="0" />
       <LineId Id="14" Count="0" />
-      <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.setupMark">
       <LineId Id="173" Count="0" />
@@ -1452,6 +1455,9 @@ strMark := F_Concat6(
       <LineId Id="320" Count="0" />
       <LineId Id="397" Count="0" />
       <LineId Id="393" Count="1" />
+      <LineId Id="422" Count="0" />
+      <LineId Id="421" Count="0" />
+      <LineId Id="420" Count="0" />
       <LineId Id="391" Count="1" />
       <LineId Id="189" Count="0" />
       <LineId Id="194" Count="5" />
@@ -1462,6 +1468,7 @@ strMark := F_Concat6(
     <LineIds Name="FB_MarkDetection.SheetStart">
       <LineId Id="22" Count="0" />
       <LineId Id="21" Count="0" />
+      <LineId Id="103" Count="0" />
       <LineId Id="79" Count="2" />
       <LineId Id="95" Count="1" />
       <LineId Id="45" Count="0" />

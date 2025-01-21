@@ -33,8 +33,9 @@ VAR
   // deformation status
   _eDeformationType            : E_DeformationType;
   _eDeformStep                 : E_DeformationStep;   // status deformation of ct
-  _nCamDetected_X0             : DINT;   // detected sheet/repeat position [SubPx]              
-
+  _nCamDetected_X0             : DINT;                // detected sheet/repeat position [SubPx]  
+  _fPrintLengthEffective       : LREAL;               // detected image length
+  
   // Messages
   _pMsgConfig                  : POINTER TO ST_MSG_CONFIG;
   bCamNotAvailable             : BOOL;
@@ -208,9 +209,7 @@ END_VAR
   Called after last point will be streamed to same CT.
 *)
 METHOD CamDone : BOOL
-(*VAR_INPUT
-  nDetectedLength : LREAL; // [m]
-END_VAR*)]]></Declaration>
+]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF _nAttachedCTs=0 OR NOT _bCamStarted OR _eDeformStep < E_DeformationStep.cameraStarted THEN
   // ignore done event if not started
@@ -219,6 +218,9 @@ END_IF
 
 // last point was received, we can dump the buffer and release the Container
 streamPoints();   // stream all buffered points
+IF _fPrintLengthEffective <> 0 THEN
+  _pAttachedCt^.fPrintLengthEffective := _fPrintLengthEffective;
+END_IF
 
 LogLvl(Lvl:=E_LogSeverity.Debug, Msg:='CamDone');
 Release(_pAttachedCt^);   // release head container
@@ -243,6 +245,7 @@ MEMSET(destAddr:=ADR(_CamBufferPoints[1]), fillByte:=0, n:=SIZEOF(_CamBufferPoin
 
 // save x0 for sheet lenght calculation
 _nCamDetected_X0 := nX0;
+_fPrintLengthEffective := 0;
 
 _bCamStarted := TRUE;
 ]]></ST>
@@ -273,6 +276,19 @@ END_VAR
 END_IF]]></ST>
         </Implementation>
       </Get>
+    </Property>
+    <Property Name="fPrintLengthEffective" Id="{2b9316f7-f9a6-469d-9a19-86154bf91dbd}" FolderPath="I_CameraSink\">
+      <Declaration><![CDATA[(* Detected "real" image lenght [m]*)
+PROPERTY fPrintLengthEffective : LREAL
+]]></Declaration>
+      <Set Name="Set" Id="{a33dd321-e89d-4b3d-b6fe-91aa944e3720}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_fPrintLengthEffective := fPrintLengthEffective;]]></ST>
+        </Implementation>
+      </Set>
     </Property>
     <Method Name="Init" Id="{476974fc-f01a-47ef-80b5-8dcae46aef5e}">
       <Declaration><![CDATA[METHOD Init
@@ -780,13 +796,18 @@ fbMsg_CamNoConnection    (bI_Status:=NOT _bConnectionOk);
       <LineId Id="30" Count="1" />
       <LineId Id="5" Count="0" />
       <LineId Id="21" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="59" Count="0" />
       <LineId Id="20" Count="0" />
       <LineId Id="15" Count="1" />
       <LineId Id="43" Count="0" />
       <LineId Id="17" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.CamStarted">
-      <LineId Id="28" Count="7" />
+      <LineId Id="28" Count="6" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="35" Count="0" />
       <LineId Id="17" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.fCameraToPrintOffset.Get">
@@ -796,6 +817,9 @@ fbMsg_CamNoConnection    (bI_Status:=NOT _bConnectionOk);
     <LineIds Name="FB_WorkerDefGrid_Camera.fDetectToCamOffset.Get">
       <LineId Id="5" Count="1" />
       <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Camera.fPrintLengthEffective.Set">
+      <LineId Id="6" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Camera.Init">
       <LineId Id="3" Count="0" />

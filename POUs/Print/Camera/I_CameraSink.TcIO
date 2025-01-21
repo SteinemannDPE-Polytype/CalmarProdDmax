@@ -36,5 +36,14 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
     </Method>
+    <Property Name="fPrintLengthEffective" Id="{5d63e249-80f2-46a4-99a2-53ffff682b1b}">
+      <Declaration><![CDATA[// Detected "real" image lenght [m]
+PROPERTY fPrintLengthEffective : LREAL]]></Declaration>
+      <Set Name="Set" Id="{cf186f9b-7da7-4af1-ab5c-0f79c1576da9}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+      </Set>
+    </Property>
   </Itf>
 </TcPlcObject>

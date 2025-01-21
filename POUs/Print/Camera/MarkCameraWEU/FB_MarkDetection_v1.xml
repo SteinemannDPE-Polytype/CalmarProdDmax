@@ -1,0 +1,1955 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<project xmlns="http://www.plcopen.org/xml/tc6_0200">
+  <fileHeader companyName="Beckhoff Automation GmbH" productName="TwinCAT PLC Control" productVersion="3.5.13.21" creationDateTime="2025-01-21T09:01:21.5038854" />
+  <contentHeader name="Steinemann" modificationDateTime="2025-01-21T09:01:21.5059168">
+    <coordinateInfo>
+      <fbd>
+        <scaling x="1" y="1" />
+      </fbd>
+      <ld>
+        <scaling x="1" y="1" />
+      </ld>
+      <sfc>
+        <scaling x="1" y="1" />
+      </sfc>
+    </coordinateInfo>
+    <addData>
+      <data name="http://www.3s-software.com/plcopenxml/projectinformation" handleUnknown="implementation">
+        <ProjectInformation />
+      </data>
+    </addData>
+  </contentHeader>
+  <types>
+    <dataTypes />
+    <pous>
+      <pou name="FB_MarkDetection_v1" pouType="functionBlock">
+        <interface>
+          <inputVars>
+            <variable name="bIKp_StartSensor" address="%I*">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">Sensor start trigger</xhtml>
+              </documentation>
+            </variable>
+            <variable name="tIKp_TimeStampPos" address="%I*">
+              <type>
+                <derived name="T_DCTIME64" />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">TimeStamp Pos_Edge @EL1252</xhtml>
+              </documentation>
+            </variable>
+            <variable name="tIKn_TimeStampNeg" address="%I*">
+              <type>
+                <derived name="T_DCTIME64" />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">TimeStamp Neg_Edge @EL1252</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bEnable">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">Enable start pos detection sensor (from extern)</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bAutomaticMode">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">machine is in automatic mode </xhtml>
+              </documentation>
+            </variable>
+            <variable name="nCurrentPos">
+              <type>
+                <DINT />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">current position in Pulses/Subpixels</xhtml>
+              </documentation>
+            </variable>
+            <variable name="fCurrentSpeed">
+              <type>
+                <LREAL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">actual speed of conveyor in [m/s]</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bReverse">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">reverse printing same roll feeded in opposite direction, check falling edge in this case</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bManualTrigger">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> Manual start trigger</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bManualReset">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> Manaul reset detection</xhtml>
+              </documentation>
+            </variable>
+          </inputVars>
+          <localVars>
+            <variable name="bInitOk">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> fb initialized</xhtml>
+              </documentation>
+            </variable>
+            <variable name="_fResolution">
+              <type>
+                <LREAL />
+              </type>
+              <initialValue>
+                <simpleValue value="1" />
+              </initialValue>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> current used print resolution (dpi*SubPx)</xhtml>
+              </documentation>
+            </variable>
+            <variable name="_pFbMarkDefinition">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="FB_MarkDefinition" />
+                  </baseType>
+                </pointer>
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> mark definition</xhtml>
+              </documentation>
+            </variable>
+            <variable name="_iCamera">
+              <type>
+                <derived name="I_Camera" />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> camera interface</xhtml>
+              </documentation>
+            </variable>
+            <variable name="_bUseCameraTrigger">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> (cam specific setting) Generate camera trigger output</xhtml>
+              </documentation>
+            </variable>
+            <variable name="_bUseCameraTriggerFeedback">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> (cam specific setting) Evaluate camera triggered feedback</xhtml>
+              </documentation>
+            </variable>
+            <variable name="_bCamManualTeachMode">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> cam in manual teach mode</xhtml>
+              </documentation>
+            </variable>
+            <variable name="_fSubstrateLength">
+              <type>
+                <LREAL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> Substrate length in [m] (should be repeat ength)</xhtml>
+              </documentation>
+            </variable>
+            <variable name="_fTriggerDistance">
+              <type>
+                <LREAL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> Distance between Sensor and Trigger [m]</xhtml>
+              </documentation>
+            </variable>
+            <variable name="_fTriggerLength">
+              <type>
+                <LREAL />
+              </type>
+              <initialValue>
+                <simpleValue value="10" />
+              </initialValue>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> Length of trigger signal in ms, min. 3 bus cycles</xhtml>
+              </documentation>
+            </variable>
+            <variable name="_iActiveCam">
+              <type>
+                <derived name="I_CameraTriggerDevice" />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> active camera interface (set by Enable() on I_CameraTrigger)</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bSheetActive">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">sheet is scanning</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bSpeedValid">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">speed is valid</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bTriggerArmed">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">trigger is armed</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bCamValid">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">camera is valid</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bMarkValid">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">definition is valid marks&amp;substrate</xhtml>
+              </documentation>
+            </variable>
+            <variable name="rfT_Enable">
+              <type>
+                <derived name="RF_TRIG" />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> edge detection enable</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bResetDetection">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> Reset request for checkForMark() internals</xhtml>
+              </documentation>
+            </variable>
+            <variable name="isStartMark">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="isMarkError">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="nMarkSelection">
+              <type>
+                <UDINT />
+              </type>
+              <initialValue>
+                <simpleValue value="1" />
+              </initialValue>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> Current selected mask to search</xhtml>
+              </documentation>
+            </variable>
+            <variable name="pMarkSearch">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="ST_MarkDefinition" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="_fSubstrateLengthEffective">
+              <type>
+                <LREAL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> Substrate length in [m]</xhtml>
+              </documentation>
+            </variable>
+            <variable name="tNowDc">
+              <type>
+                <derived name="T_DCTIME64" />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> Get Current Timestamp (now)</xhtml>
+              </documentation>
+            </variable>
+            <variable name="fCycleTime">
+              <type>
+                <LREAL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> Current calculated cycle time [s]</xhtml>
+              </documentation>
+            </variable>
+            <variable name="_bStartTrig">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> Start Trigger Edge</xhtml>
+              </documentation>
+            </variable>
+            <variable name="_nX0">
+              <type>
+                <DINT />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> X0 Position [SubPx]</xhtml>
+              </documentation>
+            </variable>
+            <variable name="_bValid">
+              <type>
+                <BOOL />
+              </type>
+            </variable>
+            <variable name="_bSimEnable">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> simulation mode enabled</xhtml>
+              </documentation>
+            </variable>
+            <variable name="_bVerbose">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> verbose mode</xhtml>
+              </documentation>
+            </variable>
+            <variable name="_fSubstrateGap">
+              <type>
+                <LREAL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> Gap between two substrates (sheets/repeats) for simulation</xhtml>
+              </documentation>
+            </variable>
+            <variable name="rfEdgeSensor">
+              <type>
+                <derived name="RF_TRIG" />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> edge detection start trigger</xhtml>
+              </documentation>
+            </variable>
+            <variable name="tRisingEdge">
+              <type>
+                <derived name="T_DCTIME64" />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> detected edges</xhtml>
+              </documentation>
+            </variable>
+            <variable name="tFallingEdge">
+              <type>
+                <derived name="T_DCTIME64" />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> detected edges</xhtml>
+              </documentation>
+            </variable>
+            <variable name="nRisingPos">
+              <type>
+                <DINT />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> detected [SubPx] pos</xhtml>
+              </documentation>
+            </variable>
+            <variable name="nFallingPos">
+              <type>
+                <DINT />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> detected [SubPx] pos</xhtml>
+              </documentation>
+            </variable>
+            <variable name="fMarkDuration">
+              <type>
+                <LREAL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> duration in rising-falling time delta</xhtml>
+              </documentation>
+            </variable>
+            <variable name="nLastStartMarkPosition">
+              <type>
+                <DINT />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> last detected start mark</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bMarkStartDetected">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> mark started</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bMarkEndDetected">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> marks end reached</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bInhibitTrigger">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> inhibit sensor signals, TRUE=inhibit</xhtml>
+              </documentation>
+            </variable>
+            <variable name="sRepeatHistory">
+              <type>
+                <array>
+                  <dimension lower="0" upper="(nC_HistorySize - 1)" />
+                  <baseType>
+                    <derived name="ST_RepeatHistory" />
+                  </baseType>
+                </array>
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> detection history</xhtml>
+              </documentation>
+            </variable>
+            <variable name="nRepeatCt">
+              <type>
+                <UDINT />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> history entry selector</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bLenNotInRange_Repeat">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> Effective length not in range</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bStartOverrun_Repeat">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> too many starts</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bMissingMarks_Repeat">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> ...</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bMarksTooShort_Repeat">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> ...</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bMarksDetectErr_Repeat">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> ...</xhtml>
+              </documentation>
+            </variable>
+            <variable name="sMarkHistory">
+              <type>
+                <array>
+                  <dimension lower="0" upper="(nC_HistorySize - 1)" />
+                  <baseType>
+                    <derived name="ST_MarkDefinition" />
+                  </baseType>
+                </array>
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> history of detected marks</xhtml>
+              </documentation>
+            </variable>
+            <variable name="nMarkHistoryCt">
+              <type>
+                <UDINT />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> history entry selector</xhtml>
+              </documentation>
+            </variable>
+            <variable name="bSim_Mark_Dev">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> simulation</xhtml>
+              </documentation>
+            </variable>
+            <variable name="fSim_Mark_DevX">
+              <type>
+                <LREAL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> simulate some fix deviation of detected marks [m]</xhtml>
+              </documentation>
+            </variable>
+            <variable name="fSim_Mark_DevY">
+              <type>
+                <LREAL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> simulate some fix deviation of detected marks [m]</xhtml>
+              </documentation>
+            </variable>
+          </localVars>
+          <localVars persistent="true">
+            <variable name="bR_TerminateLast">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> Terminate sheet with last defined &amp; detected mark</xhtml>
+              </documentation>
+            </variable>
+            <variable name="nR_SpeedMavFilterSamples">
+              <type>
+                <UINT />
+              </type>
+              <initialValue>
+                <simpleValue value="0" />
+              </initialValue>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> moving average filter samples = 0 deactivated</xhtml>
+              </documentation>
+            </variable>
+          </localVars>
+          <localVars constant="true">
+            <variable name="fC_MinimalSpeed">
+              <type>
+                <LREAL />
+              </type>
+              <initialValue>
+                <simpleValue value="0.01" />
+              </initialValue>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> [m/s] speed valid (used for trigger activation)</xhtml>
+              </documentation>
+            </variable>
+            <variable name="fC_MarkLengthMargin">
+              <type>
+                <LREAL />
+              </type>
+              <initialValue>
+                <simpleValue value="0.005" />
+              </initialValue>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> [m] used for mark end position supervision (mark end missed)</xhtml>
+              </documentation>
+            </variable>
+            <variable name="fC_MaxSubstrateFactor">
+              <type>
+                <LREAL />
+              </type>
+              <initialValue>
+                <simpleValue value="1.1" />
+              </initialValue>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> factor which the sheet length can be max. longer</xhtml>
+              </documentation>
+            </variable>
+            <variable name="nC_AreaMarkSensorOk">
+              <type>
+                <INT />
+              </type>
+              <initialValue>
+                <simpleValue value="10" />
+              </initialValue>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> [%] Area with the correct arrangement of the mark sensor</xhtml>
+              </documentation>
+            </variable>
+            <variable name="nC_HistorySize">
+              <type>
+                <UDINT />
+              </type>
+              <initialValue>
+                <simpleValue value="20" />
+              </initialValue>
+            </variable>
+          </localVars>
+          <addData>
+            <data name="http://www.3s-software.com/plcopenxml/pouinheritance" handleUnknown="implementation">
+              <Inheritance>
+                <Extends>T_NamedBase</Extends>
+                <Implements>I_StartPosDetect</Implements>
+                <Implements>I_CameraTrigger</Implements>
+                <Implements>I_Sim</Implements>
+              </Inheritance>
+            </data>
+          </addData>
+          <documentation>
+            <xhtml xmlns="http://www.w3.org/1999/xhtml">
+  Detects Marks and generates StartTrigger based on one EL1252 timestamp input I/O.
+  Implements a CameraTrigger instance as well.
+  
+  Additionally:
+    - returns lateral offset (+/- in [m]) to center of detected marks.
+    - manages &amp; supervises mark sequence
+    - is a CameraTrigger as well
+    - supports simulation mode
+  
+  NOTE: 
+    - a mark has always a rising and falling edge of the sensor (triangle)
+    - center position is the middle of the triangular mark
+
+</xhtml>
+          </documentation>
+        </interface>
+        <body>
+          <ST>
+            <xhtml xmlns="http://www.w3.org/1999/xhtml">// check parameter
+IF NOT bInitOk THEN RETURN; END_IF
+
+// General calculations
+bSpeedValid   := fCurrentSpeed &gt; fC_MinimalSpeed;                // speed valid (ignore trigger if not moving)
+bCamValid     := SEL(_iActiveCam&lt;&gt;0, FALSE, TRUE);               // camera valid (ignore trigger otherwise)
+bMarkValid    := (_fSubstrateLength &gt; 0 AND _pFbMarkDefinition^.nMarks &gt; 0);
+tNowDc        := F_GetCurDcTaskTime64();                         // current dc time (most accurate time stamp we have)
+fCycleTime    := calcCycleTime(tCurrent:=tNowDc);                // calculate cycle time of this fb
+bTriggerArmed :=  bCamValid AND bSpeedValid AND bEnable AND bMarkValid AND (bAutomaticMode OR _bCamManualTeachMode OR _bSimEnable);   // trigger
+
+IF bCamValid THEN    // (not yet used) save dynamic changable settings
+  _fTriggerDistance := _iActiveCam.fTriggerDistance;
+  _fTriggerLength   := _iActiveCam.fTriggerPulseLength;
+END_IF
+
+_bValid := _bStartTrig := FALSE;    // default values (outputs and properties)
+
+manualTrigger();     // handle manual trigger
+
+
+// enable &amp; reset
+rfT_Enable(CLK:=bEnable);             // edge detection (or use bTriggerArmed)
+IF rfT_Enable.RT OR rfT_Enable.FT OR bManualReset THEN Reset(); bManualReset:=FALSE; END_IF;
+IF NOT bEnable THEN RETURN; END_IF    // do nothing if not enabled
+IF NOT bTriggerArmed THEN RETURN; END_IF
+
+
+// Work
+// - detect marks
+//   - detect missing marks (based on teach definition, type and a margin)
+//   - maybe replace missing marks (trend or teach)
+// - handle StartTrigger if StartMark rising edge
+// - handle Mark detected position (y-correction)
+// - save mark, keep tracking of detected marks, (error handling if some missed)
+// - send mark to camera
+
+
+(*State Machine ----------------------------------------------------------------*)
+// select mark
+IF nMarkSelection &gt; _pFbMarkDefinition^.nMarks THEN nMarkSelection := 1; END_IF  // fix invalid selection
+pMarkSearch :=  _pFbMarkDefinition^.getMark(nIdx:=TO_DINT(nMarkSelection));
+
+// search for mark
+IF checkForMark(pMark:=pMarkSearch, bStartMark=&gt;isStartMark, bErr=&gt;isMarkError) THEN 
+
+  IF _bVerbose THEN LogInfo(F_Concat4('found ', SEL(isStartMark,'Intermediate','StartMark'), SEL(isMarkError,' OK ',' ERR '), strMark(pMark:=pMarkSearch))); END_IF  
+
+  // searched start, found start (normal start)
+  IF isStartMark AND nMarkSelection = 1 THEN
+    IF _pFbMarkDefinition^.nMarks = 1 THEN 
+      // only one mark --&gt; TERMINATE + START
+      // - start
+      SheetStart(pMark:=pMarkSearch);
+      IF bR_TerminateLast THEN SheetStop(nNewX0:=0); END_IF  // TERMINATE already after single mark scanned
+    ELSE
+      // more marks --&gt; START + NEXT
+      // - start
+      SheetStart(pMark:=pMarkSearch);
+      // - next
+      nMarkSelection := nMarkSelection + 1;    // next mark
+		END_IF
+
+  // search other mark and found start mark (start abort)
+  ELSIF isStartMark AND nMarkSelection &gt; 1 THEN
+    // terminate(abort) last
+    IF nMarkSelection &lt; _pFbMarkDefinition^.nMarks THEN
+      LogError('New start mark before last mark detected, missed a mark?');
+      bMissingMarks_Repeat := TRUE;
+    END_IF
+
+    // terminate/abort with new --&gt; TERMINATE + START
+    // - start
+    SheetStart(pMark:=pMarkSearch);
+    
+    nMarkSelection := nMarkSelection + 1;    // next mark
+
+  // intermediate marks
+  ELSIF NOT isStartMark AND nMarkSelection &gt; 1 THEN
+    // search and found other --&gt; NEXT (ev. terminate)
+    
+    IF _pFbMarkDefinition^.nMarksDetected &lt;= _pFbMarkDefinition^.nMarks THEN
+      // - save mark
+        _pFbMarkDefinition^.saveMark(pMark:=pMarkSearch);   // save
+      // - last mark?
+      IF nMarkSelection = _pFbMarkDefinition^.nMarks THEN
+        IF bR_TerminateLast THEN SheetStop(nNewX0:=0); END_IF   // stop ct
+        nMarkSelection := 1;
+      ELSE
+        nMarkSelection := SEL(nMarkSelection&lt;_pFbMarkDefinition^.nMarks, 1, nMarkSelection + 1);  // next
+      END_IF 
+    END_IF
+	END_IF
+  
+END_IF
+
+
+
+// outputs
+// _bStartTrig := // set in SheetStart
+// _nX0 :=  // set in SheetStart
+_bValid := TRUE;
+</xhtml>
+          </ST>
+        </body>
+        <addData>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="analizeMark" ObjectId="0fe27d59-09a3-4778-96a6-e1374e41ae68">
+              <interface>
+                <returnType>
+                  <BOOL />
+                </returnType>
+                <inputVars>
+                  <variable name="pMark">
+                    <type>
+                      <pointer>
+                        <baseType>
+                          <derived name="ST_MarkDefinition" />
+                        </baseType>
+                      </pointer>
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> mark to search for</xhtml>
+                    </documentation>
+                  </variable>
+                  <variable name="nDetectedPos">
+                    <type>
+                      <DINT />
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> detected position [SubPx]</xhtml>
+                    </documentation>
+                  </variable>
+                  <variable name="fRealMarkLength">
+                    <type>
+                      <LREAL />
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> real detected mark length [m]</xhtml>
+                    </documentation>
+                  </variable>
+                </inputVars>
+                <outputVars>
+                  <variable name="bStartMark">
+                    <type>
+                      <BOOL />
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> a start mark was detected</xhtml>
+                    </documentation>
+                  </variable>
+                  <variable name="bTooLong">
+                    <type>
+                      <BOOL />
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> detected length was too short for given mark</xhtml>
+                    </documentation>
+                  </variable>
+                  <variable name="bTooShort">
+                    <type>
+                      <BOOL />
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> detected length was too long for given mark</xhtml>
+                    </documentation>
+                  </variable>
+                </outputVars>
+                <localVars>
+                  <variable name="fMarkLengthMin">
+                    <type>
+                      <LREAL />
+                    </type>
+                  </variable>
+                  <variable name="fMarkLengthMax">
+                    <type>
+                      <LREAL />
+                    </type>
+                  </variable>
+                </localVars>
+                <addData>
+                  <data name="http://www.3s-software.com/plcopenxml/accessmodifiers" handleUnknown="implementation">
+                    <AccessModifiers Private="true" />
+                  </data>
+                </addData>
+                <documentation>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">
+  Check if mark was detected properly and type matches.
+  :returns:  TRUE if valid mark
+</xhtml>
+                </documentation>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">IF pMark = 0 THEN RETURN; END_IF
+IF pMark^.fHeight = 0 OR pMark^.fTrLength = 0 THEN analizeMark := FALSE; RETURN; END_IF
+(*
+  Sensor should aligned to the middle of the sensor (fI_MarkHeight / 2)
+  With the difference OF the measured length to the normal lenght, the LateralOffset in Y can be calculated
+*)
+
+pMark^.sState.nPosXReal := nDetectedPos;          // save detected mark pos (rising in normal, falling in reverse print)
+pMark^.sState.fLengthReal := fRealMarkLength;     // apply detected mark length
+
+fMarkLengthMin := pMark^.fSqLength;
+fMarkLengthMax := pMark^.fSqLength+pMark^.fTrLength;
+// - minimal mark length check
+IF fRealMarkLength &lt; fMarkLengthMin THEN
+  // mark shorter than defined, ignore detected
+  //LogError(F_Concat6('Mark[', TO_STRING(pMark^.nId) ,'] too short ', TO_STRING(fRealMarkLength), '&lt;', TO_STRING(fMarkLengthMin)));
+  bTooShort := TRUE;
+  RETURN; 
+END_IF
+// - max mark length check
+IF fRealMarkLength &gt; (_pFbMarkDefinition^.fMaxLengthStartMark + fC_MarkLengthMargin) THEN
+  // mark even longer than longer max size of StartMark
+  //LogError(F_Concat4('Mark too long ', TO_STRING(fRealMarkLength), '&gt;', TO_STRING(fMarkLengthMax)));
+  bTooLong := TRUE; 
+RETURN; END_IF 
+
+// - dx  (based on sheet begin) dx = current mark position - teached mark position
+IF NOT bSim_Mark_Dev THEN pMark^.sState.dx := getMarkDistanceEffective(pMark:=pMark) - pMark^.fPosX;
+ELSE                      pMark^.sState.dx := fSim_Mark_DevX;
+END_IF
+
+// - dy
+IF NOT bSim_Mark_Dev THEN pMark^.sState.dy := ((pMark^.sState.fLengthReal - pMark^.fSqLength)/pMark^.fTrLength)*pMark^.fHeight-(pMark^.fHeight/2);
+ELSE                      pMark^.sState.dy := fSim_Mark_DevY;
+END_IF
+IF pMark^.bInvertedX THEN     // if marks are inverted (flipped along x-axis), the correction is inverted
+  pMark^.sState.dy := -1*pMark^.sState.dy;
+END_IF
+
+// check position qualitiy
+pMark^.sState.bInArea := FC_COMPARE_RANGE_PERCENT( 
+                                       fI_ValueSet := (pMark^.fHeight / 2)
+                                     , fI_ValueActual  := (pMark^.fHeight / 2) + pMark^.sState.dy
+                                     , fI_RangePercent := nC_AreaMarkSensorOk);
+
+// type of mark
+bStartMark := (fRealMarkLength &gt;= _pFbMarkDefinition^.fMinLengthStartMark);
+pMark^.sState.bSet := TRUE;
+
+analizeMark := pMark^.sState.bSet;
+</xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="calcCycleTime" ObjectId="c5da9bc5-c89b-4d56-983b-87158bdbb28a">
+              <interface>
+                <returnType>
+                  <LREAL />
+                </returnType>
+                <inputVars>
+                  <variable name="tCurrent">
+                    <type>
+                      <derived name="T_DCTIME64" />
+                    </type>
+                  </variable>
+                </inputVars>
+                <addData>
+                  <data name="http://www.3s-software.com/plcopenxml/accessmodifiers" handleUnknown="implementation">
+                    <AccessModifiers Private="true" />
+                  </data>
+                </addData>
+                <documentation>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml"> cycle time in [s]</xhtml>
+                </documentation>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">calcCycleTime := (TO_LREAL(tCurrent) - TO_LREAL(tLastTimeStamp)) * 1E-9;
+tLastTimeStamp  := tCurrent;  // memory timestamp</xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="checkForMark" ObjectId="5b5c61c6-faec-413a-b0fc-c62604001c4a">
+              <interface>
+                <returnType>
+                  <BOOL />
+                </returnType>
+                <inputVars>
+                  <variable name="pMark">
+                    <type>
+                      <pointer>
+                        <baseType>
+                          <derived name="ST_MarkDefinition" />
+                        </baseType>
+                      </pointer>
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> mark to search for</xhtml>
+                    </documentation>
+                  </variable>
+                </inputVars>
+                <outputVars>
+                  <variable name="bErr">
+                    <type>
+                      <BOOL />
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> </xhtml>
+                    </documentation>
+                  </variable>
+                  <variable name="bStartMark">
+                    <type>
+                      <BOOL />
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> a start mark was detected</xhtml>
+                    </documentation>
+                  </variable>
+                </outputVars>
+                <localVars>
+                  <variable name="nAbortMarkAfter">
+                    <type>
+                      <DINT />
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> max. length to search for mark end before aborting this mark [SubPx]</xhtml>
+                    </documentation>
+                  </variable>
+                  <variable name="bTooShort">
+                    <type>
+                      <BOOL />
+                    </type>
+                  </variable>
+                  <variable name="bTooLong">
+                    <type>
+                      <BOOL />
+                    </type>
+                  </variable>
+                </localVars>
+                <addData>
+                  <data name="http://www.3s-software.com/plcopenxml/accessmodifiers" handleUnknown="implementation">
+                    <AccessModifiers Private="true" />
+                  </data>
+                </addData>
+                <documentation>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">
+  Poll for sensor triggers and marks.
+  :return: true if a mark was detected
+</xhtml>
+                </documentation>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">IF pMark = 0 THEN RETURN; END_IF
+IF bResetDetection THEN   // reset methods internal states
+  bMarkStartDetected := FALSE; bMarkEndDetected := FALSE;
+  bInhibitTrigger := FALSE; 
+  bResetDetection := FALSE;
+  bErr := FALSE;
+END_IF
+
+// --- Simulation for testing
+IF _bSimEnable THEN   // simulate some marks for testing
+  checkForMark := SimMarks(pMark:=pMark, bStartMark=&gt;bStartMark);
+  RETURN; 
+  
+// --- Generate masks if none are available
+ELSIF pMark^.bVirtual THEN    // generate marks (for NoMark mode)
+  checkForMark := GenMark(pMark:=pMark, bStartMark=&gt;bStartMark);
+  RETURN;
+END_IF
+
+
+// --- Use sensor
+rfEdgeSensor(CLK:=bIKp_StartSensor);   // edge detection
+nAbortMarkAfter := F_MeterToSubPixel(fPosMeter:=pMark^.fTrLength + pMark^.fSqLength + fC_MarkLengthMargin + fCycleTime*fCurrentSpeed, fResoSubPx:=_fResolution); // mark len + margin + one cycle
+
+// -- rising edge detection
+IF rfEdgeSensor.RT AND NOT bInhibitTrigger THEN
+  tRisingEdge := tIKp_TimeStampPos;   // sample input
+  nRisingPos  := getExactPosition(tNow:=tNowDc, tEdge:=tRisingEdge, nPos:=nCurrentPos, fSpeed:=fCurrentSpeed);   // position where mark was seen
+  bMarkStartDetected := TRUE;
+END_IF;
+// -- falling edge detection
+IF rfEdgeSensor.FT AND NOT bInhibitTrigger THEN
+  // falling edge
+  tFallingEdge := tIKn_TimeStampNeg;
+  nFallingPos := getExactPosition(tNow:=tNowDc, tEdge:=tFallingEdge, nPos:=nCurrentPos, fSpeed:=fCurrentSpeed);   // position where mark was seen
+  IF NOT bMarkStartDetected THEN
+    // abort
+    bErr := TRUE; LogError('Missing rising trigger edge before falling edge');
+    bMarksDetectErr_Repeat := TRUE;
+  ELSE
+    // ok                    
+    bMarkEndDetected := TRUE; 
+  END_IF
+END_IF
+// - abort search for end
+IF bMarkStartDetected AND (nCurrentPos - nRisingPos) &gt; nAbortMarkAfter THEN      // abort after waiting for end
+  // Abort - Expected falling edge missed
+  bErr := TRUE; LogWarning(F_Concat2('Mark end not given after [SubPx]:', TO_STRING(nAbortMarkAfter)));
+  bMarksDetectErr_Repeat := TRUE;
+  //  nFallingPos := nRisingPos + F_MeterToSubPixel(fPosMeter:=pMark^.fTrLength/2+pMark^.fSqLength, fResoSubPx:=_fResolution);  // set still a valid pos
+  //  bMarkEndDetected := TRUE;
+  //  pMark^.sState.bMissed := TRUE;
+END_IF;
+
+// mark evaluation 
+IF bMarkStartDetected AND bMarkEndDetected THEN
+ 
+  // check mark &amp; calculate offsets
+  fMarkDuration := ABS(ULINT_TO_LREAL(tFallingEdge) - ULINT_TO_LREAL(tRisingEdge));		// Calculate how long the signal was ON
+  // define and check mark
+  IF analizeMark( pMark:=pMark,
+                  nDetectedPos:=SEL(bReverse, nRisingPos, nFallingPos),
+                  fRealMarkLength:=fMarkDuration * fCurrentSpeed * 0.000_000_001,
+                  bStartMark =&gt; bStartMark,
+                  bTooLong =&gt; bTooLong,
+                  bTooShort =&gt; bTooShort,
+               )
+  THEN
+    checkForMark := TRUE;      // a valid mark detected
+  ELSE
+    IF bTooShort THEN bMarksTooShort_Repeat := TRUE; bMarksDetectErr_Repeat := TRUE; END_IF   // apply some error tracing
+    IF bTooLong THEN bMarksDetectErr_Repeat := TRUE; END_IF   // apply some error tracing
+    bErr := TRUE;  // invalid mark detected
+	END_IF
+  
+ 
+  SaveToMarkHistory(pMark:=pMark);    // Save to mark history
+  
+  bResetDetection := TRUE;   // reset detection logic
+END_IF
+
+IF bErr THEN bResetDetection := TRUE; END_IF    // reset marks on any error as well
+
+</xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="GenMark" ObjectId="2f317964-7083-44aa-8e69-e459b32a4afb">
+              <interface>
+                <returnType>
+                  <BOOL />
+                </returnType>
+                <inputVars>
+                  <variable name="pMark">
+                    <type>
+                      <pointer>
+                        <baseType>
+                          <derived name="ST_MarkDefinition" />
+                        </baseType>
+                      </pointer>
+                    </type>
+                  </variable>
+                </inputVars>
+                <outputVars>
+                  <variable name="bStartMark">
+                    <type>
+                      <BOOL />
+                    </type>
+                  </variable>
+                </outputVars>
+                <addData>
+                  <data name="http://www.3s-software.com/plcopenxml/accessmodifiers" handleUnknown="implementation">
+                    <AccessModifiers Private="true" />
+                  </data>
+                </addData>
+                <documentation>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">
+  Generate detected marks.
+</xhtml>
+                </documentation>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">IF pMark = 0 THEN RETURN; END_IF
+
+nImageLength := F_MeterToSubPixel(fPosMeter:=_fSubstrateLength + _fSubstrateGap, fResoSubPx:=_fResolution);
+IF nImageLength = 0 THEN RETURN; END_IF
+
+
+IF NOT bMarkOn THEN  // start new mark
+
+  // create rising edge
+  IF pMark^.nId = 1 THEN          // a start mark
+    // wait for next StartPosition
+    IF nCurrentPos &gt;= nLastStartMarkPosition + nImageLength THEN
+
+      // fix bigger gaps than next sheet (always try to start repeats at a multiple of last repeat)
+      IF (nCurrentPos - nLastStartMarkPosition) / nImageLength &gt; 2 THEN
+        nLastStartMarkPosition := nLastStartMarkPosition + ((((nCurrentPos - nLastStartMarkPosition) / nImageLength) -1) * nImageLength);  // correct to one sheet before 
+			END_IF 
+      
+      nLastStartMarkPosition := nLastStartMarkPosition + nImageLength;      // save last repeat position   
+      
+      pMark^.sState.nPosXReal := nLastStartMarkPosition + F_MeterToSubPixel(fPosMeter:=pMark^.fPosX, fResoSubPx:=_fResolution); // mark detected position
+      pMark^.sState.fLengthReal := 0;
+      pMark^.sState.dx := 0;
+      pMark^.sState.dy := 0;
+      pMark^.sState.bInArea := TRUE;
+      pMark^.sState.bSet := TRUE;
+      bMarkOn := TRUE;
+    END_IF
+	ELSE
+    // wait for next mark position
+    IF F_SubPixelToMeter(lPosSubPx:=ABS(nCurrentPos - nLastStartMarkPosition), fResSubPx:=_fResolution) &gt;= pMark^.fPosX THEN
+     
+      pMark^.sState.nPosXReal := nLastStartMarkPosition + F_MeterToSubPixel(fPosMeter:=pMark^.fPosX, fResoSubPx:=_fResolution); // 
+      pMark^.sState.fLengthReal := 0;
+      pMark^.sState.dx := 0;
+      pMark^.sState.dy := 0;
+      pMark^.sState.bInArea := TRUE;
+      pMark^.sState.bSet := TRUE;
+      bMarkOn := TRUE;
+		END_IF
+  END_IF
+  
+ELSE
+  // end mark after one dycle
+  bMarkOn := FALSE;
+  IF pMark^.nId = 1 THEN bStartMark := TRUE; END_IF  
+  GenMark := TRUE;      // reset after one cycle active
+  SaveToMarkHistory(pMark:=pMark);    // Save to mark history
+END_IF
+</xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="getExactPosition" ObjectId="caab2ebd-553a-4e49-935d-0b7b1e82d497">
+              <interface>
+                <returnType>
+                  <DINT />
+                </returnType>
+                <inputVars>
+                  <variable name="tNow">
+                    <type>
+                      <derived name="T_DCTIME64" />
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> current system time</xhtml>
+                    </documentation>
+                  </variable>
+                  <variable name="tEdge">
+                    <type>
+                      <derived name="T_DCTIME64" />
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> detected time</xhtml>
+                    </documentation>
+                  </variable>
+                  <variable name="nPos">
+                    <type>
+                      <DINT />
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> current (encoder) position at the current time</xhtml>
+                    </documentation>
+                  </variable>
+                  <variable name="fSpeed">
+                    <type>
+                      <LREAL />
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> current speed for the timestamped position correction calculation</xhtml>
+                    </documentation>
+                  </variable>
+                </inputVars>
+                <localVars>
+                  <variable name="fDeltaDistance">
+                    <type>
+                      <LREAL />
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> Distance that the substrate moved between the detection and the treatment of the information</xhtml>
+                    </documentation>
+                  </variable>
+                </localVars>
+                <addData>
+                  <data name="http://www.3s-software.com/plcopenxml/accessmodifiers" handleUnknown="implementation">
+                    <AccessModifiers Private="true" />
+                  </data>
+                </addData>
+                <documentation>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml"> calculate the exact detected position
+ :returns: the X0 position</xhtml>
+                </documentation>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">// calculation like DMAX
+fDeltaDistance := UINT64_TO_LREAL(UInt64Sub64(ULINT_TO_ULARGE(tNowDc), ULINT_TO_ULARGE(tEdge))) * 1E-9 * fSpeed;
+getExactPosition := nPos - TO_DINT(fDeltaDistance); 
+
+// before calculation with some compensation
+(*
+  // Calculate the original position in our position domain
+  tCurrentTime  := F_GetCurDcTaskTime64();
+  fL_CurrentTimeStamp  := (ULINT_TO_LREAL(tCurrentTime) - (nC_CurrentTimeStampComp * 1_000)) / 1_000_000.0; (*in ms*)
+  fI_Sensor_TimeStamp := (ULINT_TO_LREAL(tRisingEdge) - (nC_SensorTimeStampComp  * 1_000)) / 1_000_000.0; (*in ms*)
+
+  // Treatment of the information
+  fDeltaDistance := (fL_CurrentTimeStamp - fI_Sensor_TimeStamp) * 0.001 * fCurrentSpeed;	(* Distance in pulses that the substrate has traveled between the sensor detection and the PLC treatment *)
+  iL_DeltaPosition := FC_LREAL_TO_DINT(fDeltaDistance * (1 / (0.0254 / fI_Resolution)));  (*1/1px*)	(* Travel of the substrate between the time of acquisition and the time of treatment *)
+  nOffset_X0       := nCurrentPos - iL_DeltaPosition;	(* Position where the sheet has been detected *)
+*)
+</xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="getLastX0" ObjectId="33d2561b-84c1-4070-bee0-64f7122e7896">
+              <interface>
+                <returnType>
+                  <DINT />
+                </returnType>
+                <localVars>
+                  <variable name="pLastStartMark">
+                    <type>
+                      <pointer>
+                        <baseType>
+                          <derived name="ST_MarkDefinition" />
+                        </baseType>
+                      </pointer>
+                    </type>
+                  </variable>
+                </localVars>
+                <addData>
+                  <data name="http://www.3s-software.com/plcopenxml/accessmodifiers" handleUnknown="implementation">
+                    <AccessModifiers Private="true" />
+                  </data>
+                </addData>
+                <documentation>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">
+  Get X0 from detected start mark
+</xhtml>
+                </documentation>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">pLastStartMark := _pFbMarkDefinition^.pLastStartMark;
+IF pLastStartMark &lt;&gt; 0 THEN
+  getLastX0 := pLastStartMark^.sState.nPosXReal - F_MeterToSubPixel(fPosMeter:=pLastStartMark^.fPosX, fResoSubPx:=_fResolution);
+END_IF
+ </xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="getMarkDistanceEffective" ObjectId="1f1e47da-e7ba-4b9b-8bcd-9447d37a1890">
+              <interface>
+                <returnType>
+                  <LREAL />
+                </returnType>
+                <inputVars>
+                  <variable name="pMark">
+                    <type>
+                      <pointer>
+                        <baseType>
+                          <derived name="ST_MarkDefinition" />
+                        </baseType>
+                      </pointer>
+                    </type>
+                  </variable>
+                </inputVars>
+                <localVars>
+                  <variable name="pFirstMark">
+                    <type>
+                      <pointer>
+                        <baseType>
+                          <derived name="ST_MarkDefinition" />
+                        </baseType>
+                      </pointer>
+                    </type>
+                  </variable>
+                </localVars>
+                <addData>
+                  <data name="http://www.3s-software.com/plcopenxml/accessmodifiers" handleUnknown="implementation">
+                    <AccessModifiers Private="true" />
+                  </data>
+                </addData>
+                <documentation>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">
+  Calculate effective distance of mark to X0 [m]
+</xhtml>
+                </documentation>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">IF pMark = 0 THEN RETURN; END_IF
+
+IF pMark^.nId = 1 THEN 
+  getMarkDistanceEffective := pMark^.fPosX;
+ELSE
+  pFirstMark := _pFbMarkDefinition^.getMark(nIdx:=1);
+  IF pFirstMark &lt;&gt; 0 THEN
+    // real distance between this mark and start mark + fPosX of start mark
+    getMarkDistanceEffective := pFirstMark^.fPosX + F_SubPixelToMeter(lPosSubPx:=pMark^.sState.nPosXReal - pFirstMark^.sState.nPosXReal, fResSubPx:=_fResolution);
+  END_IF
+END_IF</xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="Init" ObjectId="8ef9a6c7-7c5d-4ecb-ab2d-81464dbe108a">
+              <interface>
+                <inputVars>
+                  <variable name="fPrintResolution">
+                    <type>
+                      <LREAL />
+                    </type>
+                    <initialValue>
+                      <simpleValue value="600" />
+                    </initialValue>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> print(head) resolution in [dpi]</xhtml>
+                    </documentation>
+                  </variable>
+                  <variable name="fSubPxResolution">
+                    <type>
+                      <LREAL />
+                    </type>
+                    <initialValue>
+                      <simpleValue value="32" />
+                    </initialValue>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> SubPixel resolution [SubPx], resolution factor (fI_PrintResolution*fI_SubPxResolution=&gt;Output resolution)</xhtml>
+                    </documentation>
+                  </variable>
+                  <variable name="pFbMarkDefinition">
+                    <type>
+                      <pointer>
+                        <baseType>
+                          <derived name="FB_MarkDefinition" />
+                        </baseType>
+                      </pointer>
+                    </type>
+                  </variable>
+                </inputVars>
+                <localVars>
+                  <variable name="i">
+                    <type>
+                      <UDINT />
+                    </type>
+                  </variable>
+                </localVars>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">IF fPrintResolution = 0 OR fSubPxResolution = 0 OR pFbMarkDefinition = 0 THEN LogError('Init: invalid parameter'); RETURN; END_IF
+
+_fResolution := fPrintResolution * fSubPxResolution;
+_pFbMarkDefinition:= pFbMarkDefinition;
+
+Reset();
+
+bInitOk := TRUE;</xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="Reset" ObjectId="41704a3d-1ee5-4523-bb36-536ca832b13d">
+              <interface>
+                <documentation>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">
+  Reset internal state and all marks
+</xhtml>
+                </documentation>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">IF NOT bInitOk THEN RETURN; END_IF
+
+_bValid := FALSE;
+_bStartTrig := FALSE;
+nMarkSelection := 1; // start mark
+
+// reset camera (release if one is selected)
+IF bSheetActive THEN
+  IF _iActiveCam &lt;&gt; 0 THEN _iActiveCam.CamTriggerDone(); END_IF   // notify an done/abort
+END_IF
+_pFbMarkDefinition^.ResetMarkStates();  // reset detected marks
+bSheetActive := FALSE;
+bResetDetection := TRUE;        // reset checkForMark() state machine
+</xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="SaveToMarkHistory" ObjectId="d87f8cb3-416b-4daf-90f8-5d127f8bbf85">
+              <interface>
+                <inputVars>
+                  <variable name="pMark">
+                    <type>
+                      <pointer>
+                        <baseType>
+                          <derived name="ST_MarkDefinition" />
+                        </baseType>
+                      </pointer>
+                    </type>
+                  </variable>
+                </inputVars>
+                <localVars>
+                  <variable name="i">
+                    <type>
+                      <UDINT />
+                    </type>
+                  </variable>
+                </localVars>
+                <addData>
+                  <data name="http://www.3s-software.com/plcopenxml/accessmodifiers" handleUnknown="implementation">
+                    <AccessModifiers Private="true" />
+                  </data>
+                </addData>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">FOR i:=0 TO nC_HistorySize-1 DO sMarkHistory[i].sView.colorFill := 16#FFE2DDDB; END_FOR   // clear selection
+nMarkHistoryCt := (nMarkHistoryCt + 1) MOD nC_HistorySize;
+sMarkHistory[nMarkHistoryCt] := pMark^;
+sMarkHistory[nMarkHistoryCt].sView.colorFill := 16#FF90EE90;
+
+</xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="SheetStart" ObjectId="25997832-7f0a-4a0e-bced-1962863c1d9b">
+              <interface>
+                <inputVars>
+                  <variable name="pMark">
+                    <type>
+                      <pointer>
+                        <baseType>
+                          <derived name="ST_MarkDefinition" />
+                        </baseType>
+                      </pointer>
+                    </type>
+                  </variable>
+                </inputVars>
+                <localVars>
+                  <variable name="sMarkBackup">
+                    <type>
+                      <derived name="ST_MarkDefinition" />
+                    </type>
+                  </variable>
+                </localVars>
+                <addData>
+                  <data name="http://www.3s-software.com/plcopenxml/accessmodifiers" handleUnknown="implementation">
+                    <AccessModifiers Private="true" />
+                  </data>
+                </addData>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">_nX0 := pMark^.sState.nPosXReal - F_MeterToSubPixel(fPosMeter:=pMark^.fPosX, fResoSubPx:=_fResolution);
+_bStartTrig := TRUE;
+
+// (force) terminate a sheet/repeat
+IF bSheetActive THEN 
+  IF _bVerbose THEN LogInfo(F_Concat2('Terminate sheet/repeat with new Start Mark', '')); END_IF
+  sMarkBackup := pMark^;   // push 
+  SheetStop(nNewX0:=_nX0);
+  pMark^:= sMarkBackup;    // pop
+END_IF
+
+IF _bVerbose THEN LogInfo(F_Concat2('SheetStart at X0=', TO_STRING(_nX0))); END_IF
+
+// save (start) mark
+_pFbMarkDefinition^.saveMark(pMark:=pMark);
+
+// trigger camera
+IF _iActiveCam&lt;&gt;0 THEN _iActiveCam.CamTrigger(bOk:=TRUE, nPos:=_nX0, nPosDeviation:=0, nX0:=_nX0); END_IF
+
+// reset debug states
+bLenNotInRange_Repeat  := FALSE;
+bStartOverrun_Repeat   := FALSE;
+bMissingMarks_Repeat   := FALSE;
+bMarksTooShort_Repeat  := FALSE;
+bMarksDetectErr_Repeat := FALSE;
+
+bSheetActive := TRUE;</xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="SheetStop" ObjectId="aa4bc7d7-6e77-4e6b-a690-9267a6518d8b">
+              <interface>
+                <inputVars>
+                  <variable name="nNewX0">
+                    <type>
+                      <DINT />
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml"> new detected X0</xhtml>
+                    </documentation>
+                  </variable>
+                </inputVars>
+                <localVars>
+                  <variable name="i">
+                    <type>
+                      <UDINT />
+                    </type>
+                  </variable>
+                  <variable name="pLastMark">
+                    <type>
+                      <pointer>
+                        <baseType>
+                          <derived name="ST_MarkDefinition" />
+                        </baseType>
+                      </pointer>
+                    </type>
+                  </variable>
+                  <variable name="fD">
+                    <type>
+                      <LREAL />
+                    </type>
+                  </variable>
+                  <variable name="fSLen">
+                    <type>
+                      <LREAL />
+                    </type>
+                  </variable>
+                  <variable name="nDetectedX0">
+                    <type>
+                      <DINT />
+                    </type>
+                  </variable>
+                </localVars>
+                <addData>
+                  <data name="http://www.3s-software.com/plcopenxml/accessmodifiers" handleUnknown="implementation">
+                    <AccessModifiers Private="true" />
+                  </data>
+                </addData>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">// - terminate
+IF _bVerbose THEN LogInfo(F_Concat2('SheetStop()', '')); END_IF
+
+fSLen := _fSubstrateLength;  // (default) original length
+
+// calculate effective sheet length
+nDetectedX0 := getLastX0();   // get sampled X0
+IF nNewX0 &lt;&gt; 0 AND nDetectedX0 &lt;&gt; 0 THEN
+  // real diff between two starts
+  fD := F_SubPixelToMeter(lPosSubPx:=nNewX0 - nDetectedX0, fResSubPx:=_fResolution);
+  IF fD &lt; (_fSubstrateLength * fC_MaxSubstrateFactor) THEN
+    fSLen := fD;
+  END_IF 
+ELSIF nNewX0 = 0 AND _pFbMarkDefinition^.nMarksDetected &gt; 1 THEN
+  // calculate based on last detected mark (a strech factor)
+  pLastMark:= _pFbMarkDefinition^.getMark(nIdx:=0);     // get last available mark
+  fD := getMarkDistanceEffective(pMark:=pLastMark); 
+  fSLen := (pLastMark^.fPosX/SEL(fD&lt;&gt;0, pLastMark^.fPosX, fD)) * _fSubstrateLength; // estimate real length with last mark
+END_IF
+_fSubstrateLengthEffective := fSLen;
+
+
+// debug history
+FOR i:=0 TO nC_HistorySize-1 DO sRepeatHistory[i].bSelected := FALSE; END_FOR   // clear selection
+nRepeatCt := (nRepeatCt + 1) MOD nC_HistorySize;
+sRepeatHistory[nRepeatCt].bSelected       := TRUE;
+sRepeatHistory[nRepeatCt].nIndex          := nRepeatCt+1;
+sRepeatHistory[nRepeatCt].nX0             := nDetectedX0;
+sRepeatHistory[nRepeatCt].fLen            := _fSubstrateLength;
+sRepeatHistory[nRepeatCt].fLenEffective   := _fSubstrateLengthEffective;
+sRepeatHistory[nRepeatCt].fLenDiff        := _fSubstrateLengthEffective - _fSubstrateLength;
+sRepeatHistory[nRepeatCt].bLenNotInRange  := bLenNotInRange_Repeat;
+sRepeatHistory[nRepeatCt].bStartOverrun   := bStartOverrun_Repeat;
+sRepeatHistory[nRepeatCt].bMissingMarks   := bMissingMarks_Repeat;
+sRepeatHistory[nRepeatCt].bMarksTooShort  := bMarksTooShort_Repeat;
+sRepeatHistory[nRepeatCt].bMarksDetectErr := bMarksDetectErr_Repeat;
+
+
+IF _iActiveCam&lt;&gt;0 THEN _iActiveCam.CamTriggerDone(); END_IF 
+_pFbMarkDefinition^.ResetMarkStates();
+
+bSheetActive := FALSE;</xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="strMark" ObjectId="e8dcc4db-58b5-4337-a3fd-a299a10d8a8a">
+              <interface>
+                <returnType>
+                  <derived name="T_MaxString" />
+                </returnType>
+                <inputVars>
+                  <variable name="pMark">
+                    <type>
+                      <pointer>
+                        <baseType>
+                          <derived name="ST_MarkDefinition" />
+                        </baseType>
+                      </pointer>
+                    </type>
+                  </variable>
+                </inputVars>
+                <localVars>
+                  <variable name="IdFormatted">
+                    <type>
+                      <string />
+                    </type>
+                  </variable>
+                </localVars>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">fbStrFormat(sFormat:='%.2d', arg1:=F_DINT(pMark^.nId), sOut=&gt;IdFormatted);
+strMark := F_Concat6(
+  F_Concat2('Id:',   IdFormatted),
+  F_Concat2(' Set:', SEL(pMark^.sState.bSet,'0','1')),
+  F_Concat2(' posX:', LREAL_TO_FMTSTR( pMark^.fPosX, 5, TRUE )),
+  F_Concat2(' posY:', LREAL_TO_FMTSTR( pMark^.fPosY, 5, TRUE )),
+  F_Concat2(' dx:', LREAL_TO_FMTSTR( pMark^.sState.dx, 5, TRUE )),
+  F_Concat2(' dy:', LREAL_TO_FMTSTR( pMark^.sState.dy, 5, TRUE )),
+);</xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="Disable" ObjectId="568fbd66-37a4-4787-b6c9-f80109bbf4eb">
+              <interface>
+                <returnType>
+                  <BOOL />
+                </returnType>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">_iActiveCam := 0;
+Disable := TRUE;
+</xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="Enable" ObjectId="65ffe8ba-a2c4-457f-8248-f36c7b7604d9">
+              <interface>
+                <returnType>
+                  <BOOL />
+                </returnType>
+                <inputVars>
+                  <variable name="iCam">
+                    <type>
+                      <derived name="I_CameraTriggerDevice" />
+                    </type>
+                  </variable>
+                  <variable name="bUseCameraTrigger">
+                    <type>
+                      <BOOL />
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml">Generate camera trigger</xhtml>
+                    </documentation>
+                  </variable>
+                  <variable name="bUseCameraTriggerFeedback">
+                    <type>
+                      <BOOL />
+                    </type>
+                    <documentation>
+                      <xhtml xmlns="http://www.w3.org/1999/xhtml">Use feedback as trigger?</xhtml>
+                    </documentation>
+                  </variable>
+                </inputVars>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">IF iCam = 0 THEN
+  Enable := FALSE;
+  LogError('setCam failed: invalid reference');
+ELSE
+  _iActiveCam := iCam;
+  Enable     := TRUE;
+
+  // save constant settings
+  _bUseCameraTrigger := bUseCameraTrigger;
+  _bUseCameraTriggerFeedback := bUseCameraTriggerFeedback;
+  
+  IF _bUseCameraTrigger OR _bUseCameraTriggerFeedback THEN
+    LogWarning('Enable: Camera Trigger output/feedback not yet supported');
+	END_IF
+END_IF;</xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="SetSubstrateLength" ObjectId="85e40680-5de7-433a-81b1-59e81722652b">
+              <interface>
+                <inputVars>
+                  <variable name="fSubstrateLength">
+                    <type>
+                      <LREAL />
+                    </type>
+                  </variable>
+                </inputVars>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">IF NOT bInitOk THEN RETURN;END_IF;
+
+(*reduced by margin (for endless mode with potential smaller printed repetition)*)
+_fSubstrateLength := fSubstrateLength;
+//_nSubstrateLength := F_MeterToSubPixel(fPosMeter:=_fSubstrateLength, fResoSubPx:=_fResolution);</xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="manualTrigger" ObjectId="3e3bbe90-afeb-485c-a531-49f417b7ea76">
+              <interface>
+                <returnType>
+                  <BOOL />
+                </returnType>
+                <addData>
+                  <data name="http://www.3s-software.com/plcopenxml/accessmodifiers" handleUnknown="implementation">
+                    <AccessModifiers Private="true" />
+                  </data>
+                </addData>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">rfTrig_ManuTrigger(CLK:=bManualTrigger);
+
+IF rfTrig_ManuTrigger.RT THEN
+  LogWarning('manualTrigger not yet implemented');
+END_IF
+
+manualTrigger := rfTrig_ManuTrigger.RT;</xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/method" handleUnknown="implementation">
+            <Method name="SimMarks" ObjectId="f2bb41e7-9b52-430a-b163-0f707b6ca248">
+              <interface>
+                <returnType>
+                  <BOOL />
+                </returnType>
+                <inputVars>
+                  <variable name="pMark">
+                    <type>
+                      <pointer>
+                        <baseType>
+                          <derived name="ST_MarkDefinition" />
+                        </baseType>
+                      </pointer>
+                    </type>
+                  </variable>
+                </inputVars>
+                <outputVars>
+                  <variable name="bStartMark">
+                    <type>
+                      <BOOL />
+                    </type>
+                  </variable>
+                </outputVars>
+                <addData>
+                  <data name="http://www.3s-software.com/plcopenxml/accessmodifiers" handleUnknown="implementation">
+                    <AccessModifiers Private="true" />
+                  </data>
+                </addData>
+              </interface>
+              <body>
+                <ST>
+                  <xhtml xmlns="http://www.w3.org/1999/xhtml">IF pMark = 0 THEN RETURN; END_IF
+
+// when sim enabled AND auto-trigger then create a StartMark after every sheet/repeat length
+//  then generate every following intermediate mark with a given length
+
+IF NOT bMarkOn THEN  // start new mark
+  // create rising edge
+  IF pMark^.nId = 1 THEN
+    // wait for next StartPosition
+    IF F_SubPixelToMeter(lPosSubPx:=ABS(nCurrentPos - nLastStartMarkPosition), fResSubPx:=_fResolution) &gt;= _fSubstrateLength + _fSubstrateGap THEN
+      nLastStartMarkPosition := nCurrentPos;      // save start mark pos
+      fStartMarkOffset := pMark^.fPosX;   // save start mark displacement from X0
+      pMark^.sState.nPosXReal := nCurrentPos;  // save rising edge
+      nMarkStarted := nCurrentPos;
+      l := F_MeterToSubPixel(fPosMeter:=pMark^.fSqLength + (pMark^.fTrLength/2), fResoSubPx:=_fResolution); // mark length
+      bMarkOn := TRUE;
+    END_IF
+	ELSE
+    // wait for next mark position
+    IF F_SubPixelToMeter(lPosSubPx:=ABS(nCurrentPos - nLastStartMarkPosition), fResSubPx:=_fResolution) &gt;= pMark^.fPosX - fStartMarkOffset THEN
+      pMark^.sState.nPosXReal := nCurrentPos;  // save rising edge
+      nMarkStarted := nCurrentPos;
+      l := F_MeterToSubPixel(fPosMeter:=pMark^.fSqLength + (pMark^.fTrLength/2), fResoSubPx:=_fResolution); // mark length
+      bMarkOn := TRUE;
+		END_IF
+  END_IF
+  
+ELSE
+  // create falling edge
+  IF (nCurrentPos - nMarkStarted) &gt; l THEN
+    rand(Seed:=13, Num=&gt;rlrand);  // TODO: find a right scale 
+    analizeMark(pMark:=pMark, nDetectedPos:=nMarkStarted, fRealMarkLength:=F_SubPixelToMeter(lPosSubPx:=nCurrentPos - nMarkStarted, fResSubPx:=_fResolution));
+    bMarkOn := FALSE;
+    If pMark^.nId = 1 THEN bStartMark := TRUE; END_IF
+    SimMarks := TRUE;    // mark done
+    SaveToMarkHistory(pMark:=pMark);    // Save to mark history
+  END_IF
+END_IF
+</xhtml>
+                </ST>
+              </body>
+              <addData />
+            </Method>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/property" handleUnknown="implementation" />
+          <data name="http://www.3s-software.com/plcopenxml/property" handleUnknown="implementation" />
+          <data name="http://www.3s-software.com/plcopenxml/property" handleUnknown="implementation" />
+          <data name="http://www.3s-software.com/plcopenxml/property" handleUnknown="implementation" />
+          <data name="http://www.3s-software.com/plcopenxml/property" handleUnknown="implementation" />
+          <data name="http://www.3s-software.com/plcopenxml/property" handleUnknown="implementation" />
+          <data name="http://www.3s-software.com/plcopenxml/buildproperties" handleUnknown="implementation">
+            <BuildProperties>
+              <ExcludeFromBuild>true</ExcludeFromBuild>
+            </BuildProperties>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
+            <ObjectId>b62150a6-825e-437a-9373-f5f855e5f86e</ObjectId>
+          </data>
+        </addData>
+      </pou>
+    </pous>
+  </types>
+  <instances>
+    <configurations />
+  </instances>
+  <addData>
+    <data name="http://www.3s-software.com/plcopenxml/projectstructure" handleUnknown="discard">
+      <ProjectStructure>
+        <Object Name="FB_MarkDetection_v1" ObjectId="b62150a6-825e-437a-9373-f5f855e5f86e">
+          <Folder Name="I_CameraTrigger">
+            <Object Name="bManualTeach" ObjectId="0394ea46-e479-4b01-8e40-b42e26976645" />
+            <Object Name="Disable" ObjectId="568fbd66-37a4-4787-b6c9-f80109bbf4eb" />
+            <Object Name="Enable" ObjectId="65ffe8ba-a2c4-457f-8248-f36c7b7604d9" />
+            <Object Name="SetSubstrateLength" ObjectId="85e40680-5de7-433a-81b1-59e81722652b" />
+          </Folder>
+          <Folder Name="I_Sim">
+            <Object Name="bSimEnable" ObjectId="114cef08-ef9f-4655-a24a-d26bd75bffc8" />
+          </Folder>
+          <Folder Name="I_StartPosDetect">
+            <Object Name="bStartTrig" ObjectId="54688268-75b4-4e54-adee-9ba78173fccb" />
+            <Object Name="bValid" ObjectId="80a104b8-edb3-4882-883b-4d217d37420c" />
+            <Object Name="nStartPositionX0" ObjectId="cf3a635f-a07b-40ee-94a9-e8f8c803e2e1" />
+          </Folder>
+          <Folder Name="Sim">
+            <Object Name="fSubstrateGap" ObjectId="aa4395c4-e40d-41ec-b458-3a1d1f63f3fa" />
+            <Object Name="manualTrigger" ObjectId="3e3bbe90-afeb-485c-a531-49f417b7ea76" />
+            <Object Name="SimMarks" ObjectId="f2bb41e7-9b52-430a-b163-0f707b6ca248" />
+          </Folder>
+          <Object Name="analizeMark" ObjectId="0fe27d59-09a3-4778-96a6-e1374e41ae68" />
+          <Object Name="calcCycleTime" ObjectId="c5da9bc5-c89b-4d56-983b-87158bdbb28a" />
+          <Object Name="checkForMark" ObjectId="5b5c61c6-faec-413a-b0fc-c62604001c4a" />
+          <Object Name="GenMark" ObjectId="2f317964-7083-44aa-8e69-e459b32a4afb" />
+          <Object Name="getExactPosition" ObjectId="caab2ebd-553a-4e49-935d-0b7b1e82d497" />
+          <Object Name="getLastX0" ObjectId="33d2561b-84c1-4070-bee0-64f7122e7896" />
+          <Object Name="getMarkDistanceEffective" ObjectId="1f1e47da-e7ba-4b9b-8bcd-9447d37a1890" />
+          <Object Name="Init" ObjectId="8ef9a6c7-7c5d-4ecb-ab2d-81464dbe108a" />
+          <Object Name="Reset" ObjectId="41704a3d-1ee5-4523-bb36-536ca832b13d" />
+          <Object Name="SaveToMarkHistory" ObjectId="d87f8cb3-416b-4daf-90f8-5d127f8bbf85" />
+          <Object Name="SheetStart" ObjectId="25997832-7f0a-4a0e-bced-1962863c1d9b" />
+          <Object Name="SheetStop" ObjectId="aa4bc7d7-6e77-4e6b-a690-9267a6518d8b" />
+          <Object Name="strMark" ObjectId="e8dcc4db-58b5-4337-a3fd-a299a10d8a8a" />
+        </Object>
+      </ProjectStructure>
+    </data>
+  </addData>
+</project>

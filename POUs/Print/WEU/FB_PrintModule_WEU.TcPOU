@@ -31,7 +31,7 @@ VAR
   fbView              : FB_PrintModule_WEU_View;    // additional controls for print module visus
 END_VAR
 VAR CONSTANT
-  nC_NumMsgWeu        : UDINT := 5;           // number of internal messages
+  nC_NumMsgWeu        : UDINT := 6;           // number of internal messages
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[IF NOT bInit THEN RETURN; END_IF
@@ -125,9 +125,11 @@ fbMsgWeu[ 2](bI_Status := bTestMsg OR _pModuleMachineState^.bDriftControlMissMar
 fbMsgWeu[ 3](bI_Status := bTestMsg OR fbMarkCameraWeu.bMarkDetectionErrors);
 fbMsgWeu[ 4](bI_Status := bTestMsg OR fbMarkCameraWeu.bTeachError);
 fbMsgWeu[ 5](bI_Status := bTestMsg OR fbMarkCameraWeu.bImageLengthInvalid);
+fbMsgWeu[ 6](bI_Status := bTestMsg OR _bGridLimited);
 
 IF fb_MsgQueue.bO_ReceiptMessage THEN
   fbMarkCameraWeu.ackErrors();
+  _bGridLimited := FALSE;
 END_IF
 
 // simulation
@@ -217,6 +219,7 @@ fbMsgWeu[ 2].iI_MsgNumber      := eCMa_DRIFT_CONTR_ERROR;             // drift c
 fbMsgWeu[ 3].iI_MsgNumber      := eCPr_SHEET_MARK_DETECTION;          // mark error missing/faulty
 fbMsgWeu[ 4].iI_MsgNumber      := eC_STAG_CAM_TEACH_ERROR;            // teach error
 fbMsgWeu[ 5].iI_MsgNumber      := eC_STAG_IMAGELENGTH_NOT_SUPPORTED;  // image length not supported (out of supported range)
+fbMsgWeu[ 6].iI_MsgNumber      := eC_STAG_DEFORMATION_LIMITED;        // deformation calculated was limited to min/max before sending
 
 
 Init := bInit;   // set in the SUPER class]]></ST>
@@ -367,8 +370,10 @@ LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
       <LineId Id="656" Count="0" />
       <LineId Id="884" Count="0" />
       <LineId Id="661" Count="0" />
+      <LineId Id="918" Count="0" />
       <LineId Id="885" Count="0" />
       <LineId Id="663" Count="1" />
+      <LineId Id="919" Count="0" />
       <LineId Id="660" Count="0" />
       <LineId Id="285" Count="2" />
       <LineId Id="19" Count="0" />
@@ -417,6 +422,7 @@ LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
       <LineId Id="427" Count="0" />
       <LineId Id="432" Count="2" />
       <LineId Id="454" Count="1" />
+      <LineId Id="474" Count="0" />
       <LineId Id="431" Count="0" />
       <LineId Id="287" Count="0" />
       <LineId Id="286" Count="0" />

@@ -108,6 +108,15 @@ END_VAR
           <ST><![CDATA[fPrintLengthEffective := fBImageDeformation.fPrintLengthEffective;]]></ST>
         </Implementation>
       </Get>
+      <Set Name="Set" Id="{2f107666-9e21-4206-9f21-0682f8bac58c}">
+        <Declaration><![CDATA[
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fBImageDeformation.fPrintLengthEffective := fPrintLengthEffective;]]></ST>
+        </Implementation>
+      </Set>
     </Property>
     <Method Name="getDeformationPoint" Id="{2c7c8e7c-37b2-43e1-90a8-ea784d68621e}">
       <Declaration><![CDATA[(*
@@ -315,6 +324,9 @@ END_VAR]]></Declaration>
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.fPrintLengthEffective.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ContainerDefGrid.fPrintLengthEffective.Set">
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.getDeformationPoint">
