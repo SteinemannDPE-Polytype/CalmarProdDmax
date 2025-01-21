@@ -532,10 +532,11 @@ ELSIF pPoint^.dy >= _fLimitCorrectionY    THEN nExeedY := pPoint^.dy; pPoint^.dy
 ELSIF pPoint^.dy <= -1*_fLimitCorrectionY THEN nExeedY := pPoint^.dy; pPoint^.dy := -1*_fLimitCorrectionY; bLimited:=TRUE;
 END_IF
 IF bLimited THEN 
-  LogLvl(Lvl:=E_LogSeverity.Warning, Msg:=F_Concat5( 'Point=',TO_STRING(pPoint^.index),
-                                                     F_Concat5(' c/r(',TO_STRING(pPoint^.col),'/',TO_STRING(pPoint^.row), ') '),
-                                                     F_Concat4('dx:', TO_STRING(nExeedX), ' dy:', TO_STRING(nExeedY)),
-                                                     ' correction exceeded limit'));
+  LogLvl(Lvl:=E_LogSeverity.Warning, Msg:=F_Concat4( F_concat2('Correction limited - Point=',TO_STRING(pPoint^.index)),
+                                                     F_Concat5(' (c:',TO_STRING(pPoint^.col),'/r:',TO_STRING(pPoint^.row), ') '),
+                                                     F_Concat4('dx:', TO_STRING(nExeedX), 'px dy:', TO_STRING(nExeedY)),
+                                                     F_Concat4('px dx_max=+/-', TO_STRING(_fLimitCorrectionX), ' dy_max=+/-', TO_STRING(_fLimitCorrectionY))
+                                                    ));
 END_IF
 _bGridWasLimited := SEL(bLimited, FALSE, TRUE);
 correctionLimit := bLimited;]]></ST>
@@ -1309,6 +1310,7 @@ sim();]]></ST>
       <LineId Id="34" Count="0" />
       <LineId Id="37" Count="0" />
       <LineId Id="35" Count="0" />
+      <LineId Id="61" Count="0" />
       <LineId Id="8" Count="0" />
       <LineId Id="49" Count="0" />
       <LineId Id="27" Count="0" />

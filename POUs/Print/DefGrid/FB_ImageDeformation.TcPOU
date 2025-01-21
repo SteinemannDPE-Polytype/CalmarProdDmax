@@ -623,7 +623,6 @@ VAR
   ct : DINT;
   col_pos_px : LREAL;   // column position in [px]
   sTmpPoint : ST_DeformationPointAccurate;
-  
   dx, dy : LREAL;
   generateGridForCol : BOOL;
   Pn0, Pn1 : ST_CameraPointTbl;
@@ -647,7 +646,7 @@ ct := 0;
 FOR col:=_nLocalGridColsGenerated TO nGridCol DO      // loop over not yet gnerated columns 
   LogLvl(Lvl:=E_LogSeverity.Debug, Msg:= F_Concat2(F_Concat2('check grid for col: ', TO_STRING(col)), ''));
   
-  col_pos_px := nGridCol * _sDefGridSettings.nGridPitchX;
+  col_pos_px := col * _sDefGridSettings.nGridPitchX;
   dx:=0; dy:=0;
   
   bn0 := getCamNeighbourPoint(fPos:=col_pos_px, nOffset:=0, Pn=>Pn0);
