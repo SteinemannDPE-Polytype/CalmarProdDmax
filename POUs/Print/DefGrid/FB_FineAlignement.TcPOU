@@ -38,6 +38,8 @@ VAR PERSISTENT
   //-- banana correction
   _bEnable_banana : BOOL := FALSE;
   _e_max_per_deltaT : LREAL := 0.01;  // [mm/°C]  TODO: use from config
+  // Puc4p UI
+  aNamePucPoints : ARRAY[1..4] OF STRING := ['1 blue','2 red','3 green','4 olive'];
 END_VAR
 VAR CONSTANT
   // Unit test configuration

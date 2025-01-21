@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <Visu Name="_VISU_PlacementXY" Id="{17f498b7-d2c9-4c22-ab4b-3f8a77be311b}">
     <XmlArchive>
       <Data>
@@ -2503,10 +2503,10 @@
               <d n="FbMethods" t="CaseInsensitiveHashtable" ckt="String" cvt="Guid">
                 <v>FB_Init</v>
                 <v>931314a6-2636-4672-9698-de59e1e5fdb6</v>
-                <v>FB_Reinit</v>
-                <v>c902c28f-ea26-4b59-8795-e5210f578d1c</v>
                 <v>FB_Exit</v>
                 <v>094c7d17-04c7-4723-8091-f064618b8621</v>
+                <v>FB_Reinit</v>
+                <v>c902c28f-ea26-4b59-8795-e5210f578d1c</v>
               </d>
               <v n="FbName">"NotImportant"</v>
               <v n="FbGuid">{19bd3b46-b530-4f0b-b961-77d3b36b6d32}</v>
@@ -2615,7 +2615,7 @@
         <Type n="Hashtable">System.Collections.Hashtable</Type>
         <Type n="HotkeyConfiguration">{6b108d46-58af-4e41-a3f4-174d8f160cc4}</Type>
         <Type n="InputBoxInputAction">{e8e7e747-f76f-4dee-ab1c-b9637e41ac26}</Type>
-        <Type n="InputBoxInputAction[]">_3S.CoDeSys.VisualElem.InputBoxInputAction[], VisualElem.plugin, Version=3.5.13.30, Culture=neutral, PublicKeyToken=null</Type>
+        <Type n="InputBoxInputAction[]">_3S.CoDeSys.VisualElem.InputBoxInputAction[], VisualElem.plugin, Version=3.5.13.32, Culture=neutral, PublicKeyToken=null</Type>
         <Type n="Int16">System.Int16</Type>
         <Type n="Int32">System.Int32</Type>
         <Type n="Int64">System.Int64</Type>

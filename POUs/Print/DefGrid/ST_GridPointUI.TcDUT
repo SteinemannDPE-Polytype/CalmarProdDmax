@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_GridPointUI" Id="{dec19b05-9a12-4e65-83b7-f76091c872ab}">
+    <Declaration><![CDATA[TYPE ST_GridPointUI :
+STRUCT
+  valid         : BOOL := 0;      (*valid point?*)
+  col           : DINT := 0;      (*point definition*)
+  row           : DINT := 0;      (*point definition*)
+  x_ref         : LREAL := 0;     (*Referenz x [px]*)
+  y_ref         : LREAL := 0;     (*Referenz y [px]*)
+  dx            : LREAL := 0;     (*x deviation [px]*)
+  dy            : LREAL := 0;     (*y deviation [px]*)
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

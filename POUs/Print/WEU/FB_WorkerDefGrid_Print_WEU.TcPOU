@@ -636,7 +636,9 @@ VAR
   fCurrentColumnPos  : LREAL; // Currently column position (of current ct)
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[//TODO: rewrite this method to look cleaner (less if else)
+        <ST><![CDATA[
+
+//TODO: rewrite this method to look cleaner (less if else)
 IF sDefGridSettings.nGridSizeX  = 0 THEN RETURN; END_IF          // avoid endless loops
 IF sDefGridSettings.nGridSizeY  = 0 THEN RETURN; END_IF
 IF sDefGridSettings.nGridPitchX = 0 THEN RETURN; END_IF
@@ -911,9 +913,13 @@ WHILE pChargedCols^ < LIMIT(0, FLOOR(fCurrentPreCharge), sDefGridSettings.nGridS
         
         // send point
         IF NOT fbPs.newGridPoint(sPoint:=sPoint) THEN
-           LogError(Msg:='stream new point failed');
-           streamCorrection:=FALSE;
-           RETURN;
+          // err
+          LogError(Msg:='stream new point failed');
+          streamCorrection:=FALSE;
+          RETURN;
+        ELSE
+          // ok
+          pCT^.storeStreamedDeformationPoint(pPoint:=ADR(sPoint));    // save to sent table
         END_IF
       ELSE
         LogError(Msg:='get new grid point failed');
@@ -1338,6 +1344,7 @@ sim();]]></ST>
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print_WEU.gridUpdate">
+      <LineId Id="401" Count="1" />
       <LineId Id="295" Count="1" />
       <LineId Id="298" Count="0" />
       <LineId Id="346" Count="0" />
@@ -1477,7 +1484,11 @@ sim();]]></ST>
       <LineId Id="17" Count="9" />
       <LineId Id="120" Count="1" />
       <LineId Id="119" Count="0" />
-      <LineId Id="27" Count="13" />
+      <LineId Id="27" Count="1" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="29" Count="2" />
+      <LineId Id="153" Count="2" />
+      <LineId Id="32" Count="8" />
       <LineId Id="81" Count="0" />
       <LineId Id="80" Count="0" />
       <LineId Id="61" Count="0" />

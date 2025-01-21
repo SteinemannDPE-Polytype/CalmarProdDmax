@@ -164,6 +164,21 @@ bAborted := fBImageDeformation.bAborted;
 ]]></ST>
       </Implementation>
     </Method>
+    <Method Name="getDeformationTable" Id="{a5d7bfa6-d6c1-4cbd-be18-595250bb1bc9}">
+      <Declaration><![CDATA[METHOD getDeformationTable : BOOL
+VAR_INPUT
+  bStreamed : BOOL;   // TRUE: streamed table, FALSE: calculated grid table
+END_VAR
+VAR_OUTPUT
+  pTable   : POINTER TO ST_DeformationPointTbl;
+  nNumCols : UDINT;
+  nNumRows : UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[getDeformationTable := fBImageDeformation.getDeformationTable(bStreamed:=bStreamed, pTable=>pTable, nNumCols=>nNumCols, nNumRows=>nNumRows);]]></ST>
+      </Implementation>
+    </Method>
     <Property Name="LogLevel" Id="{6da142c4-2927-48a5-bf2d-7c92ac17257e}">
       <Declaration><![CDATA[PROPERTY LogLevel : E_LogSeverity
 ]]></Declaration>
@@ -287,6 +302,22 @@ END_VAR
 END_IF]]></ST>
       </Implementation>
     </Method>
+    <Method Name="storeStreamedDeformationPoint" Id="{4ec20a77-95ca-4384-ae73-3319996ee788}">
+      <Declaration><![CDATA[(*
+  save a streamed deformation point.
+  :returns: TRUE if successful
+*)
+METHOD storeStreamedDeformationPoint : BOOL;
+VAR_INPUT
+  pPoint : POINTER TO ST_DeformationPointAccurate;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF pPoint = 0 THEN RETURN; END_IF
+
+storeStreamedDeformationPoint := fBImageDeformation.storeStreamedDeformationPoint(pPoint:=pPoint);]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="UpdateDeformation" Id="{ca2f28fa-632e-448d-aace-7cab62296cdd}">
       <Declaration><![CDATA[METHOD UpdateDeformation
 VAR_INPUT
@@ -336,6 +367,9 @@ END_VAR]]></Declaration>
       <LineId Id="167" Count="7" />
       <LineId Id="13" Count="0" />
     </LineIds>
+    <LineIds Name="FB_ContainerDefGrid.getDeformationTable">
+      <LineId Id="5" Count="0" />
+    </LineIds>
     <LineIds Name="FB_ContainerDefGrid.LogLevel.Get">
       <LineId Id="5" Count="0" />
     </LineIds>
@@ -380,6 +414,10 @@ END_VAR]]></Declaration>
     <LineIds Name="FB_ContainerDefGrid.StopScript">
       <LineId Id="3" Count="2" />
       <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ContainerDefGrid.storeStreamedDeformationPoint">
+      <LineId Id="60" Count="1" />
+      <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.UpdateDeformation">
       <LineId Id="91" Count="0" />

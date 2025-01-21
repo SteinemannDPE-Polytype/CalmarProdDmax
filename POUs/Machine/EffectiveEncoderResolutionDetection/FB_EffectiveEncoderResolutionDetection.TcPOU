@@ -91,7 +91,7 @@ bMeasurementActive := measure(bUpdate=>bUpdate, fEncoderDistance=>fDistMeasured)
 IF bUpdate THEN
   // check range (given from machine)
   bHigher := SEL(fDistMeasured > fEncoderPulseDistMax, FALSE, TRUE);  IF bVerbose AND bHigher THEN LogWarning('Measured distance in pulse LONGER than max range'); END_IF
-  bLower  := SEL(fDistMeasured < fEncoderPulseDistMin, FALSE, TRUE);  IF bVerbose AND bLower  THEN LogWarning('Measured distance in pulse shorter than min range'); END_IF
+  bLower  := SEL(fDistMeasured < fEncoderPulseDistMin, FALSE, TRUE);  IF bVerbose AND bLower  THEN LogWarning('Measured distance in pulse SHORTER than min range'); END_IF
 
   IF NOT bHigher AND NOT bLower THEN  
     // measurement ok
@@ -135,7 +135,7 @@ END_VAR]]></Declaration>
 nLen := ABS(nOther - nRef);
 fMarkLen := nLen * fCurrentResolution;
 IF fMarkLen > fMinMarkLength AND fMarkLen < fMaxMarkLength THEN
-  // mark long enough
+  // mark within spec
   checkMarkLength := TRUE;
 ELSE
   IF bVerbose THEN LogWarning(F_Concat5('Mark length invalid: ', TO_STRING(fMarkLen), 'um', ' too short or too long', '')); END_IF

@@ -15,14 +15,17 @@ VAR
   _nCamPoints        : UDINT;
   _sCamPoints        : ARRAY[0..100] OF ST_CameraPointTbl;   // received cam points
   _nCamPoint_MaxRefX : LREAL;               // max. x position of all available cam points [px]
-  
-  // local DefGrid table
-  _sDefGridSettings  : ST_DefGridSettings;  // local copy of settings
-  _sDefGridPoints    : ARRAY[0..100, 0..100] OF ST_DeformationPointTbl; // [col, row] local grid point table
+
+  _sDefGridSettings  : ST_DefGridSettings;  // local copy of settings  
+  // local DefGrid table [calculated]
+  _sDefGridPoints    : ARRAY[0..nMAX_COLS_DEFGRID, 0..nMAX_ROWS_DEFGRID] OF ST_DeformationPointTbl; // [col, row] local grid point table
   _nGridPoints       : UDINT;               // stored and available grid points
   _nGridCols         : UDINT;               // count current complete grid columns
+  // local DefGrid table [streamed]
+  _sDefGridPointsStreamed : ARRAY[0..nMAX_COLS_DEFGRID, 0..nMAX_ROWS_DEFGRID] OF ST_DeformationPointTbl; // [col, row] local grid point table 
+  _nGridRowsStreamed, _nGridColsStreamed : UDINT;
   
-  // local grid handler(s)
+  // local grid handler(s) helper
   _nLocalGridColsGenerated: UDINT;          // already generated "local" grid columns XYR [0..x]
 
   _fStartDeformPos  : LREAL;                // position [Px] where deformation started on ct
@@ -328,6 +331,30 @@ IF NOT bWasSet THEN LogWarning(F_Concat5('Point[c(',TO_STRING(nCol),')/r(', TO_S
 getDeformationPoint := TRUE;]]></ST>
       </Implementation>
     </Method>
+    <Method Name="getDeformationTable" Id="{76d1ecf5-7c21-4161-9c42-1a27a85923c4}">
+      <Declaration><![CDATA[METHOD getDeformationTable : BOOL
+VAR_INPUT
+  bStreamed : BOOL;   // TRUE: streamed table, FALSE: calculated grid table
+END_VAR
+VAR_OUTPUT
+  pTable   : POINTER TO ST_DeformationPointTbl;   // pointer to table
+  nNumCols : UDINT;                               // number of current elements (cols)
+  nNumRows : UDINT;                               // number of current elements (rows)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bStreamed THEN
+  pTable := ADR(_sDefGridPoints[0,0]);
+ELSE
+  pTable := ADR(_sDefGridPointsStreamed[0,0]);
+END_IF
+
+nNumCols := _nGridColsStreamed;
+nNumRows := _nGridRowsStreamed;
+
+getDeformationTable := TRUE;]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="gridImgProc" Id="{cbd3657e-725f-4601-8910-5d2742ad404e}">
       <Declaration><![CDATA[METHOD PROTECTED gridImgProc
 VAR_INPUT
@@ -432,6 +459,10 @@ _nCamPoint_MaxRefX := 0;
 MEMSET(destAddr:=ADR(_sDefGridPoints), fillByte:=0, n:=SIZEOF(_sDefGridPoints));
 MEMSET(destAddr:=ADR(_sCamPoints), fillByte:=0, n:=SIZEOF(_sCamPoints));
 MEMSET(destAddr:=ADR(_sDefGridSettings), fillByte:=0, n:=SIZEOF(_sDefGridSettings));
+
+MEMSET(destAddr:=ADR(_sDefGridPointsStreamed), fillByte:=0, n:=SIZEOF(_sDefGridPointsStreamed));
+_nGridRowsStreamed := 0;
+_nGridColsStreamed := 0;
 
 _eDeformationStep := E_DeformationStep.nothing;
 _eCameraMode := E_CameraMode.NoCorrection;
@@ -538,6 +569,28 @@ _nGridPoints := _nGridPoints + 1;
 IF _sDefGridSettings.nGridSizeY > 0 THEN
   _nGridCols := (_nGridPoints/_sDefGridSettings.nGridSizeY);
 END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="storeStreamedDeformationPoint" Id="{407226b3-abb3-4b06-b8c9-c074fc809b6a}">
+      <Declaration><![CDATA[METHOD storeStreamedDeformationPoint : BOOL
+VAR_INPUT
+  pPoint : POINTER TO ST_DeformationPointAccurate;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF pPoint = 0 THEN RETURN; END_IF
+IF TO_UDINT(pPoint^.col) > nMAX_COLS_DEFGRID THEN RETURN; END_IF
+IF TO_UDINT(pPoint^.row) > nMAX_ROWS_DEFGRID THEN RETURN; END_IF
+
+_sDefGridPointsStreamed[pPoint^.col, pPoint^.row].bSet := TRUE;
+_sDefGridPointsStreamed[pPoint^.col, pPoint^.row].sPoint := pPoint^;
+_sDefGridPointsStreamed[pPoint^.col, pPoint^.row].tTime := F_GetCurDcTaskTime64();
+IF pPoint^.x_ref = 0 THEN _sDefGridPointsStreamed[pPoint^.col, pPoint^.row].sPoint.x_ref := pPoint^.col * TO_DINT(_sDefGridSettings.nGridPitchX); END_IF// calc x pos of grid point (if not done by script)
+IF pPoint^.y_ref = 0 THEN _sDefGridPointsStreamed[pPoint^.col, pPoint^.row].sPoint.y_ref := pPoint^.row * TO_DINT(_sDefGridSettings.nGridPitchY); END_IF// calc x pos of grid point (if not done by script)
+_nGridColsStreamed := MAX(_nGridColsStreamed, TO_UDINT(pPoint^.col));
+_nGridRowsStreamed := MAX(_nGridRowsStreamed, TO_UDINT(pPoint^.row));
+
+storeStreamedDeformationPoint := TRUE;]]></ST>
       </Implementation>
     </Method>
     <Property Name="tExecutionTime" Id="{01c82210-a107-4ab4-992a-1483a9a2fe7a}">
@@ -858,6 +911,15 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="49" Count="0" />
       <LineId Id="44" Count="0" />
     </LineIds>
+    <LineIds Name="FB_ImageDeformation.getDeformationTable">
+      <LineId Id="22" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="25" Count="2" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="11" Count="1" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
     <LineIds Name="FB_ImageDeformation.gridImgProc">
       <LineId Id="41" Count="1" />
       <LineId Id="30" Count="1" />
@@ -890,7 +952,10 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.reset">
-      <LineId Id="93" Count="20" />
+      <LineId Id="93" Count="8" />
+      <LineId Id="124" Count="1" />
+      <LineId Id="122" Count="1" />
+      <LineId Id="102" Count="11" />
       <LineId Id="115" Count="2" />
       <LineId Id="35" Count="0" />
     </LineIds>
@@ -944,6 +1009,17 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="46" Count="0" />
       <LineId Id="45" Count="0" />
       <LineId Id="47" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.storeStreamedDeformationPoint">
+      <LineId Id="91" Count="0" />
+      <LineId Id="98" Count="1" />
+      <LineId Id="107" Count="1" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="110" Count="2" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="84" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.tExecutionTime.Get">
       <LineId Id="2" Count="0" />

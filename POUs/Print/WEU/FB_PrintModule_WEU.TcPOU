@@ -103,6 +103,9 @@ fbEncoderResoDetect(
   nDisInPulseFilterSz:=_pModuleMachineState^.nEncoderDetectFilterSz,
   fMinMarkLength:=(1.5 + 0.1) * _pModuleMachineState^.fMarkBaseSize,  // 0.5*a + a
   fMaxMarkLength:=(3 + 0.1) * _pModuleMachineState^.fMarkBaseSize,
+  // --> follwing only works when teached
+  //fMinMarkLength:=fbMarkCameraWeu.pFbMarkDefinition^.fMinMarkLength - fbMarkCameraWeu.pFbMarkDefinition^.fMarkLengthMargin,
+  //fMaxMarkLength:=fbMarkCameraWeu.pFbMarkDefinition^.fMaxMarkLength + fbMarkCameraWeu.pFbMarkDefinition^.fMarkLengthMargin,
   //bUpdate=>,
   fDisInPulse=>_pModuleMachineFeedback^.fEncoderStepsMeasured
 );
@@ -361,7 +364,10 @@ LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
       <LineId Id="486" Count="0" />
       <LineId Id="481" Count="1" />
       <LineId Id="485" Count="0" />
-      <LineId Id="696" Count="1" />
+      <LineId Id="951" Count="1" />
+      <LineId Id="696" Count="0" />
+      <LineId Id="953" Count="0" />
+      <LineId Id="697" Count="0" />
       <LineId Id="483" Count="1" />
       <LineId Id="468" Count="0" />
       <LineId Id="273" Count="11" />

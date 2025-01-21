@@ -15,7 +15,12 @@ VAR
   // view verify history
   tpShowResult : TP := (PT:=T#700MS);
   nStateHistory : ARRAY[1..20] OF UINT;   // 2=???, 1=Eject, 0=OK
-  nStateHistory_FillColor : ARRAY[1..20] OF UDINT; 
+  nStateHistory_FillColor : ARRAY[1..20] OF UDINT;
+  sResultText : STRING;
+  
+  // Grid Table history
+  nCTId : DINT;
+  sDefGridPoints    : ARRAY[0..100, 0..100] OF ST_GridPointUI;
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[
@@ -29,6 +34,8 @@ VAR_INPUT
 END_VAR
 VAR 
   bSuccess         : BOOL;
+  pTable           : PVOID;
+  nRows, nCols : UDINT;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF SUPER^.Attach(iCT:=iCT) THEN
@@ -59,11 +66,12 @@ END_VAR]]></Declaration>
     bLastEject := FALSE;
 	END_IF
   
-  // show state
+  // History view
   MEMMOVE(destAddr:=ADR(nStateHistory[1+1]),           srcAddr:=ADR(nStateHistory[1]),           n:=((SIZEOF(nStateHistory)/SIZEOF(nStateHistory[1]))-1)*SIZEOF(nStateHistory[1]));
   MEMMOVE(destAddr:=ADR(nStateHistory_FillColor[1+1]), srcAddr:=ADR(nStateHistory_FillColor[1]), n:=((SIZEOF(nStateHistory_FillColor)/SIZEOF(nStateHistory_FillColor[1]))-1)*SIZEOF(nStateHistory_FillColor[1]));
   
   nStateHistory[1] := SEL(bLastEject=TRUE, 0, 1);
+  sResultText := SEL(bLastEject=TRUE, 'OK', 'NOK');
 
   IF iCT.bProductPresent AND iCT.bValid THEN        nStateHistory_FillColor[1] := 16#FF000000 OR WebColors.LightGreen.lCode;
   ELSIF iCT.bProductPresent AND NOT iCT.bValid AND iCT.pCT^.lPrOutput = EN_PrinterOutput.trash THEN nStateHistory_FillColor[1] := 16#FF000000 OR WebColors.LightSalmon.lCode;   
@@ -74,6 +82,10 @@ END_VAR]]></Declaration>
   tpShowResult(IN:=FALSE);
   tpShowResult(IN:=TRUE);
   
+  // grid history
+  nCTId := _pAttachedCt^.pCT^.iId;
+  _pAttachedCt^.getDeformationTable(bStreamed:=TRUE, pTable=>pTable, nNumCols=>nCols, nNumRows=>nRows);
+  // TODO: copy to sDefGridPoints and file output
 END_IF]]></ST>
       </Implementation>
     </Method>
@@ -178,10 +190,11 @@ END_IF]]></ST>
       <LineId Id="82" Count="2" />
       <LineId Id="42" Count="0" />
       <LineId Id="37" Count="0" />
-      <LineId Id="93" Count="0" />
+      <LineId Id="129" Count="0" />
       <LineId Id="95" Count="0" />
       <LineId Id="110" Count="1" />
       <LineId Id="98" Count="0" />
+      <LineId Id="141" Count="0" />
       <LineId Id="112" Count="0" />
       <LineId Id="99" Count="0" />
       <LineId Id="120" Count="0" />
@@ -190,6 +203,9 @@ END_IF]]></ST>
       <LineId Id="102" Count="0" />
       <LineId Id="113" Count="0" />
       <LineId Id="96" Count="1" />
+      <LineId Id="127" Count="1" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="133" Count="0" />
       <LineId Id="92" Count="0" />
       <LineId Id="8" Count="0" />
     </LineIds>
