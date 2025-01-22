@@ -15,10 +15,10 @@ VAR_INPUT
     
   // settings
   fCurrentResolution          : LREAL;       // current used resolution (given from machine), encoder step size
-  fEncoderPulseDistMin        : LREAL;       // defines the min sensor distance in pulse, range minimum
-  fEncoderPulseDistMax        : LREAL;       // defines the max sensor distance in pulse, range maximum
-  fMinMarkLength              : LREAL:=2000; // minimal mark lenght to accept a measurement [um]
-  fMaxMarkLength              : LREAL:=6000; // maximal mark lenght to accept a measurement [um]
+  fEncoderPulseDistMin        : LREAL;       // [pulse] defines the min sensor distance in pulse, range minimum
+  fEncoderPulseDistMax        : LREAL;       // [pulse] defines the max sensor distance in pulse, range maximum
+  fMinMarkLength              : LREAL:=2000; // [um] minimal mark lenght to accept a measurement
+  fMaxMarkLength              : LREAL:=6000; // [um] maximal mark lenght to accept a measurement
 END_VAR
 VAR_OUTPUT
   bUpdate                     : BOOL;        // a valid new measurment
