@@ -109,7 +109,6 @@ END_IF
 (*---- Messaging -----------------------*)
 IF _bMsgInitialized THEN
   fb_MsgHandler();
-  {warning 'TODO: implement PrintWorker & PG messages'}
   //fB_Msg[1](bI_Status := dfsdfdsf);
   fb_MsgQueue();
 END_IF
@@ -359,6 +358,7 @@ END_VAR
 VAR
   sPoint : ST_DeformationPointAccurate;
   nRow : UDINT;
+  bWasSet : BOOL;
   nAvailPoints : UDINT;
   nConvErr : UDINT;
 END_VAR
@@ -388,7 +388,10 @@ IF fCurrentColumnPos + _fColumnsToPrecharge > nChargedColumns AND nChargedColumn
         LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('Charge CG col: ',TO_STRING(nChargedColumns)));
         FOR nRow := 0 TO sDefGridSettings.nGridSizeY - 1 DO
           // get points
-          IF _pAttachedCt^.getDeformationPoint(nCol:=nChargedColumns, nRow:=nRow, sPoint => sPoint) THEN
+          IF _pAttachedCt^.getDeformationPoint(nCol:=nChargedColumns, nRow:=nRow, nSel:=0, sPoint=>sPoint, bWasSet=>bWasSet) THEN
+          
+            IF NOT bWasSet THEN LogWarning(F_Concat5('Point[c(',TO_STRING(nChargedColumns),')/r(', TO_STRING(nRow),')] was not set')); END_IF  
+          
             // transfer the displacement into a correction
             sPoint.dx := sPoint.dx;   // nothing to change
             sPoint.dy := sPoint.dy;
@@ -714,7 +717,6 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="172" Count="0" />
       <LineId Id="183" Count="0" />
       <LineId Id="173" Count="0" />
-      <LineId Id="181" Count="0" />
       <LineId Id="175" Count="0" />
       <LineId Id="177" Count="0" />
       <LineId Id="101" Count="0" />
@@ -861,6 +863,9 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="171" Count="5" />
       <LineId Id="214" Count="0" />
       <LineId Id="177" Count="0" />
+      <LineId Id="311" Count="0" />
+      <LineId Id="313" Count="0" />
+      <LineId Id="312" Count="0" />
       <LineId Id="229" Count="0" />
       <LineId Id="234" Count="0" />
       <LineId Id="231" Count="1" />

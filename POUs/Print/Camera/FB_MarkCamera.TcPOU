@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_MarkCamera" Id="{f402e88b-9648-4173-b602-808ed11a92b0}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   Mark camera system
@@ -117,7 +117,7 @@ IF bStopCondition AND (bInhibSensor[1] OR bInhibSensor[2]) THEN
   bInhibSensor[2] := FALSE;
 END_IF;
 
-{warning 'TODO: implement PUC messages eCPr_PrintMarkError1&2'}
+// TODO: 'implement PUC messages eCPr_PrintMarkError1&2'
 
 ]]></ST>
     </Implementation>

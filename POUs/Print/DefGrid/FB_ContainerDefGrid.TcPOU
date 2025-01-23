@@ -127,12 +127,14 @@ METHOD getDeformationPoint : BOOL;
 VAR_INPUT
   nCol : UDINT;   // col select
   nRow : UDINT;   // row select
+  nSel : UDINT;   // table selection
 END_VAR
 VAR_OUTPUT
   sPoint : ST_DeformationPointAccurate;
+  bWasSet : BOOL;           // point was set by deformation
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[getDeformationPoint := fBImageDeformation.getDeformationPoint(nCol:=nCol, nRow:=nRow, sPoint=>sPoint);]]></ST>
+        <ST><![CDATA[getDeformationPoint := fBImageDeformation.getDeformationPoint(nCol:=nCol, nRow:=nRow, nSel:=nSel, sPoint=>sPoint);]]></ST>
       </Implementation>
     </Method>
     <Method Name="getDeformationStatus" Id="{ad3cfac4-eda3-4d41-892b-ffdca204925e}">
@@ -162,21 +164,6 @@ nErrorId := fBImageDeformation.nErrorId;
 tExecutionTime := fBImageDeformation.tExecutionTime;
 bAborted := fBImageDeformation.bAborted;
 ]]></ST>
-      </Implementation>
-    </Method>
-    <Method Name="getDeformationTable" Id="{a5d7bfa6-d6c1-4cbd-be18-595250bb1bc9}">
-      <Declaration><![CDATA[METHOD getDeformationTable : BOOL
-VAR_INPUT
-  bStreamed : BOOL;   // TRUE: streamed table, FALSE: calculated grid table
-END_VAR
-VAR_OUTPUT
-  pTable   : POINTER TO ST_DeformationPointTbl;
-  nNumCols : UDINT;
-  nNumRows : UDINT;
-END_VAR
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[getDeformationTable := fBImageDeformation.getDeformationTable(bStreamed:=bStreamed, pTable=>pTable, nNumCols=>nNumCols, nNumRows=>nNumRows);]]></ST>
       </Implementation>
     </Method>
     <Property Name="LogLevel" Id="{6da142c4-2927-48a5-bf2d-7c92ac17257e}">
@@ -231,6 +218,17 @@ END_VAR
         <Implementation>
           <ST><![CDATA[nRegisteredCameraPoints := fBImageDeformation._nCamPoints;
 ]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="pImageDeformation" Id="{9481d45e-cba1-4c2a-8d80-038a316e678b}">
+      <Declaration><![CDATA[PROPERTY pImageDeformation : POINTER TO FB_ImageDeformation]]></Declaration>
+      <Get Name="Get" Id="{28eb0eba-d5bf-4aad-bf06-4b2d787a96c7}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[pImageDeformation := ADR(fBImageDeformation);]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -367,9 +365,6 @@ END_VAR]]></Declaration>
       <LineId Id="167" Count="7" />
       <LineId Id="13" Count="0" />
     </LineIds>
-    <LineIds Name="FB_ContainerDefGrid.getDeformationTable">
-      <LineId Id="5" Count="0" />
-    </LineIds>
     <LineIds Name="FB_ContainerDefGrid.LogLevel.Get">
       <LineId Id="5" Count="0" />
     </LineIds>
@@ -386,6 +381,9 @@ END_VAR]]></Declaration>
     <LineIds Name="FB_ContainerDefGrid.nRegisteredCameraPoints.Get">
       <LineId Id="9" Count="0" />
       <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ContainerDefGrid.pImageDeformation.Get">
+      <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.sDefGridSettings.Get">
       <LineId Id="2" Count="0" />

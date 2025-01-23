@@ -4231,7 +4231,7 @@
                     </o>
                     <o>
                       <v n="Id">1999528970L</v>
-                      <v n="Value">"mInst.bMarkTooShort_S1"</v>
+                      <v n="Value">"mInst.bMarkInvalidLength_S1"</v>
                     </o>
                     <o>
                       <v n="Id">3719097617L</v>
@@ -4451,7 +4451,7 @@
                     </o>
                     <o>
                       <v n="Id">390574330L</v>
-                      <v n="Value">"Mark at S1 too short"</v>
+                      <v n="Value">"Mark at S1 invalid length"</v>
                     </o>
                     <o>
                       <v n="Id">2827249010L</v>
@@ -4467,7 +4467,7 @@
                     </o>
                     <o>
                       <v n="Id">823443203L</v>
-                      <v n="Value">"3844"</v>
+                      <v n="Value">"539"</v>
                     </o>
                   </l>
                 </o>
@@ -4565,7 +4565,7 @@
                     </o>
                     <o>
                       <v n="Id">1999528970L</v>
-                      <v n="Value">"mInst.bMarkTooShort_S2"</v>
+                      <v n="Value">"mInst.bMarkInvalidLenght_S2"</v>
                     </o>
                     <o>
                       <v n="Id">3719097617L</v>
@@ -4573,7 +4573,7 @@
                     </o>
                     <o>
                       <v n="Id">1649127785L</v>
-                      <v n="Value" t="Int16">70</v>
+                      <v n="Value" t="Int16">73</v>
                     </o>
                     <o>
                       <v n="Id">357335551L</v>
@@ -4608,11 +4608,11 @@
                     </o>
                     <o>
                       <v n="Id">550940142L</v>
-                      <v n="Value">80</v>
+                      <v n="Value">86</v>
                     </o>
                     <o>
                       <v n="Id">1473355128L</v>
-                      <v n="Value">251</v>
+                      <v n="Value">252</v>
                     </o>
                     <o>
                       <v n="Id">2678395525L</v>
@@ -4785,7 +4785,7 @@
                     </o>
                     <o>
                       <v n="Id">390574330L</v>
-                      <v n="Value">"Mark at S2 too short"</v>
+                      <v n="Value">"Mark at S2 invalid length"</v>
                     </o>
                     <o>
                       <v n="Id">2827249010L</v>
@@ -4801,7 +4801,7 @@
                     </o>
                     <o>
                       <v n="Id">823443203L</v>
-                      <v n="Value">"3478"</v>
+                      <v n="Value">"7032"</v>
                     </o>
                   </l>
                 </o>
@@ -4899,7 +4899,7 @@
                     </o>
                     <o>
                       <v n="Id">1999528970L</v>
-                      <v n="Value">"mInst.bMarkTooShort_S1"</v>
+                      <v n="Value">"mInst.bMarkInvalidLength_S1"</v>
                     </o>
                     <o>
                       <v n="Id">3719097617L</v>
@@ -5076,7 +5076,7 @@
                     </o>
                     <o>
                       <v n="Id">1999528970L</v>
-                      <v n="Value">"mInst.bMarkTooShort_S2"</v>
+                      <v n="Value">"mInst.bMarkInvalidLenght_S2"</v>
                     </o>
                     <o>
                       <v n="Id">3719097617L</v>
@@ -5625,10 +5625,10 @@
               <d n="FbMethods" t="CaseInsensitiveHashtable" ckt="String" cvt="Guid">
                 <v>FB_Init</v>
                 <v>306b6693-0dff-47da-b7cc-514da286e63a</v>
-                <v>FB_Reinit</v>
-                <v>69f0fca0-0eab-49e7-8385-5b711e6d6539</v>
                 <v>FB_Exit</v>
                 <v>4535fa39-6f78-4f77-a0a4-33923c990064</v>
+                <v>FB_Reinit</v>
+                <v>69f0fca0-0eab-49e7-8385-5b711e6d6539</v>
               </d>
               <v n="FbName">"NotImportant"</v>
               <v n="FbGuid">{3f1b9eab-c200-4bc0-84e0-155bb47d9ad1}</v>

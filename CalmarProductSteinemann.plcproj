@@ -401,6 +401,9 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
+    <Compile Include="POUs\Print\DefGrid\FB_GridDataExporter.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="POUs\Print\DefGrid\FB_StartPositionDummy.TcPOU">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
@@ -842,6 +845,11 @@ Fribourg/Switzerland (2021)</Description>
     <Content Include="revnotes.md">
       <SubType>Content</SubType>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <SubObject Include="FB_GridDataExporter.parseJson">
+      <ExcludeFromBuild>true</ExcludeFromBuild>
+    </SubObject>
   </ItemGroup>
   <ProjectExtensions>
     <PlcProjectOptions>

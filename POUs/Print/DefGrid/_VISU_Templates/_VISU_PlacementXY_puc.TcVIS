@@ -5,7 +5,7 @@
       <Data>
         <o xml:space="preserve" t="VisualObject">
           <n n="LastVisuLanguageModelEntry" />
-          <v n="UniqueIdGenerator">"9"</v>
+          <v n="UniqueIdGenerator">"11"</v>
           <o n="VisualElemList" t="VisualElemList">
             <l n="VisualElementList" t="VisualElemCollection" cet="GenericVisualElem">
               <o>
@@ -355,7 +355,22 @@
                 <l n="UserManagementAccessRights" t="ArrayList" />
               </o>
               <o>
-                <a n="ConfiguredComplexInputs" et="ComplexInput" />
+                <a n="ConfiguredComplexInputs" cet="ComplexInput">
+                  <o>
+                    <n n="DescriptionTree" />
+                    <o n="VisualElemMemberList" t="VisualElemMemberList">
+                      <l n="VisualElemMemberList" t="VisualElemMemberCollection" cet="VisualElemMember">
+                        <o>
+                          <v n="Id">1186196937L</v>
+                          <v n="Value">"bSelect"</v>
+                        </o>
+                      </l>
+                    </o>
+                    <v n="SignatureName">"Visu_ToggleInput"</v>
+                    <v n="Name">"Toggle"</v>
+                    <v n="Description">"Configure the toggling of a Boolean variable"</v>
+                  </o>
+                </a>
                 <l n="Elements" t="ArrayList" />
                 <n n="VisualElementDescription" />
                 <o n="VisualElemMemberList" t="VisualElemMemberList">
@@ -434,7 +449,7 @@
                     </o>
                     <o>
                       <v n="Id">1999528970L</v>
-                      <v n="Value">""</v>
+                      <v n="Value">"bSelected"</v>
                     </o>
                     <o>
                       <v n="Id">3719097617L</v>
@@ -1397,10 +1412,10 @@
               <d n="FbMethods" t="CaseInsensitiveHashtable" ckt="String" cvt="Guid">
                 <v>FB_Init</v>
                 <v>25a88b68-939a-401d-bad1-66ac58e8af81</v>
-                <v>FB_Exit</v>
-                <v>55f9f32b-56a8-4fe1-82a4-15de7402cc62</v>
                 <v>FB_Reinit</v>
                 <v>1ca49f3f-745a-49dc-9bf5-29ee4c9376fc</v>
+                <v>FB_Exit</v>
+                <v>55f9f32b-56a8-4fe1-82a4-15de7402cc62</v>
               </d>
               <v n="FbName">"NotImportant"</v>
               <v n="FbGuid">{4ea2af7b-2028-44e5-abf4-a477d02a0dd5}</v>
@@ -1461,6 +1476,16 @@
                 <v n="Id">9L</v>
                 <n n="Tag" />
                 <v n="Text">"  aName : STRING;"</v>
+              </o>
+              <o>
+                <v n="Id">10L</v>
+                <n n="Tag" />
+                <v n="Text">"  bSelected : BOOL;"</v>
+              </o>
+              <o>
+                <v n="Id">11L</v>
+                <n n="Tag" />
+                <v n="Text">"  bSelect : BOOL;"</v>
               </o>
               <o>
                 <v n="Id">1L</v>

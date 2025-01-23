@@ -871,6 +871,7 @@ VAR_INPUT
 END_VAR
 VAR
   nRow : UDINT;
+  bWasSet : BOOL;
   sPoint : ST_DeformationPointAccurate;
   fCurrentPreCharge  : LREAL; // Currently to be precharged (for scope)
 END_VAR
@@ -896,7 +897,9 @@ WHILE pChargedCols^ < LIMIT(0, FLOOR(fCurrentPreCharge), sDefGridSettings.nGridS
     FOR nRow := 0 TO sDefGridSettings.nGridSizeY - 1 DO
       
       // get points
-      IF pCT^.getDeformationPoint(nCol:=pChargedCols^, nRow:=nRow, sPoint => sPoint) THEN
+      IF pCT^.getDeformationPoint(nCol:=pChargedCols^, nRow:=nRow, nSel:=0, sPoint=>sPoint, bWasSet=>bWasSet) THEN
+        
+        IF NOT bWasSet THEN LogWarning(F_Concat5('Point[c(',TO_STRING(pChargedCols^),')/r(', TO_STRING(nRow),')] was not set')); END_IF
         
         // convert the displacement into a correction
         sPoint.dx := sPoint.dx;   // nothing to change
@@ -1480,6 +1483,8 @@ sim();]]></ST>
       <LineId Id="14" Count="0" />
       <LineId Id="78" Count="0" />
       <LineId Id="15" Count="1" />
+      <LineId Id="173" Count="0" />
+      <LineId Id="172" Count="0" />
       <LineId Id="116" Count="0" />
       <LineId Id="17" Count="9" />
       <LineId Id="120" Count="1" />

@@ -11,7 +11,7 @@ FUNCTION_BLOCK FB_FineAlignement EXTENDS FB_BasePrint IMPLEMENTS I_GridPointCorr
 VAR
   // config
   _fPxResolution     : LREAL; // pixel resolution
-  _pAdsCam           : POINTER TO FB_ADS_CAMERA;  // camera interface PUC
+
   // corrections
   //-- 4 point PU deformation correction/distortion
   //    VISU setup point providing reference and correction (NOTE: persists settings internally)
@@ -21,14 +21,22 @@ VAR
   _fT2 : LREAL;   // temperature 2
   _dx_middle : LREAL;  // correction in middle (for view only)
   _y_max : LREAL; // print unit width [mm]
-
+  //-- PUC 4p correction
+  _pAdsCam           : POINTER TO FB_ADS_CAMERA;  // camera interface PUC
+  aPucPointNames : ARRAY[1..4] OF STRING := ['1 blue','2 red','3 green','4 olive'];
+  
   // helper
   lCtr     : UDINT;
   
   // unit test & debug
-  _bUT_4p, _bUT_banana : BOOL;
+  _bUT_4p, _bUT_banana, _bUT_4pPuc : BOOL;
   _sUTPoints_dx : ARRAY[0..nC_UT_cols, 0..nC_UT_rows] OF LREAL;
   _sUTPoints_dy : ARRAY[0..nC_UT_cols, 0..nC_UT_rows] OF LREAL;
+  // 4pPUC
+  bSelect : ARRAY[1..4] OF BOOL;
+  bSelected : ARRAY[1..4] OF BOOL;
+  bXPlus, bXMinus, bYPlus, bYMinus : BOOL;
+  bTest4pPuc_running : BOOL;
 END_VAR
 VAR PERSISTENT
   //-- 4point correction
@@ -38,8 +46,6 @@ VAR PERSISTENT
   //-- banana correction
   _bEnable_banana : BOOL := FALSE;
   _e_max_per_deltaT : LREAL := 0.01;  // [mm/°C]  TODO: use from config
-  // Puc4p UI
-  aNamePucPoints : ARRAY[1..4] OF STRING := ['1 blue','2 red','3 green','4 olive'];
 END_VAR
 VAR CONSTANT
   // Unit test configuration
@@ -48,6 +54,7 @@ VAR CONSTANT
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[// cyclic caluclation and view updates
+//        NOTE: deformation is happening in updateCorrection() callback
 
 //-- 4p correction
 //   visu overrides (limitation rectancular point definition)
@@ -68,6 +75,7 @@ _dx_middle := _dx_middle * 1000; // [m] --> [mm] for visu
 // Unit test
 IF _bUT_4p THEN _bUT_4p := FALSE; _test_4p(); END_IF
 IF _bUT_banana THEN _bUT_banana := FALSE; _test_banana(); END_IF
+IF _bUT_4pPuc THEN _test_Puc4p(); END_IF
 ]]></ST>
     </Implementation>
     <Method Name="_test_4p" Id="{6f0fa0b6-cc58-4465-bff5-26ae640a97c0}">
@@ -216,6 +224,39 @@ FOR nCol:=0 TO nC_UT_cols DO
 END_FOR]]></ST>
       </Implementation>
     </Method>
+    <Method Name="_test_Puc4p" Id="{1465faa5-e93a-4ecc-a1a2-9fc2ea753518}">
+      <Declaration><![CDATA[METHOD PRIVATE _test_Puc4p
+VAR
+  i : UDINT;
+
+  pPUC_CorrPointsInd : POINTER TO ARRAY[1..4] OF ST_CORRECTION_POINT;
+  pPoint : POINTER TO ST_CORRECTION_POINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[pPUC_CorrPointsInd := _pAdsCam^.pCorrectionPointsIndication;      // get points array from ADS
+IF pPUC_CorrPointsInd = 0 THEN F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer);  RETURN; END_IF
+
+// do selection
+IF    bSelect[1] THEN bSelect[1]:=FALSE; MEMSET(destAddr:=ADR(bSelected), fillByte:=0, n:=SIZEOF(bSelected)); bSelected[1] := TRUE;
+ELSIF bSelect[2] THEN bSelect[2]:=FALSE; MEMSET(destAddr:=ADR(bSelected), fillByte:=0, n:=SIZEOF(bSelected)); bSelected[2] := TRUE;
+ELSIF bSelect[3] THEN bSelect[3]:=FALSE; MEMSET(destAddr:=ADR(bSelected), fillByte:=0, n:=SIZEOF(bSelected)); bSelected[3] := TRUE;
+ELSIF bSelect[4] THEN bSelect[4]:=FALSE; MEMSET(destAddr:=ADR(bSelected), fillByte:=0, n:=SIZEOF(bSelected)); bSelected[4] := TRUE;
+END_IF
+
+IF    bSelected[1] THEN pPoint := ADR(pPUC_CorrPointsInd^[1]);
+ELSIF bSelected[2] THEN pPoint := ADR(pPUC_CorrPointsInd^[2]);
+ELSIF bSelected[3] THEN pPoint := ADR(pPUC_CorrPointsInd^[3]);
+ELSIF bSelected[4] THEN pPoint := ADR(pPUC_CorrPointsInd^[4]);
+ELSE                    pPoint := ADR(pPUC_CorrPointsInd^[1]);
+END_IF
+
+IF bXPlus  THEN bXPlus  := FALSE; pPoint^.x := pPoint^.x + 0.05; END_IF
+IF bXMinus THEN bXMinus := FALSE; pPoint^.x := pPoint^.x - 0.05; END_IF
+IF bYPlus  THEN bYPlus  := FALSE; pPoint^.y := pPoint^.y + 0.05; END_IF
+IF bYMinus THEN bYMinus := FALSE; pPoint^.y := pPoint^.y - 0.05; END_IF
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="calc_4p_correction" Id="{c5b8318f-9300-4b60-afbb-0f066a2ad2b7}">
       <Declaration><![CDATA[(*
   Calculate grid point displacement for a distortion with 4 rectangular defined points.
@@ -341,7 +382,7 @@ VAR CONSTANT
   bC_InvertValY : BOOL := FALSE;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[pPUC_CorrPointsInd := _pAdsCam^.pCorrectionPointsIndication;
+        <ST><![CDATA[pPUC_CorrPointsInd := _pAdsCam^.pCorrectionPointsIndication;      // get points array from ADS
 IF pPUC_CorrPointsInd = 0 THEN F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer);  RETURN; END_IF
 
 // Grid point position
@@ -473,6 +514,7 @@ updateCorrection := TRUE;]]></ST>
     </Method>
     <LineIds Name="FB_FineAlignement">
       <LineId Id="106" Count="0" />
+      <LineId Id="278" Count="0" />
       <LineId Id="108" Count="0" />
       <LineId Id="107" Count="0" />
       <LineId Id="69" Count="4" />
@@ -486,6 +528,7 @@ updateCorrection := TRUE;]]></ST>
       <LineId Id="189" Count="0" />
       <LineId Id="80" Count="2" />
       <LineId Id="113" Count="0" />
+      <LineId Id="286" Count="0" />
       <LineId Id="48" Count="0" />
     </LineIds>
     <LineIds Name="FB_FineAlignement._test_4p">
@@ -506,6 +549,21 @@ updateCorrection := TRUE;]]></ST>
       <LineId Id="145" Count="0" />
       <LineId Id="114" Count="9" />
       <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_FineAlignement._test_Puc4p">
+      <LineId Id="447" Count="1" />
+      <LineId Id="465" Count="0" />
+      <LineId Id="446" Count="0" />
+      <LineId Id="476" Count="3" />
+      <LineId Id="481" Count="0" />
+      <LineId Id="453" Count="0" />
+      <LineId Id="451" Count="0" />
+      <LineId Id="454" Count="0" />
+      <LineId Id="456" Count="1" />
+      <LineId Id="466" Count="0" />
+      <LineId Id="455" Count="0" />
+      <LineId Id="468" Count="4" />
+      <LineId Id="474" Count="0" />
     </LineIds>
     <LineIds Name="FB_FineAlignement.calc_4p_correction">
       <LineId Id="96" Count="0" />

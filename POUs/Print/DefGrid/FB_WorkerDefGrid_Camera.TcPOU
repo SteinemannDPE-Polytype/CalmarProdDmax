@@ -686,7 +686,6 @@ END_IF
 // -----------------------------------------------------------
 // Work only with attached container
 IF _pAttachedCt <> 0 THEN
-  {warning 'TODO: use StartCT() method for erasing DeformationState? '}  
 
   // we have a HEAD container
   bError := _pAttachedCt^.getDeformationStatus(eDStep => _eDeformStep);
@@ -987,7 +986,7 @@ fbMsg_CamNoConnection    (bI_Status:=NOT _bConnectionOk);
       <LineId Id="343" Count="0" />
       <LineId Id="136" Count="0" />
       <LineId Id="385" Count="0" />
-      <LineId Id="510" Count="1" />
+      <LineId Id="511" Count="0" />
       <LineId Id="461" Count="0" />
       <LineId Id="471" Count="0" />
       <LineId Id="463" Count="0" />

@@ -154,6 +154,15 @@ END_IF ]]></ST>
         </Implementation>
       </Get>
     </Property>
+    <Method Name="dumpGrid" Id="{54f96698-98ca-4e6f-be64-c2aab95776f9}">
+      <Declaration><![CDATA[METHOD dumpGrid : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
     <Property Name="eCamMode" Id="{64ad927e-deb9-4865-b90c-f4a3c3286171}">
       <Declaration><![CDATA[PROPERTY eCamMode : E_CameraMode]]></Declaration>
       <Get Name="Get" Id="{c8584651-c6a0-4823-a817-290486a61a9e}">
@@ -281,7 +290,7 @@ END_IF]]></ST>
     <Method Name="getCamPointX" Id="{c0640797-3514-4276-a363-51a286e4c249}">
       <Declaration><![CDATA[// get neighbour camera point
 // :returns: TRUE if present
-METHOD PRIVATE getCamPointX : BOOL
+METHOD getCamPointX : BOOL
 VAR_INPUT
   nIdx : UDINT;    // 0=last, 1=first, 2=second
 END_VAR
@@ -311,12 +320,11 @@ METHOD getDeformationPoint :  BOOL;
 VAR_INPUT
   nCol : UDINT;   // col select
   nRow : UDINT;   // row select
+  nSel : UDINT;   // table selection 0=GeneratedGrid, 1=StreamedGrid
 END_VAR
 VAR_OUTPUT
   sPoint : ST_DeformationPointAccurate;
-END_VAR
-VAR
-  bWasSet  : BOOL;
+  bWasSet : BOOL;
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -325,34 +333,15 @@ END_VAR
 IF TO_UDINT(nCol) > nMAX_COLS_DEFGRID THEN LogError(F_Concat5('getDeformationPoint: point col=', TO_STRING(nCol), ' out of table > ', TO_STRING(nMAX_COLS_DEFGRID), '')); RETURN; END_IF
 IF TO_UDINT(nRow) > nMAX_ROWS_DEFGRID THEN LogError(F_Concat5('getDeformationPoint: point row=', TO_STRING(nRow), ' out of table > ', TO_STRING(nMAX_ROWS_DEFGRID), '')); RETURN; END_IF
 
-sPoint := _sDefGridPoints[nCol, nRow].sPoint;
-bWasSet := _sDefGridPoints[nCol, nRow].bSet;
-IF NOT bWasSet THEN LogWarning(F_Concat5('Point[c(',TO_STRING(nCol),')/r(', TO_STRING(nRow),')] was not set')); END_IF
-getDeformationPoint := TRUE;]]></ST>
-      </Implementation>
-    </Method>
-    <Method Name="getDeformationTable" Id="{76d1ecf5-7c21-4161-9c42-1a27a85923c4}">
-      <Declaration><![CDATA[METHOD getDeformationTable : BOOL
-VAR_INPUT
-  bStreamed : BOOL;   // TRUE: streamed table, FALSE: calculated grid table
-END_VAR
-VAR_OUTPUT
-  pTable   : POINTER TO ST_DeformationPointTbl;   // pointer to table
-  nNumCols : UDINT;                               // number of current elements (cols)
-  nNumRows : UDINT;                               // number of current elements (rows)
-END_VAR
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[IF NOT bStreamed THEN
-  pTable := ADR(_sDefGridPoints[0,0]);
+IF nSel = 1 THEN
+  sPoint  := _sDefGridPointsStreamed[nCol, nRow].sPoint;
+  bWasSet := _sDefGridPointsStreamed[nCol, nRow].bSet;  
 ELSE
-  pTable := ADR(_sDefGridPointsStreamed[0,0]);
+  sPoint  := _sDefGridPoints[nCol, nRow].sPoint;
+  bWasSet := _sDefGridPoints[nCol, nRow].bSet;  
 END_IF
 
-nNumCols := _nGridColsStreamed;
-nNumRows := _nGridRowsStreamed;
-
-getDeformationTable := TRUE;]]></ST>
+getDeformationPoint := TRUE;]]></ST>
       </Implementation>
     </Method>
     <Method Name="gridImgProc" Id="{cbd3657e-725f-4601-8910-5d2742ad404e}">
@@ -402,6 +391,17 @@ END_VAR
 bInitialized := TRUE;]]></ST>
       </Implementation>
     </Method>
+    <Property Name="nAvailableCamPoints" Id="{dc1883b1-47cc-484a-8711-f86f3734801b}">
+      <Declaration><![CDATA[PROPERTY nAvailableCamPoints : UDINT]]></Declaration>
+      <Get Name="Get" Id="{1efeea95-6847-434a-94b7-20c1d62ad692}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[nAvailableCamPoints := _nCamPoints;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
     <Property Name="nAvailableGridPoints" Id="{149198c3-6ff5-44b4-a357-2dd695c9d30f}">
       <Declaration><![CDATA[PROPERTY nAvailableGridPoints : UDINT]]></Declaration>
       <Get Name="Get" Id="{800e78d9-d0c7-4ffa-b974-3b2e1e8ea3bd}">
@@ -842,6 +842,9 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="13" Count="1" />
       <LineId Id="11" Count="0" />
     </LineIds>
+    <LineIds Name="FB_ImageDeformation.dumpGrid">
+      <LineId Id="5" Count="0" />
+    </LineIds>
     <LineIds Name="FB_ImageDeformation.eCamMode.Get">
       <LineId Id="2" Count="0" />
     </LineIds>
@@ -905,20 +908,14 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
     <LineIds Name="FB_ImageDeformation.getDeformationPoint">
       <LineId Id="37" Count="0" />
       <LineId Id="41" Count="2" />
+      <LineId Id="71" Count="0" />
       <LineId Id="38" Count="0" />
-      <LineId Id="9" Count="0" />
-      <LineId Id="52" Count="0" />
-      <LineId Id="49" Count="0" />
+      <LineId Id="78" Count="1" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="75" Count="1" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="69" Count="0" />
       <LineId Id="44" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_ImageDeformation.getDeformationTable">
-      <LineId Id="22" Count="0" />
-      <LineId Id="9" Count="0" />
-      <LineId Id="25" Count="2" />
-      <LineId Id="24" Count="0" />
-      <LineId Id="11" Count="1" />
-      <LineId Id="10" Count="0" />
-      <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.gridImgProc">
       <LineId Id="41" Count="1" />
@@ -938,6 +935,9 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
     <LineIds Name="FB_ImageDeformation.init">
       <LineId Id="10" Count="0" />
       <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.nAvailableCamPoints.Get">
+      <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.nAvailableGridPoints.Get">
       <LineId Id="2" Count="0" />
