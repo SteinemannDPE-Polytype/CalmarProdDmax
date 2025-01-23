@@ -34,7 +34,7 @@ VAR
   bVerbose                    : BOOL;
   // errors
   bLower, bHigher, bAborted   : BOOL;        // ui errors
-  bMarkTooShort_S1, bMarkTooShort_S2 : BOOL; // detected marks too short
+  bMarkInvalidLength_S1, bMarkInvalidLenght_S2 : BOOL; // detected marks too short or too long
   nMarkLength_S1, nMarkLength_S2 : UDINT;    // mark length measured in [um]
   
   // time calculations
@@ -46,6 +46,11 @@ VAR
   fDistMeasured               : LREAL;       // distance measured [pulse]
   fbFilterMavDisInPulse       : FB_FILTER_MAV; // Moving everage filter
   fbFilterMavSpeed            : FB_FILTER_MAV; // Moving everage filter
+  
+  // helper measurement
+  nPosStart, nPosEnd : DINT;                 // encoder positions detectec (exact by trigger, timestamp and speed based approximation)
+  nPosFalling1, nPosFalling2 : DINT;         // exact position in [pulse]
+  bRising_S1, bFalling_S1, bRising_S2, bFalling_S2 : BOOL;    // sensor edge detection
   
   // view
   bSim : BOOL;
@@ -87,7 +92,7 @@ fbFilterMavSpeed(fI_Input:=(nPulse - nPulse_mem)/fCycleTime, iI_NbInputs:=LIMIT(
 fSpeed := fbFilterMavSpeed.fO_OutputMav;
 nPulse_mem := nPulse;
 
-bMeasurementActive := measure(bUpdate=>bUpdate, fEncoderDistance=>fDistMeasured);
+measure(bUpdate=>bUpdate, fEncoderDistance=>fDistMeasured);
 IF bUpdate THEN
   // check range (given from machine)
   bHigher := SEL(fDistMeasured > fEncoderPulseDistMax, FALSE, TRUE);  IF bVerbose AND bHigher THEN LogWarning('Measured distance in pulse LONGER than max range'); END_IF
@@ -173,6 +178,22 @@ nDeltaPosition := FC_LREAL_TO_DINT(fDeltaDistance * (1 / (0.0254 / fCurrentResol
 getExactPosition := nPos - nDeltaPosition;	                                          // Position where the sheet has been detected]]></ST>
       </Implementation>
     </Method>
+    <Method Name="getMarkLength" Id="{59de4153-f433-43c2-84a9-02f391a18c25}">
+      <Declaration><![CDATA[// returns mark lenght in [um] (with current resolution)
+METHOD PRIVATE getMarkLength : LREAL
+VAR_INPUT
+  nStart : DINT;      // pulse / um
+  nEnd : DINT;    // pulse / um
+END_VAR
+VAR
+  nDist : DINT;  // [pulse]
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// pulse elapsed * resolution [pulse/um] => pos in [um]
+nDist := ABS(nEnd - nStart);
+getMarkLength := nDist * fCurrentResolution;]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="Init" Id="{ac39b667-8b90-4a38-b9db-5deaa270f17b}">
       <Declaration><![CDATA[METHOD Init
 ]]></Declaration>
@@ -182,94 +203,109 @@ Reset();]]></ST>
       </Implementation>
     </Method>
     <Method Name="measure" Id="{67cbae6f-8d48-4bd4-86d9-cdcb6b146f3f}">
-      <Declaration><![CDATA[METHOD PRIVATE measure : BOOL
+      <Declaration><![CDATA[METHOD PRIVATE measure
 VAR_OUTPUT
   bUpdate : BOOL;
   fEncoderDistance : LREAL;
 END_VAR
 VAR_INST
-  nPosStart, nPosEnd : DINT;    // encoder positions detectec (exact by trigger, timestamp and speed based approximation)
-  bActive : BOOL;
-END_VAR
-VAR
-  nPosFalling1, nPosFalling2 : DINT;   // exact position in [pulse]
-  bTrigRising1, bTrigFalling1, bTrigRising2, bTrigFalling2 : BOOL;
+  bS1_MarkStarted, bS2_MarkStarted : BOOL;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[bUpdate := FALSE;
-bTrigRising1 := fbMark1.RT;
-bTrigRising2 := fbMark2.RT;
-bTrigFalling1 := fbMark1.FT;    // wait on falling edge always 
-bTrigFalling2 := fbMark2.FT;
+bRising_S1 := fbMark1.RT;
+bRising_S2 := fbMark2.RT;
+bFalling_S1 := fbMark1.FT;    // wait on falling edge always 
+bFalling_S2 := fbMark2.FT;
 
 
-//-- First Sensor
-IF NOT bActive THEN
-  // ringing
-  IF bTrigRising1 THEN 
-    nPosStart := getExactPosition(tNow:=tNowDc, nPos:=nPulse, tEdge:=tIKp_TimeStampPos01, fSpeed:=fSpeed);    // reverse use negative edge
-  END_IF 
-  // falling
-  IF bTrigFalling1 THEN
-    nPosFalling1 := getExactPosition(tNow:=tNowDc, nPos:=nPulse, tEdge:=tIKn_TimeStampNeg01, fSpeed:=fSpeed);  
-    
+IF NOT bMeasurementActive THEN
+  
+  //-- S1 sensor evaluation (no measurement is active)
+  // rising
+  IF bRising_S1 AND NOT bS1_MarkStarted THEN
+    nPosStart := getExactPosition(tNow:=tNowDc, nPos:=nPulse, tEdge:=tIKp_TimeStampPos01, fSpeed:=fSpeed);
+    bS1_MarkStarted := TRUE;
+    bAborted := FALSE; bMarkInvalidLength_S1 := FALSE; bMarkInvalidLenght_S2 := FALSE;
+  END_IF
+
+  // falling (after rising)
+  IF bFalling_S1 AND bS1_MarkStarted THEN
+    bS1_MarkStarted := FALSE;           // mark done
+    nPosFalling1 := getExactPosition(tNow:=tNowDc, nPos:=nPulse, tEdge:=tIKn_TimeStampNeg01, fSpeed:=fSpeed);
+  
     IF checkMarkLength( nRef := nPosStart, nOther := nPosFalling1) THEN
-      bActive := TRUE;           // start measurement after rising&falling edge
-      bAborted := FALSE;
-      bMarkTooShort_S1 := FALSE;
-      bMarkTooShort_S2 := FALSE;
+      bMeasurementActive := TRUE;           // start measurement after rising&falling edge
     ELSE
-      IF bVerbose THEN LogWarning('Mark at Sensor1 too short, measurement ignored'); END_IF
-      bAborted := TRUE;
-      bMarkTooShort_S1 := TRUE;
+      bMarkInvalidLength_S1 := TRUE;
     END_IF
 
+  // abort mark if no falling given
+  ELSIF bS1_MarkStarted AND getMarkLength(nStart:=nPosStart, nEnd:=nPulse) > fMaxMarkLength THEN  // abort if max mark length exeeded
+    bAborted := TRUE;
+    bS1_MarkStarted := FALSE;         // mark done
+    bMarkInvalidLength_S1 := TRUE;    // mark end missed (too long?)
+    IF bVerbose THEN LogWarning('S1 mark missing end, mark too long, ignore mark'); END_IF
   END_IF
-END_IF
-
-//-- Second Sensor (Stop)
-//   only when measurement started and rising within range
-IF bActive THEN
+  
+ELSE
+  
+  //-- S2 Second Sensor (Stop) evaluation when measurement is active
+  //   only when measurement started and rising within range
   IF (nPulse - nPosStart) >= fEncoderPulseDistMin THEN                  // bigger than minimum pulse (enable sensor 2 detection)
     // rising
-    IF bTrigRising2 THEN 
-      nPosEnd := getExactPosition(tNow:=tNowDc, nPos:=nPulse, tEdge:=tIKp_TimeStampPos02, fSpeed:=fSpeed);      // reverse use negative edge  
+    IF bRising_S2 AND NOT bS2_MarkStarted THEN 
+      nPosEnd := getExactPosition(tNow:=tNowDc, nPos:=nPulse, tEdge:=tIKp_TimeStampPos02, fSpeed:=fSpeed);    
+      bAborted := FALSE; bMarkInvalidLenght_S2 := FALSE;
+      bS2_MarkStarted := TRUE;  
     END_IF
+    
     // falling
-    IF bTrigFalling2 THEN
+    IF bFalling_S2 AND bS2_MarkStarted THEN
+      bS2_MarkStarted := FALSE;
       nPosFalling2 := getExactPosition(tNow:=tNowDc, nPos:=nPulse, tEdge:=tIKn_TimeStampNeg02, fSpeed:=fSpeed);  
       
       IF checkMarkLength( nRef := nPosEnd, nOther := nPosFalling2) THEN
-        // set new measurement   
-        fEncoderDistance := nPosEnd-nPosStart;
         bUpdate := TRUE;
+        bMeasurementActive := FALSE;      // stop measurement
       ELSE
-        IF bVerbose THEN LogWarning('Mark at Sensor2 too short, abort measurement'); END_IF
-        bAborted := TRUE;
-        bMarkTooShort_S2 := TRUE;
+        bMarkInvalidLenght_S2 := TRUE;
       END_IF
-      bActive := FALSE;         // stop measurement
+
+    // abort mark if no falling given
+    ELSIF bS2_MarkStarted AND getMarkLength(nStart:=nPosEnd, nEnd:=nPulse) > fMaxMarkLength THEN  // abort if max mark length exeeded
+      bAborted := TRUE;
+      bS1_MarkStarted := FALSE;         // mark done
+      bMarkInvalidLength_S1 := TRUE;    // mark end missed (too long?)
+    IF bVerbose THEN LogWarning('S2 mark missing end, mark too long, ignore mark'); END_IF
     END_IF
-    
-  ELSIF ( (nPulse - nPosStart) > (fEncoderPulseDistMax * 1.1) ) THEN    // bigger than maximum pulse (disable sensor 2 and abort measurement)
-    IF bVerbose THEN LogWarning('2nd mark detected too far , ignore measurement'); END_IF
-    bAborted := TRUE;
-    bActive := FALSE;   // abort measurement
-    
+  
+  // abort measurement, no valid mark within max pulse distance
+  ELSIF ( (nPulse - nPosStart) > (fEncoderPulseDistMax) ) THEN    // bigger than maximum pulse (disable sensor 2 and abort measurement)
+    IF bVerbose THEN LogWarning('S2 mark detected too far , ignore measurement'); END_IF
+    bAborted := TRUE;                   // abort measurement
+    bMeasurementActive := FALSE;        // abort measurement
+    bS2_MarkStarted := FALSE;           // mark done
+  
+  // invalid speed (machine stopped while measuring) ignore any triggers
   ELSIF fSpeed = 0 THEN
-    bActive := FALSE;
+    bS1_MarkStarted := bS2_MarkStarted := FALSE;
+    bMeasurementActive := FALSE;
 	END_IF
+  
 END_IF
 
-// debug current distance
-IF bActive THEN
+// debug current distance (view)
+IF bMeasurementActive THEN
   nCurrentDistActive := (nPulse - nPosStart);
 END_IF
 
+// valid measurment -> update output
+IF bUpdate THEN
+  fEncoderDistance := nPosEnd-nPosStart;
+END_IF
 
-
-
-measure := bActive;]]></ST>
+]]></ST>
       </Implementation>
     </Method>
     <Method Name="Reset" Id="{d5fe1b7c-5060-4be1-aff0-fdec2471f305}">
@@ -316,6 +352,11 @@ measure := bActive;]]></ST>
       <LineId Id="50" Count="0" />
       <LineId Id="26" Count="10" />
     </LineIds>
+    <LineIds Name="FB_EffectiveEncoderResolutionDetection.getMarkLength">
+      <LineId Id="16" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="49" Count="0" />
+    </LineIds>
     <LineIds Name="FB_EffectiveEncoderResolutionDetection.Init">
       <LineId Id="9" Count="0" />
       <LineId Id="11" Count="0" />
@@ -325,39 +366,77 @@ measure := bActive;]]></ST>
       <LineId Id="234" Count="1" />
       <LineId Id="193" Count="1" />
       <LineId Id="236" Count="0" />
-      <LineId Id="309" Count="0" />
       <LineId Id="196" Count="0" />
       <LineId Id="273" Count="0" />
-      <LineId Id="277" Count="0" />
+      <LineId Id="358" Count="0" />
+      <LineId Id="341" Count="1" />
       <LineId Id="296" Count="0" />
-      <LineId Id="278" Count="1" />
+      <LineId Id="278" Count="0" />
+      <LineId Id="346" Count="0" />
+      <LineId Id="352" Count="0" />
+      <LineId Id="279" Count="0" />
+      <LineId Id="355" Count="0" />
       <LineId Id="295" Count="0" />
-      <LineId Id="280" Count="14" />
-      <LineId Id="275" Count="0" />
-      <LineId Id="207" Count="1" />
+      <LineId Id="280" Count="0" />
+      <LineId Id="350" Count="0" />
+      <LineId Id="281" Count="0" />
+      <LineId Id="353" Count="0" />
+      <LineId Id="283" Count="1" />
+      <LineId Id="288" Count="0" />
+      <LineId Id="291" Count="1" />
+      <LineId Id="354" Count="0" />
+      <LineId Id="349" Count="0" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="347" Count="0" />
+      <LineId Id="351" Count="0" />
+      <LineId Id="356" Count="0" />
+      <LineId Id="382" Count="0" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="339" Count="1" />
+      <LineId Id="357" Count="0" />
+      <LineId Id="208" Count="0" />
       <LineId Id="298" Count="0" />
-      <LineId Id="300" Count="1" />
+      <LineId Id="301" Count="0" />
       <LineId Id="313" Count="0" />
       <LineId Id="310" Count="0" />
       <LineId Id="312" Count="0" />
+      <LineId Id="361" Count="0" />
+      <LineId Id="359" Count="0" />
       <LineId Id="311" Count="0" />
+      <LineId Id="373" Count="0" />
       <LineId Id="314" Count="0" />
-      <LineId Id="316" Count="11" />
-      <LineId Id="315" Count="0" />
-      <LineId Id="328" Count="0" />
+      <LineId Id="316" Count="0" />
+      <LineId Id="362" Count="0" />
+      <LineId Id="317" Count="2" />
+      <LineId Id="322" Count="0" />
+      <LineId Id="372" Count="0" />
+      <LineId Id="323" Count="0" />
+      <LineId Id="326" Count="1" />
+      <LineId Id="376" Count="5" />
+      <LineId Id="383" Count="0" />
+      <LineId Id="375" Count="0" />
       <LineId Id="305" Count="0" />
+      <LineId Id="384" Count="0" />
       <LineId Id="303" Count="0" />
       <LineId Id="307" Count="1" />
       <LineId Id="306" Count="0" />
-      <LineId Id="332" Count="2" />
+      <LineId Id="332" Count="0" />
+      <LineId Id="385" Count="1" />
+      <LineId Id="333" Count="0" />
+      <LineId Id="387" Count="0" />
+      <LineId Id="334" Count="0" />
       <LineId Id="304" Count="0" />
+      <LineId Id="388" Count="0" />
       <LineId Id="302" Count="0" />
       <LineId Id="331" Count="0" />
       <LineId Id="299" Count="0" />
       <LineId Id="297" Count="0" />
       <LineId Id="329" Count="1" />
-      <LineId Id="254" Count="0" />
-      <LineId Id="230" Count="2" />
+      <LineId Id="389" Count="0" />
+      <LineId Id="370" Count="0" />
+      <LineId Id="369" Count="0" />
+      <LineId Id="366" Count="1" />
+      <LineId Id="365" Count="0" />
       <LineId Id="16" Count="0" />
     </LineIds>
     <LineIds Name="FB_EffectiveEncoderResolutionDetection.Reset">
