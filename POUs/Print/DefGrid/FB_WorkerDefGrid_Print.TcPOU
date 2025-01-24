@@ -33,7 +33,6 @@ VAR
   fbPa               : FB_PA;
   fB_PcAdapter       : FB_PC_Adapter;
 
-  _pAdsCam           : POINTER TO ST_ADS_CAMERA;  // camera interface PUC
   _fPrintStartOffset : LREAL;   // internal print start offset (distance Cam -> PG1 + PG Offset + PU offset)
   _fWorkerOffset     : LREAL;   // worker offset from X0 static
   _nPosX0            : DINT;    // X0 for last attached CT (detected postion)
@@ -50,11 +49,7 @@ VAR
   // grid settings
   _iPhGrid           : I_Correction_Grid;
   _sPhGridHwCfg      : ST_GridHwCfg;
-  
-  (*grid correction*)
-  _fDxGlobalShift    : LREAL;
-  _fDyGlobalShift    : LREAL;
-  
+    
   (*grid limit*)
   _fLimitCorrectionX : LREAL;     // correction limit in y (abs) [px]
   _fLimitCorrectionY : LREAL;     // correction limit in y (abs) [px]
@@ -65,11 +60,6 @@ VAR
   fb_MsgHandler      : FB_MSG_HANDLER;                      (*Message handler*)
   sL_MsgConfig       : ST_MSG_CONFIG;                       (*Message config*)
   fb_Msg             : ARRAY [1..iC_NUM_MSG] OF FB_MESSAGE; (*Messages*)
-END_VAR
-
-VAR_STAT
-  // PU Deformation/correction for all instance
-  fbFineAlignement   : FB_FineAlignement;
 END_VAR
 
 VAR PERSISTENT
@@ -168,8 +158,6 @@ IF SUPER^.Attach(iCT:=iCT) THEN
   fbPs.bPrintEnable := iCT.bValid AND iCT.bProductPresent;
   fbPs.setGrid(sGrid:=sDefGridSettings);
   nChargedColumns := 0;
-  _fDxGlobalShift := _pAttachedCt^.fDxShift;
-  _fDyGlobalShift := _pAttachedCt^.fDyShift;
 
   //Start print, PA should be in READY or DONE
   
@@ -179,18 +167,11 @@ IF SUPER^.Attach(iCT:=iCT) THEN
               - F_MeterToSubPixel(fbDropSpeedComp.fDropPlacementError, _fPrintResolution*_fSubPxResolution); // - drop compensation*)
   _nPosXDelta := F_MeterToSubPixel(_fPrintStartOffset, _fPrintResolution*_fSubPxResolution); // + PG/PA Shift (additional PG offset 0 for firstLine)
   
-  IF GVL_Deformation.bC_UseGlobalGridShift THEN
-    _nPosXDelta := _nPosXDelta + FC_LREAL_TO_DINT(_fDxGlobalShift);                  // + global shift from grid points
-  END_IF
-
   _nPosXS := _nPosX0 + _nPosXDelta;
   fB_PcAdapter.setPrintStartPos(nX0:=_nPosXS);
   
   // Set Y print position
   _fPosY := fPrintYOffset;
-  IF GVL_Deformation.bC_UseGlobalGridShift THEN
-    _fPosY := _fPosY + _fDyGlobalShift;    // + global shift from grid points
-  END_IF
   fB_PcAdapter.setPrintYShift(nYShift:=FC_LREAL_TO_DINT(_fPosY));
 
   // check
@@ -208,17 +189,10 @@ IF SUPER^.Attach(iCT:=iCT) THEN
     Attach:=TRUE;
     LogLvl(Lvl:=E_LogSeverity.Debug, F_Concat2('printStart:', _pAttachedCt^.print(0)));  // print container
     LogLvl(Lvl:=E_LogSeverity.Debug, F_Concat4('> XS:', TO_STRING(_nPosXS), ' = X0:', TO_STRING(_nPosX0)));
-    IF GVL_Deformation.bC_UseGlobalGridShift THEN
-      LogLvl(Lvl:=E_LogSeverity.Debug, F_Concat6('> + shDx:', TO_STRING(_fDxGlobalShift), 
-                                                 ' + shStartOffs:', TO_STRING(F_MeterToSubPixel(_fPrintStartOffset,_fPrintResolution*_fSubPxResolution)),
-                                                 ' - shDropComp:', TO_STRING(F_MeterToSubPixel(fbDropSpeedComp.fDropPlacementError,_fPrintResolution*_fSubPxResolution))
-                                                 ));
-    ELSE
-      LogLvl(Lvl:=E_LogSeverity.Debug, F_Concat4( 
-                                           ' + shStartOffs:', TO_STRING(F_MeterToSubPixel(_fPrintStartOffset,_fPrintResolution*_fSubPxResolution)),
-                                           ' - shDropComp:', TO_STRING(F_MeterToSubPixel(fbDropSpeedComp.fDropPlacementError,_fPrintResolution*_fSubPxResolution))
-                                           ));
-		END_IF
+    LogLvl(Lvl:=E_LogSeverity.Debug, F_Concat4( 
+                                         ' + shStartOffs:', TO_STRING(F_MeterToSubPixel(_fPrintStartOffset,_fPrintResolution*_fSubPxResolution)),
+                                         ' - shDropComp:', TO_STRING(F_MeterToSubPixel(fbDropSpeedComp.fDropPlacementError,_fPrintResolution*_fSubPxResolution))
+                                         ));
   ELSE  
     LogError(Msg:='PA not ready to start at attach');
     Release(iCT := iCT);
@@ -278,35 +252,6 @@ IF bLimited THEN
                                                      ' correction exceeded limit')); 
 END_IF
 correctionLimit := bLimited;]]></ST>
-      </Implementation>
-    </Method>
-    <Method Name="correctionUpdate" Id="{8bb67264-11f6-4085-9e91-42d7f81ce449}">
-      <Declaration><![CDATA[METHOD PRIVATE correctionUpdate : BOOL
-VAR_INPUT
-  pPoint : POINTER TO ST_DeformationPointAccurate;
-END_VAR
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[
-// here apply all PU specific corrections
-// - mechanical stretch based on temperature extension (if not done in Camera)
-// - banana correction
-// - Y-shifts of PU
-// - trapzedoial correction
-// - ...
-
-// global dx/dy correction
-//   remove global shift from GridPoints (shifted by PU)
-IF GVL_Deformation.bC_UseGlobalGridShift THEN
-  pPoint^.dx := pPoint^.dx - _fDxGlobalShift;
-  pPoint^.dy := pPoint^.dy - _fDyGlobalShift;
-END_IF
-
-// PU Deformation correction
-IF GVL_Deformation.bC_UsePUDeformation THEN
-  fbFineAlignement.updateCorrection(pPoint:=pPoint);
-END_IF
-]]></ST>
       </Implementation>
     </Method>
     <Property Name="fStartShiftFactor" Id="{5b817e72-fc10-4a5c-bb03-f73451d2d422}">
@@ -391,14 +336,7 @@ IF fCurrentColumnPos + _fColumnsToPrecharge > nChargedColumns AND nChargedColumn
           IF _pAttachedCt^.getDeformationPoint(nCol:=nChargedColumns, nRow:=nRow, nSel:=0, sPoint=>sPoint, bWasSet=>bWasSet) THEN
           
             IF NOT bWasSet THEN LogWarning(F_Concat5('Point[c(',TO_STRING(nChargedColumns),')/r(', TO_STRING(nRow),')] was not set')); END_IF  
-          
-            // transfer the displacement into a correction
-            sPoint.dx := sPoint.dx;   // nothing to change
-            sPoint.dy := sPoint.dy;
-            
-            // apply PU corrections
-            correctionUpdate(pPoint:=ADR(sPoint));
-            
+                      
             // correction limitation
             correctionLimit(pPoint:=ADR(sPoint));
             
@@ -473,7 +411,6 @@ _bMsgInitialized := TRUE;]]></ST>
     <Method Name="InitWorkerPrint" Id="{4fecd085-052c-4b8b-bc2f-cc4dcd5f16f0}">
       <Declaration><![CDATA[METHOD InitWorkerPrint : BOOL
 VAR_INPUT
-  pAdsIfCam         : POINTER TO ST_ADS_CAMERA;   // provide camera access
   iDefGridParamMediator : I_ParamMediator;
   fPrintUnitWidth   : LREAL;     // print unit width [m]
   fLimitCorrectionX : LREAL;     // correction limit in y (abs) [px]
@@ -482,11 +419,9 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF NOT bInitialized THEN LogError('Base Worker not initialized! call init() before'); RETURN; END_IF
-IF pAdsIfCam = 0 THEN bInitialized := FALSE; LogError('Not valid Ads camera interface provided'); RETURN; END_IF
 IF iDefGridParamMediator = 0 THEN bInitialized := FALSE; LogError('Invalid parameter, no valid param mediator'); RETURN; END_IF
 
 // worker specific init
-_pAdsCam := pAdsIfCam;
 _iParamMediator := iDefGridParamMediator;
 
 //Print Aggregate
@@ -497,7 +432,6 @@ _fLimitCorrectionY := ABS(fLimitCorrectionY);
 fbPa.bSyncAfterDone := FALSE;
 fbPa.init(iPcAdapter := fB_PcAdapter, iPsInterface := fbPs);
 
-fbFineAlignement.init(pAdsCam := _pAdsCam, fPxReso := _fPrintResolution, fPuWidth := fPrintUnitWidth);
 ]]></ST>
       </Implementation>
     </Method>
@@ -516,16 +450,6 @@ IF NOT bWorkerEnable THEN RETURN; END_IF  // only if enabled
 fbPa.jobStart(bEndless:=sJobDef.isEndless());
 
 _bJobActive := TRUE;
-
-// set correction ref points
-_pAdsCam^.sI_CorrectionPointIndication[1].posx := 0;
-_pAdsCam^.sI_CorrectionPointIndication[1].posy := LREAL_TO_REAL(((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2);
-_pAdsCam^.sI_CorrectionPointIndication[2].posx := LREAL_TO_REAL(sJobDef.fImageDepth);
-_pAdsCam^.sI_CorrectionPointIndication[2].posy := LREAL_TO_REAL(((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2);
-_pAdsCam^.sI_CorrectionPointIndication[3].posx := 0;
-_pAdsCam^.sI_CorrectionPointIndication[3].posy := LREAL_TO_REAL((((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2) + sJobDef.fImageWidth);
-_pAdsCam^.sI_CorrectionPointIndication[4].posx := LREAL_TO_REAL(sJobDef.fImageDepth);
-_pAdsCam^.sI_CorrectionPointIndication[4].posy := LREAL_TO_REAL((((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2) + sJobDef.fImageWidth);
 
 // grid settings update
 IF _iPhGrid <> 0 THEN _sPhGridHwCfg := _iPhGrid.getGridHwCfg(); END_IF ]]></ST>
@@ -626,13 +550,6 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[SUPER^.work();
-
-(*PU deformation*)
-IF GVL_Deformation.bC_UsePUDeformation THEN
-  fbFineAlignement.fT_PL1 := fPUPlate1_Temperature;
-  fbFineAlignement.fT_PL2 := fPUPlate2_Temperature;
-  fbFineAlignement();
-END_IF
 
 (*Update virtual encoder on all controller boards*)
 fB_PcAdapter.setEncoderPos(nEncoderPos);
@@ -752,7 +669,6 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="45" Count="1" />
       <LineId Id="43" Count="0" />
       <LineId Id="147" Count="0" />
-      <LineId Id="191" Count="1" />
       <LineId Id="44" Count="0" />
       <LineId Id="9" Count="0" />
       <LineId Id="105" Count="0" />
@@ -761,17 +677,12 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="286" Count="0" />
       <LineId Id="284" Count="0" />
       <LineId Id="116" Count="0" />
-      <LineId Id="295" Count="0" />
-      <LineId Id="224" Count="1" />
-      <LineId Id="222" Count="0" />
-      <LineId Id="254" Count="0" />
+      <LineId Id="317" Count="0" />
       <LineId Id="223" Count="0" />
       <LineId Id="28" Count="0" />
       <LineId Id="127" Count="0" />
       <LineId Id="104" Count="0" />
       <LineId Id="226" Count="0" />
-      <LineId Id="228" Count="1" />
-      <LineId Id="227" Count="0" />
       <LineId Id="195" Count="0" />
       <LineId Id="190" Count="0" />
       <LineId Id="58" Count="1" />
@@ -784,13 +695,8 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="73" Count="0" />
       <LineId Id="24" Count="0" />
       <LineId Id="121" Count="1" />
-      <LineId Id="238" Count="0" />
-      <LineId Id="123" Count="1" />
-      <LineId Id="126" Count="0" />
-      <LineId Id="125" Count="0" />
-      <LineId Id="239" Count="0" />
       <LineId Id="242" Count="2" />
-      <LineId Id="240" Count="1" />
+      <LineId Id="240" Count="0" />
       <LineId Id="20" Count="0" />
       <LineId Id="25" Count="0" />
       <LineId Id="72" Count="0" />
@@ -818,24 +724,6 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="35" Count="0" />
       <LineId Id="8" Count="0" />
       <LineId Id="27" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_WorkerDefGrid_Print.correctionUpdate">
-      <LineId Id="6" Count="0" />
-      <LineId Id="5" Count="0" />
-      <LineId Id="7" Count="4" />
-      <LineId Id="40" Count="0" />
-      <LineId Id="39" Count="0" />
-      <LineId Id="16" Count="0" />
-      <LineId Id="18" Count="0" />
-      <LineId Id="21" Count="0" />
-      <LineId Id="20" Count="0" />
-      <LineId Id="19" Count="0" />
-      <LineId Id="38" Count="0" />
-      <LineId Id="22" Count="0" />
-      <LineId Id="25" Count="0" />
-      <LineId Id="29" Count="0" />
-      <LineId Id="15" Count="0" />
-      <LineId Id="30" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.fStartShiftFactor.Get">
       <LineId Id="2" Count="0" />
@@ -866,12 +754,7 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="311" Count="0" />
       <LineId Id="313" Count="0" />
       <LineId Id="312" Count="0" />
-      <LineId Id="229" Count="0" />
-      <LineId Id="234" Count="0" />
-      <LineId Id="231" Count="1" />
-      <LineId Id="215" Count="0" />
-      <LineId Id="178" Count="0" />
-      <LineId Id="278" Count="2" />
+      <LineId Id="279" Count="1" />
       <LineId Id="233" Count="0" />
       <LineId Id="216" Count="0" />
       <LineId Id="179" Count="34" />
@@ -893,18 +776,16 @@ fB_PcAdapter.LogLevel := LogLevel;
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.InitWorkerPrint">
       <LineId Id="7" Count="0" />
-      <LineId Id="29" Count="0" />
       <LineId Id="57" Count="0" />
       <LineId Id="45" Count="0" />
       <LineId Id="15" Count="0" />
-      <LineId Id="47" Count="0" />
       <LineId Id="58" Count="0" />
       <LineId Id="10" Count="1" />
       <LineId Id="36" Count="0" />
       <LineId Id="20" Count="0" />
       <LineId Id="22" Count="0" />
       <LineId Id="21" Count="0" />
-      <LineId Id="12" Count="2" />
+      <LineId Id="12" Count="1" />
       <LineId Id="5" Count="0" />
       <LineId Id="48" Count="0" />
     </LineIds>
@@ -916,9 +797,6 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="53" Count="0" />
       <LineId Id="34" Count="1" />
       <LineId Id="22" Count="0" />
-      <LineId Id="59" Count="0" />
-      <LineId Id="68" Count="0" />
-      <LineId Id="60" Count="7" />
       <LineId Id="93" Count="0" />
       <LineId Id="81" Count="0" />
       <LineId Id="94" Count="0" />
@@ -965,8 +843,7 @@ fB_PcAdapter.LogLevel := LogLevel;
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.work">
       <LineId Id="427" Count="0" />
-      <LineId Id="345" Count="0" />
-      <LineId Id="356" Count="23" />
+      <LineId Id="362" Count="17" />
       <LineId Id="442" Count="0" />
       <LineId Id="381" Count="3" />
       <LineId Id="435" Count="1" />

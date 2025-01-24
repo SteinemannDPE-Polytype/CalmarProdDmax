@@ -3,53 +3,54 @@
   <POU Name="FB_GridDataExporter" Id="{a6e16905-996c-4000-bbd3-5d1efe3b1cb5}" SpecialFunc="None">
     <Declaration><![CDATA[(*Converts data to exportable formats*)
 FUNCTION_BLOCK FB_GridDataExporter EXTENDS T_NamedBase
+VAR_INPUT
+  sOutputDir          : T_MaxString;    // output folder path (without \ at the end)
+  sFileName           : T_MaxString;    // file name
+  pFbImageDeformation : POINTER TO FB_ImageDeformation;
+  nSelectGrid         : UDINT;          // 0=deformation calculated, 1=streamed grid
+END_VAR
+VAR_OUTPUT
+  bBusy : BOOL;
+END_VAR
 VAR 
-  // config
-  _sOutPath           : T_MaxString;
-  _pFbImageDeformation : POINTER TO FB_ImageDeformation;
-  
   // - file handling
-  bSave, bLoad        : BOOL;                   // file commands
+  bSave, bLoad, bDump : BOOL;                   // commands
   fbSysFile           : FB_File_Basic_SysFile;  // config file access
   
   // - json handling
   fbJson              : FB_JsonSaxWriter;       // config writer (build json string from data)
   fbJsonRd            : FB_JsonDomParser;       // config parse on read/(edit) (parse json string into data)
-  jsonDoc             : STRING(nC_MaxJsonString);   // big string holding all config file
-
+  
+  // - exported string
+  sDoc                : STRING(nC_MaxStringSz); // big string holding all config file
+  
   // helper
-  bInitialized, bSetup : BOOL;
-  bDump               : BOOL;
-  bBusy               : BOOL;
-  _nSelectGrid        : UDINT;
+  sFileFormat         : STRING;        // selected file format 
+  sOutputPath         : T_MaxString;   // file path to read/write
+  bInitialized        : BOOL;
 END_VAR
 VAR CONSTANT
-  nC_MaxJsonString    : UDINT := 10_000;
+  nC_MaxStringSz      : UDINT := 10_000;
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[// self setup -----------------------------
 // - init
 IF NOT bInitialized THEN Init(); RETURN; END_IF
-IF NOT bSetup THEN RETURN; END_IF
 
+// check & fix parameter
+IF pFbImageDeformation = 0 THEN RETURN; END_IF
 
-IF    bSave THEN bSave := FileSave();
+   IF bDump THEN bDump := NOT DumpGrid(); 
+ELSIF bSave THEN bSave := FileSave();
 ELSIF bLoad THEN bLoad := FileLoad();
-ELSIF bDump THEN bDump := NOT DumpGrid(); 
 END_IF
 
-]]></ST>
+bBusy := bSave OR bLoad OR bDump;]]></ST>
     </Implementation>
-    <Method Name="DumpGrid" Id="{de6113b8-c508-4943-a855-5bc858b3b061}">
-      <Declaration><![CDATA[METHOD PRIVATE DumpGrid : BOOL]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[DumpGrid := dumpJson();]]></ST>
-      </Implementation>
-    </Method>
-    <Method Name="dumpJson" Id="{97cfe1c3-c8ec-4fe7-b0f0-77e52207b625}">
-      <Declaration><![CDATA[METHOD PRIVATE dumpJson : BOOL
+    <Method Name="dumpCsv" Id="{4233e376-28e1-486f-b1d0-619ce0b279c5}">
+      <Declaration><![CDATA[METHOD PRIVATE dumpCsv : BOOL
 VAR_OUTPUT
-  nJsonSz : UDINT;
+  nSz : UDINT;
 END_VAR
 VAR
   i, k : UDINT := 0;
@@ -57,16 +58,94 @@ VAR
   sCamPoint : ST_CameraPointTbl;
   sGridPoint : ST_DeformationPointAccurate;
   nCols, nRows, nGridPoints : UDINT;
-  //pTable   : POINTER TO ST_DeformationPointTbl;   // pointer to table
+  sGridSettings : ST_DefGridSettings;
+  tempStr : T_MaxString;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nCamPoints :=pFbImageDeformation^.nAvailableCamPoints;
+nGridPoints := pFbImageDeformation^.nAvailableGridPoints;
+sGridSettings := pFbImageDeformation^.sDefGridSettings;
+nCols := sGridSettings.nGridSizeX;
+nRows := sGridSettings.nGridSizeY;
+
+// build export csv string ----------------------------------
+// reset string
+MEMSET(destAddr:=ADR(sDoc), fillByte:=0, n:=SIZEOF(sDoc));
+
+// grid  (dx/dy)
+//    col0    col1    col2
+// |  0/0  |  1/0  |  2/0  | ...  |  row0
+// |  0/1  |  1/1  |  2/1  | ...  |  row1
+FOR i:=0 TO nRows-1 DO
+  FOR k:=0 TO nCols-1 DO
+    // get deformation point
+    pFbImageDeformation^.getDeformationPoint(nCol:=k, nRow:=i, nSel:=nSelectGrid, sPoint=>sGridPoint, bWasSet=>);
+    tempStr := F_Concat3(
+      F_Concat2('dx:', TO_STRING(sGridPoint.dx)),
+      F_Concat2('/dy:', TO_STRING(sGridPoint.dy)),
+      F_Concat2(',', '')
+    );
+    CONCAT2(pSrcString1:=ADR(sDoc), pSrcString2:=ADR(tempStr), pDstString:=ADR(sDoc), nDstSize:=SIZEOF(sDoc));  // point dx/dy
+  END_FOR
+  tempStr := '$n';
+  CONCAT2(pSrcString1:=ADR(sDoc), pSrcString2:=ADR(tempStr), pDstString:=ADR(sDoc), nDstSize:=SIZEOF(sDoc));  // newline
+END_FOR
+
+tempStr := '$n';
+CONCAT2(pSrcString1:=ADR(sDoc), pSrcString2:=ADR(tempStr), pDstString:=ADR(sDoc), nDstSize:=SIZEOF(sDoc));
+
+// cam
+FOR k:=1 TO nCamPoints DO
+  pFbImageDeformation^.getCamPointX(nIdx:=k, Pn=>sCamPoint);
+  tempStr := F_Concat5(
+    F_Concat2('x_ref:', TO_STRING(sCamPoint.sPoint.x_ref)), 
+    F_Concat2('/y_ref:', TO_STRING(sCamPoint.sPoint.y_ref)), 
+    F_Concat2('-dx:', TO_STRING(sCamPoint.sPoint.dx)), 
+    F_Concat2('/dy:', TO_STRING(sCamPoint.sPoint.dy)),
+    F_Concat2(',', '')
+  );
+  CONCAT2(pSrcString1:=ADR(sDoc), pSrcString2:=ADR(tempStr), pDstString:=ADR(sDoc), nDstSize:=SIZEOF(sDoc));
+END_FOR
+
+tempStr := '$n';
+CONCAT2(pSrcString1:=ADR(sDoc), pSrcString2:=ADR(tempStr), pDstString:=ADR(sDoc), nDstSize:=SIZEOF(sDoc));
+
+nSz := LEN2(pSTRING:=ADR(sDoc));
+dumpCsv := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="DumpGrid" Id="{de6113b8-c508-4943-a855-5bc858b3b061}">
+      <Declaration><![CDATA[METHOD PRIVATE DumpGrid : BOOL 
+VAR_OUTPUT
+  nSz : UDINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF    sFileFormat = 'csv'  THEN DumpGrid := dumpCsv(nSz=>nSz);
+ELSE                            DumpGrid := dumpJson(nSz=>nSz);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="dumpJson" Id="{97cfe1c3-c8ec-4fe7-b0f0-77e52207b625}">
+      <Declaration><![CDATA[METHOD PRIVATE dumpJson : BOOL
+VAR_OUTPUT
+  nSz : UDINT;
+END_VAR
+VAR
+  i, k : UDINT := 0;
+  nCamPoints : UDINT;
+  sCamPoint : ST_CameraPointTbl;
+  sGridPoint : ST_DeformationPointAccurate;
+  nCols, nRows, nGridPoints : UDINT;
   sGridSettings : ST_DefGridSettings;
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF NOT bSetup THEN RETURN; END_IF
-
-nCamPoints :=_pFbImageDeformation^.nAvailableCamPoints;
-nGridPoints := _pFbImageDeformation^.nAvailableGridPoints;
-sGridSettings := _pFbImageDeformation^.sDefGridSettings;
+        <ST><![CDATA[nCamPoints :=pFbImageDeformation^.nAvailableCamPoints;
+nGridPoints := pFbImageDeformation^.nAvailableGridPoints;
+sGridSettings := pFbImageDeformation^.sDefGridSettings;
 nCols := sGridSettings.nGridSizeX;
 nRows := sGridSettings.nGridSizeY;
 
@@ -84,7 +163,7 @@ fbJson.StartObject();
         fbJson.StartArray();
         FOR k:=1 TO nCols DO
           fbJson.StartObject();
-          _pFbImageDeformation^.getDeformationPoint(nCol:=k, nRow:=i, nSel:=_nSelectGrid, sPoint=>sGridPoint, bWasSet=>);
+          pFbImageDeformation^.getDeformationPoint(nCol:=k-1, nRow:=i-1, nSel:=nSelectGrid, sPoint=>sGridPoint, bWasSet=>);
           fbJson.AddKey(key:='col');
           fbJson.AddDint(value:=sGridPoint.col);
           fbJson.AddKey(key:='row');
@@ -114,7 +193,7 @@ fbJson.StartObject();
       fbJson.AddKey(key:='CamPoints');
       fbJson.StartArray();
       FOR k:=1 TO nCamPoints DO
-        _pFbImageDeformation^.getCamPointX(nIdx:=k, Pn=>sCamPoint);
+        pFbImageDeformation^.getCamPointX(nIdx:=k, Pn=>sCamPoint);
         fbJson.StartObject();
         fbJson.AddKey(key:='x_ref');
         fbJson.AddLreal(value:=sCamPoint.sPoint.x_ref);
@@ -135,10 +214,10 @@ fbJson.StartObject();
 fbJson.EndObject();
 // '}'
 
-fbJson.CopyDocument(jsonDoc, SIZEOF(jsonDoc));
+fbJson.CopyDocument(sDoc, SIZEOF(sDoc));
 // document is now in big string -----------------------------
 
-nJsonSz := LEN2(pSTRING:=ADR(jsonDoc));
+nSz := LEN2(pSTRING:=ADR(sDoc));
 dumpJson := TRUE;]]></ST>
       </Implementation>
     </Method>
@@ -161,8 +240,8 @@ END_VAR]]></Declaration>
         <ST><![CDATA[CASE nState OF
   0:  // idle
     LogLvl(Lvl:=E_LogSeverity.Detail, 'Load file');
-    IF _sOutPath <> '' THEN
-      jsonDoc := '';
+    IF sOutputPath <> '' THEN
+      sDoc := '';
       nState := nState + 1; // start immediately
     ELSE
       nState := 4;   // go to parse only
@@ -171,7 +250,7 @@ END_VAR]]></Declaration>
 
     
   1:  // opening file
-    IF NOT fbSysFile.Open(SName:=_sOutPath, eMode:=E_FileMode.rd, bBinary:=FALSE) THEN
+    IF NOT fbSysFile.Open(SName:=sOutputPath, eMode:=E_FileMode.rd, bBinary:=FALSE) THEN
       IF fbSysFile.nErrId <> 0 THEN 
         errCode := fbSysFile.nErrId;
         nState := 99;
@@ -181,7 +260,7 @@ END_VAR]]></Declaration>
 		END_IF
     
   2:  // reading file
-    IF NOT fbSysFile.Read(pStr:=ADR(jsonDoc), nSize:=SIZEOF(jsonDoc), nRdBytes=>sz, bEOF=>eof) THEN
+    IF NOT fbSysFile.Read(pStr:=ADR(sDoc), nSize:=SIZEOF(sDoc), nRdBytes=>sz, bEOF=>eof) THEN
       IF fbSysFile.nErrId <> 0 THEN 
         errCode := fbSysFile.nErrId;
         nState := 99;
@@ -194,7 +273,7 @@ END_VAR]]></Declaration>
 		END_IF
     
   3:  // closing file
-    LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat4('Loaded file, size=', TO_STRING(sz), ' file=', _sOutPath));
+    LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat4('Loaded file, size=', TO_STRING(sz), ' file=', sOutputPath));
     IF NOT fbSysFile.Close() THEN
       IF fbSysFile.nErrId <> 0 THEN 
         errCode := fbSysFile.nErrId;
@@ -236,20 +315,20 @@ END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[CASE nState OF
   0:  // idle
-    LogLvl(Lvl:=E_LogSeverity.Detail, Msg:=F_concat2('Saving file: ', _sOutPath));
+    LogLvl(Lvl:=E_LogSeverity.Detail, Msg:=F_concat2('Saving file: ', sOutputPath));
     errCode := 0;
     nState := nState + 1;
       
   1:  // parsing file
-    dumpJson(nJsonSz=>nSz);
-    IF _sOutPath <> '' THEN
+    DumpGrid(nSz=>nSz);
+    IF sOutputPath <> '' THEN
       nState := nState + 1;
     ELSE
       nState := 5;   // done (no file to write)
     END_IF
     
   2:  // opening file
-    IF NOT   fbSysFile.Open(sName:=_sOutPath, eMode:=E_FileMode.wr, bBinary:=FALSE) THEN
+    IF NOT   fbSysFile.Open(sName:=sOutputPath, eMode:=E_FileMode.wr, bBinary:=FALSE) THEN
       IF fbSysFile.nErrId <> 0 THEN 
         errCode := fbSysFile.nErrId;
         nState := 99;
@@ -259,7 +338,7 @@ END_VAR]]></Declaration>
 		END_IF
     
   3:  // reading file
-    IF NOT fbSysFile.Write(pStr:=ADR(jsonDoc), nSize:=nSz+1) THEN
+    IF NOT fbSysFile.Write(pStr:=ADR(sDoc), nSize:=nSz+1) THEN
       IF fbSysFile.nErrId <> 0 THEN 
         errCode := fbSysFile.nErrId;
         nState := 99;
@@ -269,7 +348,7 @@ END_VAR]]></Declaration>
 		END_IF
     
   4:  // closing file
-    LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('Saved file=', _sOutPath));
+    LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('Saved file=', sOutputPath));
     IF NOT fbSysFile.Close() THEN
       IF fbSysFile.nErrId <> 0 THEN 
         errCode := fbSysFile.nErrId;
@@ -371,52 +450,81 @@ END_IF
 parseJson := TRUE;    // TODO: check for parsing errors]]></ST>
       </Implementation>
     </Method>
-    <Method Name="Setup" Id="{476912bc-26a3-4d6c-8bd3-023a45209de1}">
-      <Declaration><![CDATA[(*
-  Configure the Simulation Handler.
-*)
-METHOD Setup : BOOL
-VAR_INPUT
-  sOutPath : T_MaxString;   // path to configuration .json file
-  pFbImageDeformation : POINTER TO FB_ImageDeformation;
-END_VAR
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[IF pFbImageDeformation = 0 THEN RETURN; END_IF 
-IF NOT bInitialized THEN RETURN; END_IF
-
-_sOutPath := sOutPath;
-_pFbImageDeformation := pFbImageDeformation;
-
-bSetup := TRUE;]]></ST>
-      </Implementation>
-    </Method>
     <Method Name="startExport" Id="{d8940ba5-d237-4a7b-aef8-04b7114250d0}">
       <Declaration><![CDATA[METHOD startExport
-VAR_INPUT
-  nSelectGrid : UDINT;
-END_VAR
-]]></Declaration>
+VAR
+  sFileEnding : STRING;
+END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[_nSelectGrid := nSelectGrid;
+        <ST><![CDATA[IF pFbImageDeformation = 0 THEN RETURN; END_IF
+
+sFileEnding := F_FileGetExtension(aPath:=sFileName);
+IF     sFileEnding = 'csv'  THEN sFileFormat := 'csv';
+ELSIF  sFileEnding = 'json' THEN sFileFormat := 'json';  
+END_IF
+
+sOutputPath := F_Concat3(sOutputDir, '\', sFileName);
+
 bSave := TRUE;]]></ST>
       </Implementation>
     </Method>
     <LineIds Name="FB_GridDataExporter">
       <LineId Id="684" Count="2" />
-      <LineId Id="694" Count="0" />
+      <LineId Id="809" Count="1" />
       <LineId Id="693" Count="0" />
-      <LineId Id="687" Count="3" />
+      <LineId Id="687" Count="0" />
+      <LineId Id="778" Count="0" />
+      <LineId Id="688" Count="1" />
       <LineId Id="695" Count="0" />
       <LineId Id="691" Count="0" />
       <LineId Id="652" Count="0" />
     </LineIds>
+    <LineIds Name="FB_GridDataExporter.dumpCsv">
+      <LineId Id="197" Count="6" />
+      <LineId Id="275" Count="0" />
+      <LineId Id="272" Count="0" />
+      <LineId Id="276" Count="0" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="292" Count="0" />
+      <LineId Id="291" Count="0" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="213" Count="1" />
+      <LineId Id="277" Count="0" />
+      <LineId Id="217" Count="0" />
+      <LineId Id="281" Count="0" />
+      <LineId Id="296" Count="1" />
+      <LineId Id="308" Count="0" />
+      <LineId Id="298" Count="0" />
+      <LineId Id="282" Count="0" />
+      <LineId Id="233" Count="0" />
+      <LineId Id="285" Count="0" />
+      <LineId Id="284" Count="0" />
+      <LineId Id="235" Count="0" />
+      <LineId Id="289" Count="1" />
+      <LineId Id="288" Count="0" />
+      <LineId Id="286" Count="0" />
+      <LineId Id="238" Count="0" />
+      <LineId Id="246" Count="1" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="302" Count="1" />
+      <LineId Id="299" Count="1" />
+      <LineId Id="309" Count="0" />
+      <LineId Id="301" Count="0" />
+      <LineId Id="287" Count="0" />
+      <LineId Id="260" Count="0" />
+      <LineId Id="306" Count="1" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="270" Count="1" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="295" Count="0" />
+    </LineIds>
     <LineIds Name="FB_GridDataExporter.DumpGrid">
+      <LineId Id="12" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="15" Count="0" />
       <LineId Id="5" Count="0" />
     </LineIds>
     <LineIds Name="FB_GridDataExporter.dumpJson">
-      <LineId Id="84" Count="0" />
-      <LineId Id="90" Count="0" />
       <LineId Id="85" Count="0" />
       <LineId Id="134" Count="0" />
       <LineId Id="142" Count="0" />
@@ -466,7 +574,9 @@ bSave := TRUE;]]></ST>
       <LineId Id="143" Count="0" />
     </LineIds>
     <LineIds Name="FB_GridDataExporter.FileSave">
-      <LineId Id="232" Count="57" />
+      <LineId Id="298" Count="6" />
+      <LineId Id="361" Count="0" />
+      <LineId Id="306" Count="49" />
       <LineId Id="117" Count="0" />
     </LineIds>
     <LineIds Name="FB_GridDataExporter.Init">
@@ -480,16 +590,15 @@ bSave := TRUE;]]></ST>
       <LineId Id="70" Count="0" />
       <LineId Id="69" Count="0" />
     </LineIds>
-    <LineIds Name="FB_GridDataExporter.Setup">
-      <LineId Id="15" Count="1" />
-      <LineId Id="19" Count="0" />
-      <LineId Id="5" Count="0" />
-      <LineId Id="14" Count="0" />
-      <LineId Id="18" Count="0" />
-      <LineId Id="17" Count="0" />
-    </LineIds>
     <LineIds Name="FB_GridDataExporter.startExport">
       <LineId Id="10" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="14" Count="1" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="25" Count="0" />
       <LineId Id="5" Count="0" />
     </LineIds>
   </POU>

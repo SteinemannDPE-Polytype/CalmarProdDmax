@@ -134,7 +134,7 @@ VAR_OUTPUT
   bWasSet : BOOL;           // point was set by deformation
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[getDeformationPoint := fBImageDeformation.getDeformationPoint(nCol:=nCol, nRow:=nRow, nSel:=nSel, sPoint=>sPoint);]]></ST>
+        <ST><![CDATA[getDeformationPoint := fBImageDeformation.getDeformationPoint(nCol:=nCol, nRow:=nRow, nSel:=nSel, sPoint=>sPoint, bWasSet=>bWasSet);]]></ST>
       </Implementation>
     </Method>
     <Method Name="getDeformationStatus" Id="{ad3cfac4-eda3-4d41-892b-ffdca204925e}">

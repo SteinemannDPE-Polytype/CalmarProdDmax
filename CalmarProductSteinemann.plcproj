@@ -595,6 +595,10 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
+    <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_CTGridExporter.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
     <Compile Include="POUs\Print\DefGrid\_VISU_Templates\_VISU_WorkerDefGrid_VerifyHistory.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>

@@ -42,11 +42,6 @@ VAR
   // - Time of flight correction of droplets
   fbDropSpeedComp    : FB_DropSpeedComp;
   bShowDropSpeedSetup : BOOL;
-  
-  //
-  // - global shifts (applied globally and not on every single point (calcualted based on all CT points))
-  _fDxGlobalShift    : LREAL;
-  _fDyGlobalShift    : LREAL;
 
   // settings or helper (global or last attached ct)
   _bWorkerPrintEnable: BOOL;    // print on worker enabled 
@@ -197,19 +192,13 @@ sDefGridSettings := _iParamMediator.sDeformationGridSettings;
 
 // - Calc print positions
 //  > X Position ---
-_fDxGlobalShift := _pNewAttached^.fDxShift;     // global shift from the registered grid
 _nPosX0 := _pNewAttached^.nPosPrint_X0;         // X0 "print" position for CT (should be updated to the local position domain, not the one of CTM)
 _nPosXDelta :=   F_MeterToSubPixel(fPrintStartOffset, _fPrintResolution*_fSubPxResolution)                      // + PU/PM/PG shifts
                - F_MeterToSubPixel(fbDropSpeedComp.fDropPlacementError, _fPrintResolution*_fSubPxResolution);   // - drop compensation 
-IF GVL_Deformation.bC_UseGlobalGridShift THEN
-  _nPosXDelta := _nPosXDelta + FC_LREAL_TO_DINT(_fDxGlobalShift);                                               // + global shift from grid points
-END_IF
 _nPosXS := _nPosX0 + _nPosXDelta;   // XS effective print start position
 //  > Y Position ---
-_fDyGlobalShift := _pNewAttached^.fDyShift;      // set global shift 
 //   y position (with or whithout applied global y shift from correction grid)
-_fPosY :=   F_MeterToSubPixel(fPosMeter:=fPrintYOffset, fResoSubPx:=_fPrintResolution) 
-          + SEL(GVL_Deformation.bC_UseGlobalGridShift, 0, _fDyGlobalShift);
+_fPosY :=   F_MeterToSubPixel(fPosMeter:=fPrintYOffset, fResoSubPx:=_fPrintResolution);
 
 // error checks on position
 bCheckErr := checkPrintposTiming(nStartPos:=_nPosXS, nCurrentPos:=nPrintPos);
@@ -249,7 +238,7 @@ END_IF
 LogLvl(Lvl:=E_LogSeverity.Debug, F_Concat4('printStart: at XS:', TO_STRING(_nPosXS), ' ', _pNewAttached^.print(0)));  // print container
 LogLvl(Lvl:=E_LogSeverity.Debug, F_Concat4(
                                       F_Concat3('> XS = X0(', TO_STRING(iCT.GetPosX0(iTracker:=_iCTTracker)), ')'),
-                                      SEL(GVL_Deformation.bC_UseGlobalGridShift, '', F_Concat3(' + shDx(', TO_STRING(_fDxGlobalShift), ')')),
+                                      '',
                                       F_Concat3(' + shStartOffs(', TO_STRING(F_MeterToSubPixel(fPrintStartOffset, _fPrintResolution*_fSubPxResolution)), ')'),
                                       F_Concat3(' - shDropComp(', TO_STRING(F_MeterToSubPixel(fbDropSpeedComp.fDropPlacementError, _fPrintResolution*_fSubPxResolution)), ')')
                                    ));
@@ -495,12 +484,6 @@ END_VAR]]></Declaration>
 // - trapzedoial correction
 // - ...
 
-// global dx/dy correction
-//   remove global shift from GridPoints (shifted by PU)
-IF GVL_Deformation.bC_UseGlobalGridShift THEN
-  pPoint^.dx := pPoint^.dx - _fDxGlobalShift;
-  pPoint^.dy := pPoint^.dy - _fDyGlobalShift;
-END_IF
 
 // PU Deformation correction
 IF GVL_Deformation.bC_UsePUDeformation THEN
@@ -901,10 +884,6 @@ WHILE pChargedCols^ < LIMIT(0, FLOOR(fCurrentPreCharge), sDefGridSettings.nGridS
         
         IF NOT bWasSet THEN LogWarning(F_Concat5('Point[c(',TO_STRING(pChargedCols^),')/r(', TO_STRING(nRow),')] was not set')); END_IF
         
-        // convert the displacement into a correction
-        sPoint.dx := sPoint.dx;   // nothing to change
-        sPoint.dy := sPoint.dy;
-        
         // apply PU corrections
         correctionApply(pPoint:=ADR(sPoint));
         
@@ -1181,17 +1160,13 @@ sim();]]></ST>
       <LineId Id="407" Count="0" />
       <LineId Id="411" Count="0" />
       <LineId Id="393" Count="0" />
-      <LineId Id="401" Count="3" />
+      <LineId Id="401" Count="1" />
+      <LineId Id="404" Count="0" />
       <LineId Id="399" Count="0" />
       <LineId Id="542" Count="0" />
-      <LineId Id="409" Count="0" />
-      <LineId Id="394" Count="0" />
-      <LineId Id="412" Count="0" />
       <LineId Id="424" Count="0" />
       <LineId Id="415" Count="0" />
-      <LineId Id="391" Count="0" />
       <LineId Id="420" Count="1" />
-      <LineId Id="587" Count="0" />
       <LineId Id="418" Count="1" />
       <LineId Id="392" Count="0" />
       <LineId Id="438" Count="0" />
@@ -1215,7 +1190,8 @@ sim();]]></ST>
       <LineId Id="350" Count="0" />
       <LineId Id="352" Count="1" />
       <LineId Id="442" Count="0" />
-      <LineId Id="355" Count="2" />
+      <LineId Id="355" Count="1" />
+      <LineId Id="597" Count="0" />
       <LineId Id="475" Count="0" />
       <LineId Id="469" Count="0" />
       <LineId Id="473" Count="0" />
@@ -1298,12 +1274,6 @@ sim();]]></ST>
       <LineId Id="6" Count="0" />
       <LineId Id="5" Count="0" />
       <LineId Id="7" Count="4" />
-      <LineId Id="40" Count="0" />
-      <LineId Id="39" Count="0" />
-      <LineId Id="16" Count="0" />
-      <LineId Id="18" Count="0" />
-      <LineId Id="21" Count="0" />
-      <LineId Id="20" Count="0" />
       <LineId Id="19" Count="0" />
       <LineId Id="38" Count="0" />
       <LineId Id="22" Count="0" />
@@ -1486,7 +1456,7 @@ sim();]]></ST>
       <LineId Id="173" Count="0" />
       <LineId Id="172" Count="0" />
       <LineId Id="116" Count="0" />
-      <LineId Id="17" Count="9" />
+      <LineId Id="21" Count="5" />
       <LineId Id="120" Count="1" />
       <LineId Id="119" Count="0" />
       <LineId Id="27" Count="1" />

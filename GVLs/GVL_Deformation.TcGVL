@@ -12,7 +12,6 @@ VAR_GLOBAL
   nC_DefaultGridPitch_X  : UDINT := 1024;    // GRID: (default if unknown in hw) distance between grid point in y [px] (FPGA definition)
   nC_DefaultGridPitch_Y  : UDINT := 2048;    // GRID: (default if unknown in hw) distance between grid point in y [px] (FPGA definition)
   nC_GridSubReso  : UDINT := 10;      // sub resolution of grid definitions (script handling)
-  bC_UseGlobalGridShift : BOOL := FALSE; // not yet tested!!! 
   bC_UsePUDeformation : BOOL := TRUE;   // enable calculation of PU deformation/correction
 END_VAR]]></Declaration>
   </GVL>
