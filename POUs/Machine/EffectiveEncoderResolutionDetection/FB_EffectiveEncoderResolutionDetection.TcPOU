@@ -29,6 +29,7 @@ VAR
   fSpeed                      : LREAL;       // current encoder speed [pulse/s]
   fbMark1,fbMark2             : RF_TRIG;     // edge detection
   bMeasurementActive          : BOOL;        // a measurement started
+  bS1_MarkStarted, bS2_MarkStarted : BOOL;
   nMeasurementCounter         : UDINT;       // counter for measurements
   nCurrentDistActive          : DINT;        // current distance during active measurement
   bVerbose                    : BOOL;
@@ -51,6 +52,7 @@ VAR
   nPosStart, nPosEnd : DINT;                 // encoder positions detectec (exact by trigger, timestamp and speed based approximation)
   nPosFalling1, nPosFalling2 : DINT;         // exact position in [pulse]
   bRising_S1, bFalling_S1, bRising_S2, bFalling_S2 : BOOL;    // sensor edge detection
+  fMarkAbortLength : LREAL;   // [um]
   
   // view
   bSim : BOOL;
@@ -182,11 +184,11 @@ getExactPosition := nPos - nDeltaPosition;	                                     
       <Declaration><![CDATA[// returns mark lenght in [um] (with current resolution)
 METHOD PRIVATE getMarkLength : LREAL
 VAR_INPUT
-  nStart : DINT;      // pulse / um
-  nEnd : DINT;    // pulse / um
+  nStart  : DINT;     // pulse / um
+  nEnd    : DINT;     // pulse / um
 END_VAR
 VAR
-  nDist : DINT;  // [pulse]
+  nDist   : DINT;     // [pulse]
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[// pulse elapsed * resolution [pulse/um] => pos in [um]
@@ -208,9 +210,7 @@ VAR_OUTPUT
   bUpdate : BOOL;
   fEncoderDistance : LREAL;
 END_VAR
-VAR_INST
-  bS1_MarkStarted, bS2_MarkStarted : BOOL;
-END_VAR]]></Declaration>
+]]></Declaration>
       <Implementation>
         <ST><![CDATA[bUpdate := FALSE;
 bRising_S1 := fbMark1.RT;
@@ -218,6 +218,8 @@ bRising_S2 := fbMark2.RT;
 bFalling_S1 := fbMark1.FT;    // wait on falling edge always 
 bFalling_S2 := fbMark2.FT;
 
+
+fMarkAbortLength := fMaxMarkLength + (fSpeed * fCurrentResolution * 1 * fCycleTime);
 
 IF NOT bMeasurementActive THEN
   
@@ -241,7 +243,7 @@ IF NOT bMeasurementActive THEN
     END_IF
 
   // abort mark if no falling given
-  ELSIF bS1_MarkStarted AND getMarkLength(nStart:=nPosStart, nEnd:=nPulse) > fMaxMarkLength THEN  // abort if max mark length exeeded
+  ELSIF bS1_MarkStarted AND getMarkLength(nStart:=nPosStart, nEnd:=nPulse) > fMarkAbortLength THEN  // abort if max mark length exeeded
     bAborted := TRUE;
     bS1_MarkStarted := FALSE;         // mark done
     bMarkInvalidLength_S1 := TRUE;    // mark end missed (too long?)
@@ -273,7 +275,7 @@ ELSE
       END_IF
 
     // abort mark if no falling given
-    ELSIF bS2_MarkStarted AND getMarkLength(nStart:=nPosEnd, nEnd:=nPulse) > fMaxMarkLength THEN  // abort if max mark length exeeded
+    ELSIF bS2_MarkStarted AND getMarkLength(nStart:=nPosEnd, nEnd:=nPulse) > fMarkAbortLength THEN  // abort if max mark length exeeded
       bAborted := TRUE;
       bS1_MarkStarted := FALSE;         // mark done
       bMarkInvalidLength_S1 := TRUE;    // mark end missed (too long?)
@@ -366,6 +368,8 @@ END_IF
       <LineId Id="234" Count="1" />
       <LineId Id="193" Count="1" />
       <LineId Id="236" Count="0" />
+      <LineId Id="396" Count="0" />
+      <LineId Id="395" Count="0" />
       <LineId Id="196" Count="0" />
       <LineId Id="273" Count="0" />
       <LineId Id="358" Count="0" />

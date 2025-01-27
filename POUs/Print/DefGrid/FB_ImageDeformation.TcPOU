@@ -33,6 +33,7 @@ VAR
   _nUpdatedFeature  : UDINT;                // number of updated features (a distance)
   _fPrintLengthOriginal  : LREAL;           // intended image depth in [m]
   _fPrintLengthEffective : LREAL;           // effective detected printing length in [m] (not yet used, but could be used for more accureate dx calculation in the future)
+  _bDeformationGridLimited : BOOL;              // some deformation points were limited to a min/max boundary
   // others
   _nErrorId         : UDINT := 0;
   _sTempPoint       : ST_DeformationPointAccurate; 
@@ -117,6 +118,25 @@ END_VAR
           <ST><![CDATA[bBusy := bPythonBusy AND NOT _bAborted;]]></ST>
         </Implementation>
       </Get>
+    </Property>
+    <Property Name="bDeformationGridLimited" Id="{25f27fbd-a36f-4941-ab61-7fefca138208}">
+      <Declaration><![CDATA[PROPERTY bDeformationGridLimited : BOOL]]></Declaration>
+      <Get Name="Get" Id="{87f1afd4-6550-458b-9c4d-f4d8d89730bc}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bDeformationGridLimited := _bDeformationGridLimited;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{edc4ffc8-0d2b-47fb-90ac-ec6b0c777bbd}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bDeformationGridLimited := bDeformationGridLimited;]]></ST>
+        </Implementation>
+      </Set>
     </Property>
     <Property Name="bDone" Id="{a14a12a3-fc4c-4d8b-814b-d9f6ebba735a}">
       <Declaration><![CDATA[PROPERTY bDone : BOOL]]></Declaration>
@@ -829,6 +849,12 @@ bPythonDeformationDone := NOT bPythonBusy;]]></ST>
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.bBusy.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.bDeformationGridLimited.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ImageDeformation.bDeformationGridLimited.Set">
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ImageDeformation.bDone.Get">

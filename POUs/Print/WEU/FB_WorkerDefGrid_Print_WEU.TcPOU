@@ -76,7 +76,7 @@ VAR
   nRepeatCt : UDINT;
 
   // testing
-
+  bEnVerbose : BOOL;
 END_VAR
 VAR PERSISTENT
   _fColumnsToPrecharge : LREAL := nC_COLUMNS_TO_PRECHARGE;
@@ -502,6 +502,7 @@ END_IF
 METHOD PRIVATE correctionLimit : BOOL
 VAR_INPUT
   pPoint : POINTER TO ST_DeformationPointAccurate;
+  pCT    : POINTER TO FB_ContainerDefGrid;
 END_VAR
 VAR
   bLimited : BOOL;
@@ -509,18 +510,19 @@ VAR
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[// limit point correction to boundaries and inform
-IF    pPoint^.dx >= _fLimitCorrectionX    THEN nExeedX := pPoint^.dx; pPoint^.dx := _fLimitCorrectionX;    bLimited:=TRUE; 
-ELSIF pPoint^.dx <= -1*_fLimitCorrectionX THEN nExeedX := pPoint^.dx; pPoint^.dx := -1*_fLimitCorrectionX; bLimited:=TRUE;
-ELSIF pPoint^.dy >= _fLimitCorrectionY    THEN nExeedY := pPoint^.dy; pPoint^.dy := _fLimitCorrectionY;    bLimited:=TRUE;
-ELSIF pPoint^.dy <= -1*_fLimitCorrectionY THEN nExeedY := pPoint^.dy; pPoint^.dy := -1*_fLimitCorrectionY; bLimited:=TRUE;
-END_IF
-IF bLimited THEN 
-  LogLvl(Lvl:=E_LogSeverity.Warning, Msg:=F_Concat4( F_concat2('Correction limited - Point=',TO_STRING(pPoint^.index)),
+IF pPoint^.dx >= _fLimitCorrectionX    THEN nExeedX := pPoint^.dx; pPoint^.dx := _fLimitCorrectionX;    bLimited:=TRUE; END_IF
+IF pPoint^.dx <= -1*_fLimitCorrectionX THEN nExeedX := pPoint^.dx; pPoint^.dx := -1*_fLimitCorrectionX; bLimited:=TRUE; END_IF
+IF pPoint^.dy >= _fLimitCorrectionY    THEN nExeedY := pPoint^.dy; pPoint^.dy := _fLimitCorrectionY;    bLimited:=TRUE; END_IF
+IF pPoint^.dy <= -1*_fLimitCorrectionY THEN nExeedY := pPoint^.dy; pPoint^.dy := -1*_fLimitCorrectionY; bLimited:=TRUE; END_IF
+
+IF bLimited THEN
+  LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat4( F_concat2('Correction limited - Point=',TO_STRING(pPoint^.index)),
                                                      F_Concat5(' (c:',TO_STRING(pPoint^.col),'/r:',TO_STRING(pPoint^.row), ') '),
                                                      F_Concat4('dx:', TO_STRING(nExeedX), 'px dy:', TO_STRING(nExeedY)),
                                                      F_Concat4('px dx_max=+/-', TO_STRING(_fLimitCorrectionX), ' dy_max=+/-', TO_STRING(_fLimitCorrectionY))
-                                                    ));
+                                                  ));
 END_IF
+
 _bGridWasLimited := SEL(bLimited, FALSE, TRUE);
 correctionLimit := bLimited;]]></ST>
       </Implementation>
@@ -870,7 +872,7 @@ fCurrentPreCharge := fColPos + _fColumnsToPrecharge;
 
 WHILE pChargedCols^ < LIMIT(0, FLOOR(fCurrentPreCharge), sDefGridSettings.nGridSizeX) DO
   
-  IF nAvailPoints >= sDefGridSettings.nGridSizeY * (pChargedCols^+1) THEN // Complete next column available?
+  IF nAvailPoints >= sDefGridSettings.nGridSizeY * (pChargedCols^+1) THEN     // Complete next column available?
     
     nAvailPoints_mem := 0;
     LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat4('CT: ', TO_STRING(pCT^.pCT^.iId),' Charge CG col: ', TO_STRING(pChargedCols^)));
@@ -888,7 +890,7 @@ WHILE pChargedCols^ < LIMIT(0, FLOOR(fCurrentPreCharge), sDefGridSettings.nGridS
         correctionApply(pPoint:=ADR(sPoint));
         
         // limitation corrections
-        correctionLimit(pPoint:=ADR(sPoint));
+        correctionLimit(pPoint:=ADR(sPoint), pCT:=pCt);
         
         // max. dx tracing
         IF sPoint.dx > pMaxDx^ THEN pMaxDx^ := sPoint.dx; END_IF
@@ -902,6 +904,13 @@ WHILE pChargedCols^ < LIMIT(0, FLOOR(fCurrentPreCharge), sDefGridSettings.nGridS
         ELSE
           // ok
           pCT^.storeStreamedDeformationPoint(pPoint:=ADR(sPoint));    // save to sent table
+          IF bEnVerbose THEN
+            F_Concat3( 
+              F_concat2('Send Point=',TO_STRING(sPoint.index)),
+              F_Concat5(' (c:',TO_STRING(sPoint.col),'/r:',TO_STRING(sPoint.row), ')'),
+              F_Concat4(' dx=', TO_STRING(sPoint.dx), ' dy=', TO_STRING(sPoint.dy))
+            );
+          END_IF
         END_IF
       ELSE
         LogError(Msg:='get new grid point failed');
@@ -1285,12 +1294,15 @@ sim();]]></ST>
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print_WEU.correctionLimit">
       <LineId Id="5" Count="0" />
-      <LineId Id="11" Count="6" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="16" Count="1" />
       <LineId Id="34" Count="0" />
       <LineId Id="37" Count="0" />
       <LineId Id="35" Count="0" />
       <LineId Id="61" Count="0" />
       <LineId Id="8" Count="0" />
+      <LineId Id="78" Count="0" />
       <LineId Id="49" Count="0" />
       <LineId Id="27" Count="0" />
     </LineIds>
@@ -1463,6 +1475,8 @@ sim();]]></ST>
       <LineId Id="137" Count="0" />
       <LineId Id="29" Count="2" />
       <LineId Id="153" Count="2" />
+      <LineId Id="206" Count="5" />
+      <LineId Id="205" Count="0" />
       <LineId Id="32" Count="8" />
       <LineId Id="81" Count="0" />
       <LineId Id="80" Count="0" />

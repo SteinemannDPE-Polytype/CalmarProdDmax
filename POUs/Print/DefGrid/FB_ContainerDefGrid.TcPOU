@@ -13,6 +13,7 @@ END_VAR
     <Implementation>
       <ST><![CDATA[fBImageDeformation();                       // call run cyclic image deformation]]></ST>
     </Implementation>
+    <Folder Name="Reporting" Id="{18fc52c1-61cb-4a31-a5b2-acb248361738}" />
     <Method Name="AbortDeformation" Id="{f4e769e7-fdcb-497a-869a-11c396829281}">
       <Declaration><![CDATA[METHOD AbortDeformation : BOOL
 VAR_INPUT
@@ -40,6 +41,25 @@ END_VAR
         <ST><![CDATA[AddCamPoint := fBImageDeformation.addCamPoint(sNewPoint:=sPoint);]]></ST>
       </Implementation>
     </Method>
+    <Property Name="bLimited" Id="{a6aafbe4-ed86-4a54-b220-d2381ffc3e57}" FolderPath="Reporting\">
+      <Declaration><![CDATA[PROPERTY bLimited : BOOL]]></Declaration>
+      <Get Name="Get" Id="{e5e0534a-0710-495d-bb80-cf99d3cdb268}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bLimited := fBImageDeformation.bDeformationGridLimited;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{c8974631-ecd5-4fef-bc3e-12a6f2d7fc1b}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fBImageDeformation.bDeformationGridLimited := bLimited;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
     <Method Name="Create" Id="{e7db097f-b805-4a15-997e-aea4a4252e85}">
       <Declaration><![CDATA[(*
   Create a container, build very basics.
@@ -336,6 +356,12 @@ END_VAR]]></Declaration>
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.AddCamPoint">
       <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ContainerDefGrid.bLimited.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ContainerDefGrid.bLimited.Set">
+      <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_ContainerDefGrid.Create">
       <LineId Id="10" Count="0" />

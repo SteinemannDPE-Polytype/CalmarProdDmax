@@ -411,11 +411,11 @@ END_VAR]]></Declaration>
   IF pCorrPointsInd <> 0  THEN
     pCorrPointsInd^[1].posx := 0;
     pCorrPointsInd^[1].posy := 0;                                  // on DMAX: LREAL_TO_REAL(((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2);
-    pCorrPointsInd^[2].posx := LREAL_TO_REAL(sJobDef.fImageDepth); // on DMAX: LREAL_TO_REAL(sJobDef.fImageDepth);
+    pCorrPointsInd^[2].posx := LREAL_TO_REAL(sJobDef.fImageDepth);
     pCorrPointsInd^[2].posy := 0;                                  // on DMAX: LREAL_TO_REAL(((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2);
     pCorrPointsInd^[3].posx := 0;
     pCorrPointsInd^[3].posy := TO_REAL(sJobDef.fImageWidth);       // on DMAX: LREAL_TO_REAL((((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2) + sJobDef.fImageWidth);
-    pCorrPointsInd^[4].posx := LREAL_TO_REAL(sJobDef.fImageDepth); // on DMAX: LREAL_TO_REAL(sJobDef.fImageDepth);
+    pCorrPointsInd^[4].posx := LREAL_TO_REAL(sJobDef.fImageDepth);
     pCorrPointsInd^[4].posy := TO_REAL(sJobDef.fImageWidth);       // on DMAX: LREAL_TO_REAL((((_fPrintUnitWidth * 1000) - sJobDef.fImageWidth) / 2) + sJobDef.fImageWidth);
   END_IF
 END_IF
