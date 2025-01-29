@@ -924,7 +924,7 @@ END_IF
 
 
 // if marks are inverted (flipped along x-axis), the correction is inverted
-IF pMark^.bInvertedX THEN  pMark^.sState.dy := -1*pMark^.sState.dy; END_IF
+IF NOT pMark^.bInvertedX THEN  pMark^.sState.dy := -1*pMark^.sState.dy; END_IF
 
 // check position qualitiy
 pMark^.sState.bInArea := FC_COMPARE_RANGE_PERCENT( 
