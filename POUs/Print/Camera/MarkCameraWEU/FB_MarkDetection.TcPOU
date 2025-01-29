@@ -281,15 +281,10 @@ END_IF
 // --- Error Handling
 checkForErrors();
 
-// TODO:
-//  - Check for missing Start mark -> bity
-//  - Invalid sheet length detecte
-
-
 
 // outputs
 // _bStartTrig := // set in SheetStart
-// _nX0 :=  // set in SheetStart
+// _nX0 :=        // set in SheetStart
 _bValid := TRUE;
 ]]></ST>
     </Implementation>
@@ -1218,7 +1213,8 @@ strMark := F_Concat6(
     <LineIds Name="FB_MarkDetection">
       <LineId Id="16296" Count="107" />
       <LineId Id="16580" Count="1" />
-      <LineId Id="16404" Count="46" />
+      <LineId Id="16404" Count="35" />
+      <LineId Id="16445" Count="5" />
       <LineId Id="6884" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.ackErrors">
