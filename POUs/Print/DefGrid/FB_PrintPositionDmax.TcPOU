@@ -46,6 +46,10 @@ END_VAR]]></Declaration>
       <ST><![CDATA[rfTrig_Sim(CLK:=_bSim);
 IF rfTrig_Sim.RT THEN fbPositionMaster.bSim:=TRUE; END_IF
 IF rfTrig_Sim.FT THEN fbPositionMaster.bSim:=FALSE; END_IF
+IF _bSim THEN // sim encoder pulse
+  IlEncoderPulse := TO_UDINT(TO_DINT(IlEncoderPulse) + TO_DINT(((fbPositionMaster.fSimSpeed * _fTaskCycleTime)*1_000_000)/SEL(_fEncoderResolution=0, _fEncoderResolution, 1)));
+END_IF
+
 
 // set internal used resolution
 fEncoderReso := _fEncoderResolution;  
@@ -244,6 +248,9 @@ fbPositionMaster.reset();]]></ST>
     <LineIds Name="FB_PrintPositionDmax">
       <LineId Id="384" Count="0" />
       <LineId Id="467" Count="1" />
+      <LineId Id="509" Count="0" />
+      <LineId Id="511" Count="1" />
+      <LineId Id="510" Count="0" />
       <LineId Id="423" Count="0" />
       <LineId Id="324" Count="14" />
       <LineId Id="382" Count="0" />

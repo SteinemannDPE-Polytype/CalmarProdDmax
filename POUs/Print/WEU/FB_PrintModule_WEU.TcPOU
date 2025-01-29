@@ -103,7 +103,7 @@ fbEncoderResoDetect(
   nDisInPulseFilterSz:=_pModuleMachineState^.nEncoderDetectFilterSz,
   fMinMarkLength:=(0.5 - 0.1) * _pModuleMachineState^.fMarkBaseSize * 1_000_000,  // 0.5*a (0*a from triangle)
   fMaxMarkLength:=(  3 + 0.1) * _pModuleMachineState^.fMarkBaseSize * 1_000_000,  //   2*a (1*a from triangle) 
-  // --> follwing only works when teached
+  // --> the following would only work when teached
   //fMinMarkLength:=fbMarkCameraWeu.pFbMarkDefinition^.fMinMarkLength - fbMarkCameraWeu.pFbMarkDefinition^.fMarkLengthMargin * 1_000_000,
   //fMaxMarkLength:=fbMarkCameraWeu.pFbMarkDefinition^.fMaxMarkLength + fbMarkCameraWeu.pFbMarkDefinition^.fMarkLengthMargin * 1_000_000,
   //bUpdate=>,

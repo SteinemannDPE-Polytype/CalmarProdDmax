@@ -26,7 +26,7 @@ VAR_INPUT
   // configuration
   bEnable                         : BOOL;             (*Enable start pos detection sensor (from extern)*)
   bAutomaticMode                  : BOOL;             (*machine is in automatic mode *)
-  nCurrentPos                     : DINT;             (*current position in Pulses/Subpixels*)
+  nCurrentPos                     : DINT;             (*current position in [SubPx]*)
   fCurrentSpeed                   : LREAL;            (*actual speed of conveyor in [m/s]*)
   bReverse                        : BOOL;             (*reverse printing same roll feeded in opposite direction, check falling edge in this case*)
   
@@ -105,6 +105,8 @@ VAR
   bMarkStartDetected              : BOOL;             // mark started
   bMarkEndDetected                : BOOL;             // marks end reached
   bInhibitTrigger                 : BOOL;             // inhibit sensor signals, TRUE=inhibit
+  fMarginMarkDist                 : LREAL;            // margin distance per mark [m] +/-
+  fMarginDelayDist                : LREAL;            // cycle time based delay distance [m] +
   
   // history 
   // - repeat
@@ -129,7 +131,7 @@ VAR CONSTANT
   nC_MaxRepeatsWithoutStart       : LREAL := 3;       // max repeats (theoretical distance) without a detected start trigger before error
   nC_AreaMarkSensorOk             : INT   := 10;      // [%] Area with the correct arrangement of the mark sensor
   nC_HistorySize                  : UDINT := 20;
-  fC_InhibitJitterDist            : LREAL := 0.005;   // [m] 
+  fC_JitterDistPerMark            : LREAL := 0.002;   // [m] deviation allowed per mark (incrementing as more far in sheet we are to allow streches)
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[// check parameter
@@ -240,18 +242,20 @@ IF bFound THEN
 
 ELSE
   // inhibit control
+  fMarginMarkDist := pMarkSearch^.nId * fC_JitterDistPerMark;
+  fMarginDelayDist   := (1*fCurrentSpeed*fCycleTime);
   IF pMarkSearch^.nId = 1 THEN
     bInhibitTrigger := FALSE;  // release inhibit for first mark
-  ELSIF (nCurrentPos - getLastX0() - (getMinMarkPosition(pMark:=pMarkSearch) - fC_InhibitJitterDist)) > 0 THEN
+  ELSIF (nCurrentPos - getLastX0() - (getMinMarkPosition(pMark:=pMarkSearch) - fMarginMarkDist)) > 0 THEN
     bInhibitTrigger := FALSE;  // release inhibit
-  ELSIF (nCurrentPos - getLastX0() - (getMaxMarkPosition(pMark:=pMarkSearch) + fC_InhibitJitterDist)) > 0 THEN
+  ELSIF (nCurrentPos - getLastX0() - (getMaxMarkPosition(pMark:=pMarkSearch) + fMarginMarkDist + fMarginDelayDist)) > 0 THEN
     bInhibitTrigger := TRUE;   // set inhibit
   ELSE
     bInhibitTrigger := FALSE;  // release inhibit else
   END_IF
   
   // search if intermediate mark was missed -> create a virtual one
-  IF pMarkSearch^.nId > 1 AND (nCurrentPos - getLastX0() - getMaxMarkPosition(pMark:=pMarkSearch)) > 0 THEN
+  IF pMarkSearch^.nId > 1 AND (nCurrentPos - getLastX0() - getMaxMarkPosition(pMark:=pMarkSearch) - fMarginMarkDist - fMarginDelayDist) > 0 THEN
     setupMark(
       pMark:=pMarkSearch,
       nDetectedPos:=getLastX0()+F_MeterToSubPixel(fPosMeter:=pMarkSearch^.fPosX, fResoSubPx:=_fResolution),
@@ -625,7 +629,7 @@ END_IF]]></ST>
       </Implementation>
     </Method>
     <Method Name="getMaxMarkPosition" Id="{0fbd1c3f-df1c-4057-a85c-91aa71449d46}">
-      <Declaration><![CDATA[// get max. mark distance from the sheetStart (teached + margin) [SubPx]
+      <Declaration><![CDATA[// get max. mark distance from the sheetStart (teached pos + max. size of mark + margin) [SubPx]
 METHOD getMaxMarkPosition : DINT
 VAR_INPUT
   pMark : POINTER TO ST_MarkDefinition;
@@ -1212,7 +1216,9 @@ strMark := F_Concat6(
       </Implementation>
     </Method>
     <LineIds Name="FB_MarkDetection">
-      <LineId Id="16296" Count="154" />
+      <LineId Id="16296" Count="107" />
+      <LineId Id="16580" Count="1" />
+      <LineId Id="16404" Count="46" />
       <LineId Id="6884" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.ackErrors">
