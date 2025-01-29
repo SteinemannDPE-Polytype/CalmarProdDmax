@@ -131,7 +131,7 @@ VAR CONSTANT
   nC_MaxRepeatsWithoutStart       : LREAL := 3;       // max repeats (theoretical distance) without a detected start trigger before error
   nC_AreaMarkSensorOk             : INT   := 10;      // [%] Area with the correct arrangement of the mark sensor
   nC_HistorySize                  : UDINT := 20;
-  fC_JitterDistPerMark            : LREAL := 0.002;   // [m] deviation allowed per mark (incrementing as more far in sheet we are to allow streches)
+  fC_JitterDistPerMark            : LREAL := 0.0005;   // [m] deviation allowed per mark (incrementing as more far in sheet we are to allow streches)
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[// check parameter
