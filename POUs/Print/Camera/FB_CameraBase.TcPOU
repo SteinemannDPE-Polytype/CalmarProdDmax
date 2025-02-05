@@ -148,7 +148,7 @@ _bCamTriggerOk  := bOk;
 _nCamStartPos   := nPos;
 _nCamStartPosDeviation := nPosDeviation;
 
-LogLvl(Lvl:=E_LogSeverity.Debug, Msg:='CamTrigger');
+LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2('CamTrigger at X0=', TO_STRING(nPos)));
 IF _iCameraSink <> 0 THEN   // inform sink
   _iCameraSink.CamStarted(nX0:=nX0);
 END_IF

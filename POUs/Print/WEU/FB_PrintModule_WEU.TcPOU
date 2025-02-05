@@ -36,22 +36,12 @@ END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[IF NOT bInit THEN RETURN; END_IF
 
+// position
 fbPrintPosition.fEnoderResolution := _pModuleMachineState^.fEncoderResolution;    // encoder resolution from machine
 fbPrintPosition();
 
-fbMarkCameraWeu(
-  bReadyForPrinting   := bReadyForPrinting,
-  nCurrentPosition    := _iPrintPosition.getPosition(),
-  fCurrentSpeed       :=_iPrintPosition.getSpeed(),
-  bPrintMarkExist     :=_pModuleMachineState^.bPrintMarkExist,
-  bPrintDirReverse    :=_pModuleMachineState^.bPrintDirection,
-  nUsePerRepeatInLine :=SEL(_pModuleMachineState^.nUsePerRepeatInLine=0, _pModuleMachineState^.nUsePerRepeatInLine, 1),
-  fMarkSizeDefault    :=_pModuleMachineState^.fMarkBaseSize,
-  fMarkDistRepeatToStartMark := _pModuleMachineState^.fMarkDistToStartMark,
-  fMarkDistFromCenter := _pModuleMachineState^.fMarkToPrintdataCenterY
-);
-
 // -------------------------
+// StartTrigger evaluation -> apply new CT to Tracking (created from CTM externally)
 // Synchronize CT (EvPos) received from CTManger (Main) to the local StartTrigger detection and positioning
 // -- reset triggers if not active
 IF NOT bReadyForPrinting THEN
@@ -63,9 +53,10 @@ IF bReadyForPrinting AND _iStartPos.bStartTrig AND _iStartPos.bValid THEN
   _bNewStartPosX0 := TRUE;
   _nNewStartPosX0 := _iStartPos.nStartPositionX0;      // save detected start position for next CT to be applied to this module¨
   
-  LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat2(
+  LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
     F_Concat2(_pModuleSetup^.aName, ' New StartTrigger detected:'),
-    F_Concat2(' at position X0:', TO_STRING(_nNewStartPosX0))
+    F_Concat2(' at position X0:', TO_STRING(_nNewStartPosX0)),
+    F_Concat2(' PM is now at: ', TO_STRING(fbPrintPosition.getPosition())),
   ));
   
   IF _bNewCT THEN   // we have an attached CT
@@ -87,8 +78,20 @@ IF bReadyForPrinting AND _iStartPos.bStartTrig AND _iStartPos.bValid THEN
   _bNewStartPosX0 := FALSE;
 END_IF
 
+// Camera (is per module)
+fbMarkCameraWeu(
+  bReadyForPrinting   := bReadyForPrinting,
+  nCurrentPosition    := _iPrintPosition.getPosition(),
+  fCurrentSpeed       :=_iPrintPosition.getSpeed(),
+  bPrintMarkExist     :=_pModuleMachineState^.bPrintMarkExist,
+  bPrintDirReverse    :=_pModuleMachineState^.bPrintDirection,
+  nUsePerRepeatInLine :=SEL(_pModuleMachineState^.nUsePerRepeatInLine=0, _pModuleMachineState^.nUsePerRepeatInLine, 1),
+  fMarkSizeDefault    :=_pModuleMachineState^.fMarkBaseSize,
+  fMarkDistRepeatToStartMark := _pModuleMachineState^.fMarkDistToStartMark,
+  fMarkDistFromCenter := _pModuleMachineState^.fMarkToPrintdataCenterY
+);
 
-// Neutral fibre calculation with additional mark sensors
+// Effective Encoder detection - Neutral fibre calculation with additional mark sensors
 fbEncoderResoDetect(
   //bIKp_MarkTrigger01:=,
   //tIKp_TimeStampPos01:=,
@@ -331,23 +334,22 @@ LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
       </Implementation>
     </Method>
     <LineIds Name="FB_PrintModule_WEU">
-      <LineId Id="252" Count="1" />
+      <LineId Id="252" Count="0" />
+      <LineId Id="985" Count="0" />
+      <LineId Id="253" Count="0" />
       <LineId Id="487" Count="0" />
       <LineId Id="261" Count="0" />
-      <LineId Id="269" Count="1" />
-      <LineId Id="533" Count="2" />
-      <LineId Id="319" Count="2" />
-      <LineId Id="510" Count="1" />
-      <LineId Id="323" Count="0" />
       <LineId Id="322" Count="0" />
-      <LineId Id="799" Count="0" />
       <LineId Id="580" Count="0" />
+      <LineId Id="986" Count="0" />
       <LineId Id="800" Count="0" />
       <LineId Id="821" Count="0" />
       <LineId Id="819" Count="1" />
       <LineId Id="818" Count="0" />
       <LineId Id="801" Count="0" />
-      <LineId Id="741" Count="8" />
+      <LineId Id="741" Count="7" />
+      <LineId Id="1000" Count="0" />
+      <LineId Id="749" Count="0" />
       <LineId Id="829" Count="0" />
       <LineId Id="843" Count="0" />
       <LineId Id="835" Count="7" />
@@ -358,6 +360,8 @@ LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
       <LineId Id="832" Count="2" />
       <LineId Id="831" Count="0" />
       <LineId Id="750" Count="0" />
+      <LineId Id="999" Count="0" />
+      <LineId Id="988" Count="10" />
       <LineId Id="852" Count="0" />
       <LineId Id="469" Count="8" />
       <LineId Id="480" Count="0" />

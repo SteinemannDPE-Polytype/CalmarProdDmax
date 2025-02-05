@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_MarkDetection" Id="{2e40260b-0516-412a-ad68-9d25ea4c3ac6}" SpecialFunc="None">
     <Declaration><![CDATA[(*
   Detects Marks and generates StartTrigger based on one EL1252 timestamp input I/O.
@@ -157,7 +157,7 @@ manualTrigger();     // handle manual trigger
 
 // enable & reset
 rfT_Enable(CLK:=bTriggerArmed);             // edge detection for detection started
-IF rfT_Enable.RT OR rfT_Enable.FT OR bManualReset THEN Reset(); bManualReset:=FALSE; END_IF;
+IF rfT_Enable.RT OR rfT_Enable.FT OR bManualReset THEN Reset(); bManualReset:=FALSE; END_IF;   // reset detection and sheet if trigger fails
 IF NOT bEnable THEN RETURN; END_IF    // do nothing if not enabled
 IF NOT bTriggerArmed THEN RETURN; END_IF
 
@@ -504,11 +504,10 @@ IF nImageLength = 0 THEN RETURN; END_IF
 
 
 IF NOT bMarkOn THEN  // start new mark
-
   // create rising edge
   IF pMark^.nId = 1 THEN          // a start mark
     // wait for next StartPosition
-    IF nCurrentPos >= nLastGeneratedStartMarkPosition + nImageLength THEN
+    IF ABS(nCurrentPos-nLastGeneratedStartMarkPosition) >= nImageLength THEN
 
       // fix bigger gaps than next sheet (always try to start repeats at a multiple of last repeat)
       IF (nCurrentPos - nLastGeneratedStartMarkPosition) / nImageLength > 2 THEN
@@ -1286,7 +1285,8 @@ strMark := F_Concat6(
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.GenMark">
-      <LineId Id="441" Count="47" />
+      <LineId Id="441" Count="6" />
+      <LineId Id="449" Count="39" />
       <LineId Id="42" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.getExactPosition">

@@ -5,6 +5,7 @@
 VAR
   fbContainerInstances    : ARRAY[0..nC_MAX_CTS-1] OF FB_ContainerDefGrid;   // NOTE: 0 based array like base in library
   nCtr, nIndx : UDINT;
+  _LogLevelCTs : E_LogSeverity := E_LogSeverity.Info;
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -22,7 +23,7 @@ WHILE nCtr < nListCount DO
   nCtr := nCtr + 1;
 END_WHILE
 
-updateLogLevels();
+updateLogLevelsCTs();
 ]]></ST>
     </Implementation>
     <Method Name="AbortCts" Id="{887d2e55-f283-4461-92bd-fe8efb68fdd3}">
@@ -106,10 +107,12 @@ VAR
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[// init FB_CTManager(base) list (interface I_CT) with specific Container instances (FBs) 
+        <ST><![CDATA[_LogLevelCTs := E_LogSeverity.Info;
+
+// init FB_CTManager(base) list (interface I_CT) with specific Container instances (FBs) 
 FOR nCtr := 0 TO nC_MAX_CTS-1 DO
   iContainerList[nCtr] := fbContainerInstances[nCtr];
-  fbContainerInstances[nCtr].LogLevel := E_LogSeverity.Info;
+  fbContainerInstances[nCtr].LogLevel := _LogLevelCTs;
 END_FOR
 
 // call parent init
@@ -130,27 +133,27 @@ sCTDefGridInstancesPath := F_CONCAT2(THIS^.InstanceName, '.fbContainerInstances[
         </Implementation>
       </Get>
     </Property>
-    <Method Name="updateLogLevels" Id="{c5b2038e-8748-4e32-b316-bccf513e122a}">
-      <Declaration><![CDATA[METHOD PRIVATE updateLogLevels
+    <Method Name="updateLogLevelsCTs" Id="{c5b2038e-8748-4e32-b316-bccf513e122a}">
+      <Declaration><![CDATA[METHOD PRIVATE updateLogLevelsCTs
 VAR_INST
   _LogLvl_mem  : E_LogSeverity;
 END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[// logLevel update from manager to all containers
-IF LogLevel <> _LogLvl_mem THEN 
+IF _LogLevelCTs <> _LogLvl_mem THEN 
   nCtr := 0;
   WHILE nCtr < nC_MAX_CTS DO
-    fbContainerInstances[nCtr].LogLevel := LogLevel;
+    fbContainerInstances[nCtr].LogLevel := _LogLevelCTs;
     nCtr := nCtr + 1;
   END_WHILE
 END_IF
 
-_LogLvl_mem := LogLevel;]]></ST>
+_LogLvl_mem := _LogLevelCTs;]]></ST>
       </Implementation>
     </Method>
     <LineIds Name="FB_CTManagerDefGrid">
-      <LineId Id="84" Count="14" />
+      <LineId Id="105" Count="14" />
       <LineId Id="44" Count="0" />
     </LineIds>
     <LineIds Name="FB_CTManagerDefGrid.AbortCts">
@@ -167,6 +170,7 @@ _LogLvl_mem := LogLevel;]]></ST>
       <LineId Id="18" Count="0" />
     </LineIds>
     <LineIds Name="FB_CTManagerDefGrid.Init">
+      <LineId Id="26" Count="1" />
       <LineId Id="16" Count="0" />
       <LineId Id="5" Count="0" />
       <LineId Id="7" Count="0" />
@@ -181,7 +185,7 @@ _LogLvl_mem := LogLevel;]]></ST>
       <LineId Id="10" Count="0" />
       <LineId Id="5" Count="0" />
     </LineIds>
-    <LineIds Name="FB_CTManagerDefGrid.updateLogLevels">
+    <LineIds Name="FB_CTManagerDefGrid.updateLogLevelsCTs">
       <LineId Id="3" Count="8" />
       <LineId Id="2" Count="0" />
     </LineIds>

@@ -537,7 +537,7 @@ SetupHw();
 InitAds(pAdsParent:=pAdsParent);
 
 // cttracker
-fbCTTracker.Init(aName:=F_Concat2('Tracker of ', pModulesSetup^.aName), aUnit:='SubPx');
+fbCTTracker.Init(aName:=F_Concat2('Tracker of ', pModulesSetup^.aName), aUnit:='SubPx', bAutoRemoveAfterLastEvPos:=TRUE);
 
 // Worker
 // -- parameter mediator

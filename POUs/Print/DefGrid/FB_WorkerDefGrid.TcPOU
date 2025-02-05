@@ -24,6 +24,7 @@ VAR
   _pNewAttachedHdlData : POINTER TO ST_WorkerDefGrid_CTData;  // pointer to handling data for last attached
   _bSupportParallelCT : BOOL := FALSE;                // support for parallel CTs (else avoid attach while one connected).
   _nAttachedCTs     : UDINT;                          // Number of currently attached CTs
+  _nHeadCtId        : DINT;                           // ID of CT at Attached Head
   _pAttachedCTList  : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF POINTER TO FB_ContainerDefGrid;    // current attached CTs
   _stAttachedCTData : ARRAY[nLowerIndexCTList..nUpperIndexCTList] OF ST_WorkerDefGrid_CTData;           // additional "handling" data per attached CT
   // position control
@@ -50,6 +51,7 @@ END_VAR]]></Declaration>
       <ST><![CDATA[]]></ST>
     </Implementation>
     <Folder Name="CTList" Id="{8b3e6e49-2ffc-4cad-96ea-0e5e1e9c12fb}" />
+    <Folder Name="I_PositionEvent" Id="{fee0c329-e626-44f8-b548-01146beb289c}" />
     <Folder Name="I_PrintStatusClient" Id="{522437a3-298d-4e2e-9ebe-709d3e172129}" />
     <Method Name="Abort" Id="{f8718905-c76d-49a9-949e-6da2bac3e031}">
       <Declaration><![CDATA[(*
@@ -415,6 +417,23 @@ END_IF
 ]]></ST>
       </Implementation>
     </Method>
+    <Method Name="remove" Id="{f09ee049-6d69-41b2-b406-43b9a0c79906}" FolderPath="I_PositionEvent\">
+      <Declaration><![CDATA[(*
+  Container will be released from tracker (destroyed) and not available anymore. 
+*)
+METHOD remove
+VAR_INPUT
+	(*container at triggered event position*)
+	iCT	: I_CT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SUPER^();
+
+// nothing done
+// We keep in internal WorkerList until work is done. CT will be removed from tracker.]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="setName" Id="{66618658-df51-457a-bb97-2f422320d543}">
       <Declaration><![CDATA[METHOD PRIVATE setName : BOOL
 VAR_INPUT
@@ -473,7 +492,10 @@ _nTrackOffset := F_MeterToSubPixel(fPosMeter:=fPosition, fResoSubPx:=_fPrintReso
 
 //Work only with attached container
 IF _nAttachedCTs = 0 THEN RETURN; END_IF
-  
+
+IF _pAttachedCt <> 0 AND_THEN _pAttachedCt^.pCT <> 0 THEN _nHeadCtId := _pAttachedCt^.pCT^.iId;
+ELSE                                                      _nHeadCtId := 0; END_IF
+
 FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
   pCt := _pAttachedCTList[i];
 
@@ -487,7 +509,7 @@ FOR i:=nLowerIndexCTList TO nLowerIndexCTList + _nAttachedCTs - 1 DO
     Release(iCT:=pCt^);
 
   // security release 
-  ELSIF _fCtSecurityReleasePos > 0 AND (_stAttachedCTData[i].fPosRelToAttach > _fCtSecurityReleasePos) THEN
+  ELSIF _fCtSecurityReleasePos > 0 AND (ABS(_stAttachedCTData[i].fPosRelToAttach) > _fCtSecurityReleasePos) THEN
     pCt^.AbortDeformation(sReason:=F_Concat2('Security released CT Id=', TO_STRING(pCt^.pCT^.iId)), Src:=_pEcSrc^, bHideLog:=FALSE);
     Release(iCT:=pCt^);
   END_IF
@@ -627,6 +649,12 @@ END_FOR
       <LineId Id="72" Count="0" />
       <LineId Id="2" Count="0" />
     </LineIds>
+    <LineIds Name="FB_WorkerDefGrid.remove">
+      <LineId Id="11" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
     <LineIds Name="FB_WorkerDefGrid.setName">
       <LineId Id="3" Count="12" />
       <LineId Id="2" Count="0" />
@@ -642,6 +670,9 @@ END_FOR
       <LineId Id="66" Count="1" />
       <LineId Id="19" Count="0" />
       <LineId Id="3" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="97" Count="0" />
       <LineId Id="28" Count="1" />
       <LineId Id="52" Count="0" />
       <LineId Id="54" Count="0" />

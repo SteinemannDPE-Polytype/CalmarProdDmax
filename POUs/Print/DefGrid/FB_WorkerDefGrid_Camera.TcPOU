@@ -26,6 +26,7 @@ VAR
   _bTeachOk       : BOOL;    // Teach successful
   _nTeachedPoints : UDINT;   // Teached points for this job
   _nScannedPoints : UDINT;   // Scanned points on current sheet
+  _bCamDone       : BOOL;    //
   _nAddedPoint    : UDINT;   // point sent to image deformation on ct
   _nCamBufferPoints : UDINT;  // cam point input stream buffer (allows jittering the Attach of CT)
   _CamBufferPoints : ARRAY[1..GVL_Camera.cMaxNbMarks] OF ST_DeformationPointAccurate;
@@ -406,7 +407,7 @@ END_VAR]]></Declaration>
     _bLineCamType := is_linecam(_iActiveCam.sName);  // is it a LineCamera?
   END_IF
   
-  // set correction ref points
+  // set correction ref points (not done by PUC)
   pCorrPointsInd := _pAdsCam^.pCorrectionPointsIndication;
   IF pCorrPointsInd <> 0  THEN
     pCorrPointsInd^[1].posx := 0;
@@ -669,12 +670,12 @@ ELSIF _iActiveCam <> 0 THEN                 // a camera is activated
   
   //-- update status
   _bCamReady := _iActiveCam.GetCamStatus(
-                              bConnectionOK => _bConnectionOk, 
-                              bTeachOk => _bTeachOk, 
+                              bConnectionOK  => _bConnectionOk, 
+                              bTeachOk       => _bTeachOk, 
                               nTeachedPoints => _nTeachedPoints, 
                               nScannedPoints => _nScannedPoints,
-                              //bCamStarted => _bCamStarted,   // we use done event from I_CameraSink (TODO: review with LineCam!)
-                              //bCamDone => _bCamDone
+                              //bCamStarted  => _bCamStarted,   // we use done event from I_CameraSink (TODO: review with LineCam!)
+                              bCamDone       => _bCamDone
                             );
   // -- worker position setup
   setupPosition();

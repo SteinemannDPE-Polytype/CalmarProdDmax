@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <GlobalTextList Name="GlobalTextList" Id="{203f0000-e452-49ef-afd7-9a4cdbc0d524}">
     <XmlArchive>
       <Data>
@@ -1815,6 +1815,11 @@ sdfsd"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"3111"</v>
+              <v n="TextDefault">"id of ct head"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"11673"</v>
               <v n="TextDefault">"Idx"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -2507,6 +2512,11 @@ sdfsd"</v>
             <o>
               <v n="TextID">"1919"</v>
               <v n="TextDefault">"number exports, max:100"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"4362"</v>
+              <v n="TextDefault">"number of attached cts"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -3992,9 +4002,9 @@ sdfsd"</v>
             </o>
           </l>
           <l n="Languages" t="ArrayList" />
-          <v n="GuidInit">{7209fee4-3999-4c15-a1a9-629c9e677ff6}</v>
-          <v n="GuidReInit">{81829da2-d5e3-4977-b1de-9938fe557e9d}</v>
-          <v n="GuidExitX">{46dda9aa-92e8-4930-92ed-71ea1500ce8b}</v>
+          <v n="GuidInit">{a9605f35-8353-413d-af99-6012ee213375}</v>
+          <v n="GuidReInit">{1253558d-db35-4fce-b071-3da1aa5d6f04}</v>
+          <v n="GuidExitX">{b194d436-c16b-4ce7-ba72-ff0b81fc4f38}</v>
         </o>
       </Data>
       <TypeList>
