@@ -402,7 +402,7 @@
                         <l n="TypeNodeChildren" t="ArrayList" cet="BasicTypeNode">
                           <o>
                             <v n="Flags">2L</v>
-                            <v n="BasicTypeNodeValue">"mInst.fbWorkerPrint[1]"</v>
+                            <v n="BasicTypeNodeValue">"mInst.fbWorkerPrint[mInst.fbView.nSelWorkerPrint]"</v>
                             <v n="BasicTypeNodeAcceptsExpression">true</v>
                             <n n="BasicTypeNodeFastAccess" />
                             <a n="BasicTypeNodeEnumValues" et="String" />
@@ -458,7 +458,7 @@
                     </o>
                     <o>
                       <v n="Id">1657156087L</v>
-                      <v n="Value">"mInst.fbWorkerPrint[1]"</v>
+                      <v n="Value">"mInst.fbWorkerPrint[mInst.fbView.nSelWorkerPrint]"</v>
                     </o>
                   </l>
                 </o>
@@ -2388,10 +2388,10 @@
               <d n="FbMethods" t="CaseInsensitiveHashtable_1" ckt="String" cvt="Guid">
                 <v>FB_Init</v>
                 <v>e6290701-6938-49a8-a0b6-50e7646ce9e4</v>
-                <v>FB_Exit</v>
-                <v>b80c91b2-f6ba-4d2f-9f40-30708fc7b018</v>
                 <v>FB_Reinit</v>
                 <v>a3db9fb4-b456-41fa-b7e9-f08fedff57ec</v>
+                <v>FB_Exit</v>
+                <v>b80c91b2-f6ba-4d2f-9f40-30708fc7b018</v>
               </d>
               <v n="FbName">"NotImportant"</v>
               <v n="FbGuid">{70a9f38a-4b71-4d21-9b90-825d61b9c534}</v>
