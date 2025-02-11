@@ -15,6 +15,12 @@ VAR
   _fTaskCycleTime           : LREAL := 0.002;       // Task cycle time in [s]
   
   _fSpeedMpMin              : LREAL;                // speed in [m/min]
+  
+  // Debug
+  // Machine simulation mode
+  nSimMode : UINT := 0;   // 0=standard sim PosMaster, 1=ramp up/down 
+  fSimSpeed : LREAL := 0.1;   // [m/s]
+  bCmdStartPos, bCmdStopPos : BOOL;                 // test command to start/stop simulated the machine
 END_VAR
 VAR PERSISTENT
   // config - values changable during runtime (recipe, visu, property)
@@ -43,14 +49,7 @@ VAR
   rfTrig_Sim                : RF_TRIG;
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[rfTrig_Sim(CLK:=_bSim);
-IF rfTrig_Sim.RT THEN fbPositionMaster.bSim:=TRUE; END_IF
-IF rfTrig_Sim.FT THEN fbPositionMaster.bSim:=FALSE; END_IF
-IF _bSim THEN // sim encoder pulse
-  IlEncoderPulse := TO_UDINT(TO_DINT(IlEncoderPulse) + TO_DINT(((fbPositionMaster.fSimSpeed * _fTaskCycleTime)*1_000_000)/SEL(_fEncoderResolution=0, _fEncoderResolution, 1)));
-END_IF
-
-
+      <ST><![CDATA[
 // set internal used resolution
 fEncoderReso := _fEncoderResolution;  
 
@@ -72,7 +71,9 @@ _bMoving := ABS(fbPositionMaster.fMasterSpeed) >= fbPositionMaster.fMinSpeed;
 _fSpeedMpMin := fbPositionMaster.fMasterSpeed * 60;
 rTrigMoving(CLK:=bMoving);   // create started trigger output
 _bStarted := rTrigMoving.Q OR fbPositionMaster.bSyncReq;
-]]></ST>
+
+// simulation
+simulation();]]></ST>
     </Implementation>
     <Folder Name="I_PrintPosition" Id="{160a1713-28bb-44b2-a2a8-bb85d0f25507}" />
     <Folder Name="I_Sim" Id="{bd8ec4af-70d9-4e9b-8cdc-91b3cc2e54db}" />
@@ -245,17 +246,57 @@ END_VAR
 fbPositionMaster.reset();]]></ST>
       </Implementation>
     </Method>
+    <Method Name="simulation" Id="{b9a94fb5-cce8-4617-bcc7-a0f9952284fe}">
+      <Declaration><![CDATA[METHOD simulation
+VAR_INST
+  rf_Start, rf_Stop : RF_TRIG;
+  fSetSpeed : LREAL;          // [m/s] current sim set speed
+  fRampUpTime : LREAL := 2;   // [s] to ramp up/down machine
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[rfTrig_Sim(CLK:=_bSim);
+IF rfTrig_Sim.RT THEN fbPositionMaster.bSim:=TRUE; END_IF
+IF rfTrig_Sim.FT THEN fbPositionMaster.bSim:=FALSE; END_IF
+fbPositionMaster.fSimSpeed := fSimSpeed;
+
+
+rf_Start(CLK:=bCmdStartPos);
+rf_Stop(CLK:=bCmdStopPos);
+
+IF    nSimMode = 0 THEN
+  ; // just use running position with sim speed in PositionMaster
+
+ELSIF nSimMode = 1 THEN
+  IF fRampUpTime = 0 THEN RETURN; END_IF
+  IF rf_Start.RT THEN fSetSpeed := 0; END_IF  
+  // starting
+  IF bCmdStartPos THEN
+    fSetSpeed := fSetSpeed + (fSimSpeed/fRampUpTime)*_fTaskCycleTime;
+    IF fSetSpeed >= fSimSpeed THEN bCmdStartPos:=FALSE; fSetSpeed := fSimSpeed; END_IF
+  END_IF
+  // stopping
+  IF bCmdStopPos THEN
+    fSetSpeed := fSetSpeed - (fSimSpeed/fRampUpTime)*_fTaskCycleTime;
+    IF fSetSpeed <= 0 THEN bCmdStartPos:=FALSE; fSetSpeed := 0; END_IF
+  END_IF
+  
+ELSIF nSimMode = 2 THEN
+  // sim encoder signal (if not fbPositionMaster is used)
+  IF _bSim THEN // sim encoder pulse
+    IlEncoderPulse := TO_UDINT(TO_DINT(IlEncoderPulse) + TO_DINT(((fbPositionMaster.fSimSpeed * _fTaskCycleTime)*1_000_000)/SEL(_fEncoderResolution=0, _fEncoderResolution, 1)));
+  END_IF
+  
+END_IF]]></ST>
+      </Implementation>
+    </Method>
     <LineIds Name="FB_PrintPositionDmax">
-      <LineId Id="384" Count="0" />
-      <LineId Id="467" Count="1" />
-      <LineId Id="509" Count="0" />
-      <LineId Id="511" Count="1" />
-      <LineId Id="510" Count="0" />
       <LineId Id="423" Count="0" />
       <LineId Id="324" Count="14" />
       <LineId Id="382" Count="0" />
       <LineId Id="339" Count="4" />
+      <LineId Id="559" Count="0" />
       <LineId Id="244" Count="0" />
+      <LineId Id="561" Count="0" />
     </LineIds>
     <LineIds Name="FB_PrintPositionDmax.bMoving.Get">
       <LineId Id="2" Count="0" />
@@ -304,6 +345,33 @@ fbPositionMaster.reset();]]></ST>
     </LineIds>
     <LineIds Name="FB_PrintPositionDmax.reset">
       <LineId Id="5" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_PrintPositionDmax.simulation">
+      <LineId Id="12" Count="0" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="42" Count="2" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="47" Count="1" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="27" Count="3" />
+      <LineId Id="15" Count="1" />
     </LineIds>
   </POU>
 </TcPlcObject>

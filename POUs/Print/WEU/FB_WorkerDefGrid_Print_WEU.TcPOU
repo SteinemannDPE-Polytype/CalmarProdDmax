@@ -923,7 +923,11 @@ WHILE pChargedCols^ < LIMIT(0, FLOOR(fCurrentPreCharge), sDefGridSettings.nGridS
     
     // not yet enought points for next full column
     IF nAvailPoints > nAvailPoints_mem THEN // log once or after every update of new available points
-      LogError(Msg:='point column expected but not available');
+      LogLvl(Lvl:=E_LogSeverity.Error, Msg:=F_Concat3(
+                                            F_Concat2('CT: ', TO_STRING(pCT^.pCT^.iId)), 
+                                            F_Concat2(' Print column expected but not available. Avil=', TO_STRING(nAvailPoints)),
+                                            F_Concat2(' of expected: ', TO_STRING(sDefGridSettings.nGridSizeY * (pChargedCols^+1)))
+                                          ));
     END_IF
     nAvailPoints_mem := nAvailPoints;
     streamCorrection:=FALSE;
@@ -1481,7 +1485,11 @@ sim();]]></ST>
       <LineId Id="81" Count="0" />
       <LineId Id="80" Count="0" />
       <LineId Id="61" Count="0" />
-      <LineId Id="42" Count="5" />
+      <LineId Id="228" Count="0" />
+      <LineId Id="230" Count="0" />
+      <LineId Id="229" Count="0" />
+      <LineId Id="231" Count="1" />
+      <LineId Id="43" Count="4" />
       <LineId Id="82" Count="0" />
       <LineId Id="48" Count="0" />
       <LineId Id="5" Count="0" />
