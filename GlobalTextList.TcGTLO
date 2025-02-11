@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
   <GlobalTextList Name="GlobalTextList" Id="{203f0000-e452-49ef-afd7-9a4cdbc0d524}">
     <XmlArchive>
       <Data>
@@ -2766,6 +2766,16 @@ sdfsd"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"7030"</v>
+              <v n="TextDefault">"PreStart ShiftFactor"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"5299"</v>
+              <v n="TextDefault">"PreStart ShiftOffset"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"10387"</v>
               <v n="TextDefault">"PRG_PRINT"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -4012,9 +4022,9 @@ sdfsd"</v>
             </o>
           </l>
           <l n="Languages" t="ArrayList" />
-          <v n="GuidInit">{a9605f35-8353-413d-af99-6012ee213375}</v>
-          <v n="GuidReInit">{1253558d-db35-4fce-b071-3da1aa5d6f04}</v>
-          <v n="GuidExitX">{b194d436-c16b-4ce7-ba72-ff0b81fc4f38}</v>
+          <v n="GuidInit">{464ee25d-ffc8-4ea8-84b7-a18eb8bfe2c3}</v>
+          <v n="GuidReInit">{935bdff9-4476-4b00-815e-31379e26eb39}</v>
+          <v n="GuidExitX">{9836167a-5bba-4c18-bdad-57f96537c032}</v>
         </o>
       </Data>
       <TypeList>
