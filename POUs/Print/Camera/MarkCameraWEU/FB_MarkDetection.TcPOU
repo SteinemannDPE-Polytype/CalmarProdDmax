@@ -494,27 +494,27 @@ END_VAR
 VAR_INST
   bMarkOn : BOOL;
   n : DINT;
-  nImageLength : DINT;
+  nImageLengthSubPx : DINT;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF pMark = 0 THEN RETURN; END_IF
 
-nImageLength := F_MeterToSubPixel(fPosMeter:=_fImageLength + _fSubstrateGap, fResoSubPx:=_fResolution);
-IF nImageLength = 0 THEN RETURN; END_IF
+nImageLengthSubPx := F_MeterToSubPixel(fPosMeter:=_fImageLength + _fSubstrateGap, fResoSubPx:=_fResolution);
+IF nImageLengthSubPx = 0 THEN RETURN; END_IF
 
 
 IF NOT bMarkOn THEN  // start new mark
   // create rising edge
   IF pMark^.nId = 1 THEN          // a start mark
     // wait for next StartPosition
-    IF ABS(nCurrentPos-nLastGeneratedStartMarkPosition) >= nImageLength THEN
+    IF ABS(nCurrentPos-nLastGeneratedStartMarkPosition) >= nImageLengthSubPx THEN
 
       // fix bigger gaps than next sheet (always try to start repeats at a multiple of last repeat)
-      IF (nCurrentPos - nLastGeneratedStartMarkPosition) / nImageLength > 2 THEN
-        nLastGeneratedStartMarkPosition := nLastGeneratedStartMarkPosition + ((((nCurrentPos - nLastGeneratedStartMarkPosition) / nImageLength) -1) * nImageLength);  // correct to one sheet before 
+      IF (nCurrentPos - nLastGeneratedStartMarkPosition) / nImageLengthSubPx > 2 THEN
+        nLastGeneratedStartMarkPosition := nLastGeneratedStartMarkPosition + ((((nCurrentPos - nLastGeneratedStartMarkPosition) / nImageLengthSubPx) -1) * nImageLengthSubPx);  // correct to one sheet before 
 			END_IF 
       
-      nLastGeneratedStartMarkPosition := nLastGeneratedStartMarkPosition + nImageLength;      // save last repeat position   
+      nLastGeneratedStartMarkPosition := nLastGeneratedStartMarkPosition + nImageLengthSubPx;      // save last repeat position   
       
       pMark^.sState.nPosXReal := nLastGeneratedStartMarkPosition + F_MeterToSubPixel(fPosMeter:=pMark^.fPosX, fResoSubPx:=_fResolution); // mark detected position
       pMark^.sState.fLengthReal := 0;
@@ -1285,8 +1285,7 @@ strMark := F_Concat6(
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.GenMark">
-      <LineId Id="441" Count="6" />
-      <LineId Id="449" Count="39" />
+      <LineId Id="517" Count="46" />
       <LineId Id="42" Count="0" />
     </LineIds>
     <LineIds Name="FB_MarkDetection.getExactPosition">

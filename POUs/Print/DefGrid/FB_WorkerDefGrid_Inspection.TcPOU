@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_WorkerDefGrid_Inspection" Id="{d49e7280-4879-45fa-a34b-5703a36a2e59}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Inspection EXTENDS FB_WorkerDefGrid
 VAR_INPUT
@@ -165,7 +165,10 @@ VAR_INST
   fPreAttachPos : LREAL;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[SUPER^.work();
+        <ST><![CDATA[// If you have issues with this block think about to implement a default EL2252_Activate output value
+//   to sureley reset the output a next activation
+
+SUPER^.work();
 
 // Overwrite "default" tracking offset (Attach position)
 fPreAttachPos := fMaxMachineSpeed * tC_CommTimeout;
@@ -186,7 +189,7 @@ bTriggerActivating_mem := bTriggerActivating;
 IF bOutputActive THEN
   // check if pos later than activation position --> reset
   nDelta_SubPx := F_MeterToSubPixel(fPosMeter:=tC_CommTimeout*fCurrentSpeed, fResoSubPx:=_fPrintResolution*_fSubPxResolution);
-  IF (nCurrentPosition - nTriggerPos_SubPx) > nDelta_SubPx THEN
+  IF ABS(nCurrentPosition - nTriggerPos_SubPx) > nDelta_SubPx THEN
     resetOut();
     bTriggerResetting := TRUE;
     bOutputActive := FALSE;
@@ -264,6 +267,9 @@ END_IF]]></ST>
       <LineId Id="11" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Inspection.work">
+      <LineId Id="151" Count="0" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="152" Count="0" />
       <LineId Id="10" Count="0" />
       <LineId Id="82" Count="1" />
       <LineId Id="142" Count="0" />
