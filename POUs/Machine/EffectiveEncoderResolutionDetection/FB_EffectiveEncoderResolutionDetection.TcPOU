@@ -333,7 +333,7 @@ IF bReset THEN bReset := FALSE;
   fL_MasterSpeed_reg := 0; fL_PulseSpeed_reg := 0;
 END_IF 
 
-lL_Delta:=UDINT_TO_DINT(lPosReference-lL_Reference_Reg);  // DINT because diff correct on wrap over
+lL_Delta:=(lPosReference-lL_Reference_Reg);  // DINT because diff correct on wrap over
 // filter
 fb_MavDelta.fI_Input    := DINT_TO_LREAL(lL_Delta);       // encoder signal jitter filter
 fb_MavDelta.iI_NbInputs := iC_FilterDepth;
