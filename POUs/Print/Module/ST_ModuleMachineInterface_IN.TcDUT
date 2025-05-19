@@ -37,6 +37,8 @@ STRUCT
   fMarkBaseSize           : LREAL;            // mark base "a" size (square side) [m]
   fMarkDistToStartMark    : LREAL;            // mark distance repeat to start mark [m}
   nUsePerRepeatInLine     : UDINT;            // Number of Uses per Repead in printing direction
+  fMarkDistToPrevMark     : LREAL;            // mark distance to previous PrintModule mark [m}
+  fInspectionDistToPrint  : LREAL;            // inspection distance to PrintModule [m}
 
   fEncoderResolution      : LREAL;            // Effective Encoder resolution to be used [pulse/um]
   fEncoderDetectPulseMin  : LREAL;            // Encoder step measurement minimum pulse 
