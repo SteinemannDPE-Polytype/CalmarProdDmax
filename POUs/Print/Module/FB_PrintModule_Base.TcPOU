@@ -918,7 +918,7 @@ FOR i := 1 TO _nPh DO
                   , fVoltageScale_Max     := 110.0 
                   );
 
-  _pPh[i]^.initTempMonitor(fPhTempDeviation:=1.5, tTempMonitor:=T#45S);   // overwrite default temperatur deviation
+  _pPh[i]^.initTempMonitor(fPhTempDeviation := _pModuleSetup^.pSetupPrint^.fPhTempDeviation, tTempMonitor:=T#45S);   // overwrite default temperatur deviation
   
   // edit default file download config for ImageMap file --> disable file downloader
   _pPh[i]^.getFileDownloadConfig(E_PhFileSelection.eImageMap, stConfig=>sPhFdlCfg_ImgMap);
