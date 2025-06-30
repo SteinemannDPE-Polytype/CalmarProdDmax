@@ -85,7 +85,7 @@ VAR
 END_VAR
 VAR PERSISTENT
   _fPmDistToPrev          : LREAL;                 // [m] distance to previous PM (in main domain)
-  _fPmMainTrackPos        : LREAL;                 // [m] distance to master reference position (in main tracker)
+  _fPmMainTrackPos        : LREAL;                 // [m] used distance to master reference position (in main tracker)
 END_VAR
 VAR CONSTANT
   nC_NumMsg               : UDINT := 0;            // number of internal messages
@@ -104,7 +104,8 @@ nPos_SubPx := _iPrintPosition.getPosition(nPosition_px=>nPos_Px, fPosition_um=>f
 // - get speed
 fSpeed := _iPrintPosition.getSpeed(fSpeedMpMin=>fSpeedMpMin);
 
-{warnign 'TODO: if implemented in machine'} //_fPmDistToPrev := _pModuleMachineState^.fDistanceToPrevModule;
+// update distance from machine
+_fPmDistToPrev := _pModuleMachineState^.fDistanceToPrevModule;
 
 // enable, control, release signals
 //   engaged -> selected and prepared for production
@@ -963,6 +964,7 @@ END_VAR
       <LineId Id="8158" Count="0" />
       <LineId Id="8163" Count="0" />
       <LineId Id="8162" Count="0" />
+      <LineId Id="8584" Count="0" />
       <LineId Id="8175" Count="0" />
       <LineId Id="8174" Count="0" />
       <LineId Id="8164" Count="0" />
