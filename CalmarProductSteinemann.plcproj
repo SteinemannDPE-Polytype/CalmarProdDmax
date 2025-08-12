@@ -41,6 +41,7 @@ Fribourg/Switzerland (2021)</Description>
     <Folder Include="POUs\Print\Camera" />
     <Folder Include="POUs\Print\Camera\MarkCameraWEU" />
     <Folder Include="POUs\Print\Camera\LineCamera" />
+    <Folder Include="POUs\Print\Camera\Obsolete" />
     <Folder Include="POUs\Print\DefGrid" />
     <Folder Include="POUs\Print\DefGrid\_Test" />
     <Folder Include="POUs\Print\DefGrid\_VISU_Templates" />
@@ -311,6 +312,9 @@ Fribourg/Switzerland (2021)</Description>
     <Compile Include="POUs\Print\Camera\MarkCameraWEU\_VISU_RepeatHistoryEntry.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="POUs\Print\Camera\Obsolete\FB_CAMERA_TRIGGER.TcPOU">
+      <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\Print\Camera\_VISU_CameraBase.TcVIS">
       <SubType>Code</SubType>

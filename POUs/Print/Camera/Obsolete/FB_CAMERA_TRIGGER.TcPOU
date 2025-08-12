@@ -1,0 +1,240 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.12">
+  <POU Name="FB_CAMERA_TRIGGER" Id="{91c8bf28-2396-47c0-aa14-fd91ee182e80}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CAMERA_TRIGGER
+(*************************************************************************************************)
+(*  FILENAME:    FB_CAMERA_TRIGGER.EXP                                                           *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    Generate timestamp trigger output based on timestamp sensor input. Two variants            *)
+(*    exist, a timebased approach where the trigger time is calculated at the time the sensor    *)
+(*    event occurs, and a second approach where the sensor event time is translated to a sensor  *)
+(*    event position, and a trigger is generated when the calculated trigger position has almost *)
+(*    been reached. The second approach has the advantage that is is less susceptible to speed   *)
+(*    variations.                                                                                *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+{library public}
+VAR_INPUT
+  (*From EL1252*)
+  bI_Sensor_State                 : BOOL;            (*Sensor signal*)
+  tI_Sensor_TimeStampPos          : T_DCTIME64;      (*Sensor last detection timestamp*)
+
+  (*System signals*)
+  iI_CurrentPos                   : DINT;            (*current position in Pulses/Subpixels*)
+  fI_ConveyorSpeed                : REAL;            (*actual speed of conveyor in [m/s]*)
+  fI_SubstrateLength              : REAL;            (*length of substrate in [m]*)
+  bI_Reset                        : BOOL := FALSE;   (*reset this fb*)
+  fI_TriggerDistance              : REAL;            (*Distance between Sensor and Trigger [m]*)
+  bI_ManualTeachTrigger           : BOOL;            (*Generate teach trigger*)
+  bI_ManualTrigger                : BOOL;            (*Generate test trigger*)
+
+  (*configuration*)
+  iI_Resolution                   : INT := 1;        (*Printhead Resolution [e.g. 600] x Subpixel Resolution [e.g. 32]*)
+  bI_UsePositionTrigger           : BOOL;            (*FALSE: Calculate time with speed and position distance@sensor evont*)
+                                                     (*TRUE:   Calculate sensor event position, launch trigger based on position*)
+  fL_TriggerLength                : LREAL := 0.1;    (*Length of trigger signal in ms, min. 3 bus cycles*)
+END_VAR
+
+VAR_OUTPUT
+  (*Link to EL2252*)
+  tO_Trigger_StartTime            : T_DCTIME64;      (*Link to EL2252 StartTime*)
+  bO_Trigger                      : BOOL;            (*Link to EL2252 Output*)
+  cO_Activate                     : BYTE;            (*Link to EL2252 Activate*)
+  bO_Active                       : BOOL;            (*True when Trigger generation started*)
+END_VAR
+
+(*{library private}*)
+VAR
+  bL_SpeedValid                   : BOOL;
+  bL_InhibitTrigger               : BOOL;            (*inhibit trigger signals, TRUE=inhibit*)
+  bL_ReleaseInhibitTrigger        : BOOL;            (*condition to release inhibit trigger*)
+
+  cL_State                        : BYTE;            (*State*)
+  tL_Sensor_TimeStamp             : T_DCTIME64;      (*Sensor last detection timestamp*)
+  tL_CurrentTime                  : T_DCTIME64;      (*Current system time*)
+  tL_Trigger_EventTime            : T_DCTIME64;      (*Trigger event timestamp*)
+
+  fL_DeltaDistance                : LREAL;           (*Distance that the substrate moved between the detection and the treatment of the information [m]*)
+  iL_StartPos                     : DINT;            (*Sensor start position [SubPx]*)
+  iL_SubstrateLength              : DINT;            (*Substrate length in pulse [SubPx]*)
+
+  tL_CurrentTimeStamp             : T_DCTIME64;      (* Get Current Timestamp *)
+  tL_LastTimeStamp                : T_DCTIME64;      (* Get Current Timestamp *)
+  fL_DeltaTimeStamp               : LREAL;           (* Get Current Timestamp *)
+
+  fL_RemDist                      : LREAL;           (*Remaining distance until trigger occurs [m]*)
+  fL_PreTriggerPosition           : LREAL;           (*Margin between effective trigger position and generation of timestamp*)
+
+  fb_FTrig_ManualTeach            : F_TRIG;          (*FTrig for teach to release inhibit*)
+END_VAR
+
+VAR CONSTANT
+  fC_MIN_CONVEYOR_SPEED           : REAL := 0.05;
+  fC_PRETRIGFACTOR                : REAL := 3.0;
+
+  (*State*)
+  cL_IDLE                         : BYTE := 0;       (*Idle state, no trigger active*)
+  cL_SENSOREVENT                  : BYTE := 1;       (*Sensor started trigger generation*)
+  cL_WAITALMOSTSTART              : BYTE := 2;       (*Wait timestamp calculation critera*)
+  cL_WAITSTART                    : BYTE := 3;       (*Wait for trigger generation critera*)
+  cL_TRIGACTIVE                   : BYTE := 4;       (*Trigger set*)
+  cL_WAITSTOP                     : BYTE := 5;       (*Trigger reset*)
+
+  (*EL2252 Command*)
+  cL_INACTIVE                     : BYTE := 0;
+  cL_ACTIVE                       : BYTE := 3;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF bI_Reset THEN
+  cL_State          := cL_IDLE;
+	bL_InhibitTrigger := FALSE;
+END_IF;
+
+(*zero divisions*)
+IF iI_Resolution = 0 THEN RETURN; END_IF;
+
+(*General calculations*)
+bL_SpeedValid     := fI_ConveyorSpeed > fC_MIN_CONVEYOR_SPEED;
+tL_CurrentTime    := F_GetCurDcTaskTime64();
+fL_DeltaTimeStamp := (ULINT_TO_LREAL(tL_CurrentTime) - ULINT_TO_LREAL(tL_LastTimeStamp)) * 1E-9;
+tL_LastTimeStamp  := tL_CurrentTime;
+
+(*Added 10 mm margin for substrate length in case of print quality strips at the end of sheet in case of start with edge*)
+iL_SubstrateLength := FC_LREAL_TO_DINT((fI_SubstrateLength + 0.01) * (1 / (0.0254 / iI_Resolution)));
+
+
+(*State Machine ----------------------------------------------------------------*)
+CASE cL_State OF
+  cL_IDLE:     (*Not started*)
+    IF bL_SpeedValid AND bI_Sensor_State AND NOT bL_InhibitTrigger THEN      (*Start launched*)
+      cL_State            := cL_SENSOREVENT;
+      tL_Sensor_TimeStamp := tI_Sensor_TimeStampPos;
+    ELSIF     (   (bL_SpeedValid AND bI_ManualTrigger)
+               OR bI_ManualTeachTrigger
+              )
+          AND NOT bL_InhibitTrigger
+    THEN  (*Manual start launched*)
+      cL_State            := cL_SENSOREVENT;
+      tL_Sensor_TimeStamp := tL_CurrentTime;
+    ELSE
+      cL_State     := cL_IDLE;
+    END_IF;
+
+    cO_Activate    := cL_INACTIVE;
+    bO_Trigger     := FALSE;
+    bO_Active      := FALSE;
+
+  cL_SENSOREVENT:     (*Not started*)
+    IF bI_ManualTeachTrigger THEN
+      cL_State             := cL_WAITSTART;
+
+    (*tL_Trigger_EventTime := UInt64Add64(ULINT_TO_ULARGE(tL_Sensor_TimeStamp), LREAL_TO_UINT64(100 * 1E6));  (*delay 100ms*)*)
+      tL_Trigger_EventTime := (tL_Sensor_TimeStamp + LREAL_TO_ULINT(100 * 1E6));  (*delay 100ms*)
+      iL_StartPos          := iI_CurrentPos;
+
+      cO_Activate          := cL_INACTIVE;
+    ELSE
+      IF bI_UsePositionTrigger THEN
+        cL_State             := cL_WAITALMOSTSTART;
+
+        (*Distance in pulses that the substrate has traveled between the sensor detection and the PLC treatment*)
+        fL_DeltaDistance     := UINT64_TO_LREAL(UInt64Sub64(ULINT_TO_ULARGE(tL_CurrentTime), ULINT_TO_ULARGE(tL_Sensor_TimeStamp))) * 1E-9 * fI_ConveyorSpeed;
+        (*Position where the sheet has been detected*)
+        iL_StartPos          := iI_CurrentPos - FC_LREAL_TO_DINT(fL_DeltaDistance * (1 / (0.0254 / INT_TO_REAL(iI_Resolution))));
+      ELSE
+        cL_State             := cL_WAITSTART;
+
+      (*tL_Trigger_EventTime := UInt64Add64(ULINT_TO_ULARGE(tL_Sensor_TimeStamp), LREAL_TO_UINT64(fI_TriggerDistance/fI_ConveyorSpeed * 1E9));*)
+        tL_Trigger_EventTime := (tL_Sensor_TimeStamp + LREAL_TO_ULINT(fI_TriggerDistance / fI_ConveyorSpeed * 1E9));
+        iL_StartPos          := iI_CurrentPos;
+      END_IF;
+
+      cO_Activate     := cL_INACTIVE;
+    END_IF;
+
+    bO_Trigger        := TRUE;
+    bO_Active         := TRUE;
+  	bL_InhibitTrigger := TRUE;
+
+  cL_WAITALMOSTSTART: (*Only active when bI_UsePositionTrigger=TRUE: wait until Start position almost reached, then set timestamp*)
+    (*Remaining distance in [m], converted to REAL to avoid integer wrap problems*)
+    fL_RemDist             := fI_TriggerDistance + (DINT_TO_REAL(iL_StartPos) - DINT_TO_REAL(iI_CurrentPos))*0.0254 / INT_TO_REAL(iI_Resolution);
+    fL_PreTriggerPosition  := fC_PreTrigFactor * fL_DeltaTimeStamp * fI_ConveyorSpeed;
+
+    IF fL_RemDist < fL_PreTriggerPosition THEN
+      cL_State             := cL_WAITSTART;
+    (*tL_Trigger_EventTime := UInt64Add64(ULINT_TO_ULARGE(tL_Sensor_TimeStamp), LREAL_TO_UINT64(fL_RemDist/fI_ConveyorSpeed * 1E9));*)
+      tL_Trigger_EventTime := (tL_Sensor_TimeStamp + LREAL_TO_ULINT(fL_RemDist / fI_ConveyorSpeed * 1E9));
+      cO_Activate          := cL_ACTIVE;  (*Arm EL2252*)
+    ELSE
+      cL_State     := cL_WAITALMOSTSTART;
+      cO_Activate  := cL_INACTIVE;
+    END_IF;
+    bO_Trigger     := TRUE;
+    bO_Active      := TRUE;
+
+  cL_WAITSTART:       (*Wait until start time reached*)
+  (*IF (UInt64Cmp64(tL_Trigger_EventTime, ULINT_TO_ULARGE(tL_CurrentTime)) = -1) THEN (* StartTime elapsed *)*)
+    IF (tL_Trigger_EventTime < tL_CurrentTime) THEN (* StartTime elapsed *)
+      cL_State     := cL_TRIGACTIVE;
+      cO_Activate  := cL_INACTIVE; (*Disarm EL2252, trigger generated*)
+    ELSE
+      cL_State     := cL_WAITSTART;
+      cO_Activate  := cL_ACTIVE;   (*Arm EL2252*)
+    END_IF;
+
+    bO_Trigger     := TRUE;
+    bO_Active      := TRUE;
+
+  cL_TRIGACTIVE:   (*Trigger high*)
+    cL_State       := cL_WAITSTOP;
+
+  (*tL_Trigger_EventTime := UInt64Add64(tL_Trigger_EventTime,LREAL_TO_UINT64(fL_TriggerLength*1E9));*)
+    tL_Trigger_EventTime := (tL_Trigger_EventTime + LREAL_TO_ULINT(fL_TriggerLength * 1E9));
+
+    cO_Activate    := cL_INACTIVE;
+    bO_Trigger     := FALSE;
+    bO_Active      := TRUE;
+
+  cL_WAITSTOP:  (*Wait until trigger time has elapsed*)
+  (*IF (UInt64Cmp64(tL_Trigger_EventTime, ULINT_TO_ULARGE(tL_CurrentTime)) = -1) THEN (* StopTime elapsed *)*)
+    IF (tL_Trigger_EventTime < tL_CurrentTime) THEN (* StopTime elapsed *)
+      cL_State     := cL_IDLE;
+      cO_Activate  := cL_INACTIVE; (*Disarm EL2252, trigger generated*)
+    ELSE
+      cL_State     := cL_WAITSTOP;
+      cO_Activate  := cL_ACTIVE;   (*Arm EL2252*)
+    END_IF;
+
+    bO_Trigger     := FALSE;
+    bO_Active      := TRUE;
+
+  ELSE  (*Default*)
+    cL_State       := cL_IDLE;
+    bO_Trigger     := FALSE;
+    bO_Active      := FALSE;
+    cO_Activate    := cL_INACTIVE;
+END_CASE;
+
+tO_Trigger_StartTime := tL_Trigger_EventTime;
+
+(*Release inhibit trigger*)
+bL_ReleaseInhibitTrigger := (iI_CurrentPos >= (iL_StartPos + iL_SubstrateLength));
+fb_FTrig_ManualTeach(CLK := bI_ManualTeachTrigger);
+
+IF ( bL_ReleaseInhibitTrigger OR fb_FTrig_ManualTeach.Q)
+   AND bL_InhibitTrigger
+THEN
+	bL_InhibitTrigger := FALSE;
+END_IF;
+
+(********************************* END OF FB *****************************************************)]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>
