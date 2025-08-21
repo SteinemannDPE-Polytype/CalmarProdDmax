@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="EN_Cleaning_State" Id="{e12b7dd8-37f7-4c35-9810-60a99f15d713}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE EN_Cleaning_State :
+(
+	Init        := 0,
+	Production  := 1,
+	Wait        := 2,
+	Service     := 3,
+	Capping     := 4,
+	CappingExit := 5,
+	Cleaning    := 6,
+	Error       := 7
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

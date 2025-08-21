@@ -1,0 +1,397 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_Cleaning_ValvePump" Id="{167eb415-466c-4b17-a500-8dcb841bc75b}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_Cleaning_ValvePump EXTENDS FB_CleanDevice
+VAR_INPUT
+END_VAR
+
+VAR_OUTPUT
+  bO_VacuumValve                  AT %Q* : BOOL;     (*Enable vacuum valve for CleaningStation*)
+
+  bO_VacuumPump                   AT %Q* : BOOL;     (*Enable vacuum pump for CleaningStation*)
+  wO_SetPointVacuumPump           AT %Q* : WORD;     (*Vacuum pump set point*)
+
+  bO_CleanerPump                  AT %Q* : BOOL;     (*Enable cleaner pump for CleaningStation*)
+  wO_SetPointCleanerPump          AT %Q* : WORD;     (*Cleaner pump set point*)
+END_VAR
+
+VAR
+  _bManuEmptyTub                         : BOOL;     (*Manually empty tub*)
+
+  bL_VacuumValve                         : BOOL;     (*Enable vacuum valve for CleaningStation*)
+
+  bL_VacuumPump                          : BOOL;     (*Enable vacuum pump for CleaningStation*)
+  lL_SetPointVacuumPump                  : DINT;     (*Vacuum pump set point [%]*)
+
+  bL_CleanerPump                         : BOOL;     (*Enable cleaner pump for CleaningStation*)
+  lL_SetPointCleanerPump                 : DINT;     (*Cleaner pump set point [%]*)
+
+  fb_TonCleanerPumpOffset                : TON;
+  fb_TonVacuumPumpDelay                  : TON;
+END_VAR
+
+VAR PERSISTENT
+  lR_AnalogMaxDigitVacuumPump            : DINT := 16383;  (*Max value analog-output in digit (32767 = 10V)*)
+  lR_SetPoint1VacuumPump                 : DINT;     (*Vacuum pump set point #1 [%]*)
+  lR_SetPoint2VacuumPump                 : DINT;     (*Vacuum pump set point #2 [%]*)
+  lR_SetPoint3VacuumPump                 : DINT;     (*Vacuum pump set point #3 [%]*)
+  lR_SetPoint4VacuumPump                 : DINT;     (*Vacuum pump set point #4 [%]*)
+  lR_AnalogMaxDigitCleanerPump           : DINT := 16383;  (*Max value analog-output in digit (32767 = 10V)*)
+  lR_SetPoint1CleanerPump                : DINT;     (*Cleaner pump set point #1 [%]*)
+  lR_SetPoint2CleanerPump                : DINT;     (*Cleaner pump set point #2 [%]*)
+  lR_SetPoint3CleanerPump                : DINT;     (*Cleaner pump set point #3 [%]*)
+  lR_SetPoint4CleanerPump                : DINT;     (*Cleaner pump set point #4 [%]*)
+
+  tR_CleanerPumpOffset                   : TIME := T#4S;
+  tR_VacuumPumpDelay                     : TIME := T#1S;
+  tR_VacuumPumpEmptyBin                  : TIME := T#15S;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="mCleaning" Id="{df32c802-2d62-41b7-b21f-a5f1a38e8c99}">
+      <Declaration><![CDATA[METHOD mCleaning : BOOL
+VAR_INPUT
+  iI_Step : INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//Abort: Stop pumps and return
+IF bL_AbortReq THEN
+  bL_Busy        := FALSE;
+  bL_Ready       := TRUE;
+  bL_VacuumValve := FALSE;
+  bL_VacuumPump  := FALSE;
+  bL_CleanerPump := FALSE;
+  mSetOutput();
+  RETURN;
+END_IF
+
+//Normal operation
+CASE iI_Step OF
+  0: //Init - Check if axis is not activated, restore safety
+    fb_TonCleanerPumpOffset(IN := FALSE, PT := tR_CleanerPumpOffset);
+    fb_TonVacuumPumpDelay  (IN := FALSE, PT := tR_VacuumPumpDelay);
+
+    bL_Busy := FALSE;
+
+  1: //Wait for PU axis to lift
+    bL_Busy := FALSE;
+    
+  2: //Wait for CU axis to move out
+    bL_Busy := FALSE;
+    
+  3: //Wait for PU axis to lower
+    bL_Busy := FALSE;
+    
+  4: //Ensure CH axis is at starting position
+    bL_Busy := FALSE;
+
+  5: //Move CH to clean start position
+    bL_Busy := FALSE;
+
+  6: //Wait until cleaning equipment ready
+    bL_VacuumValve         := TRUE;
+
+    bL_VacuumPump          := TRUE;
+    lL_SetPointVacuumPump  := lR_SetPoint1VacuumPump;
+
+    bL_CleanerPump         := TRUE;
+    lL_SetPointCleanerPump := lR_SetPoint1CleanerPump;
+    
+    mSetOutput();
+
+    (*Delay cleaner pump for a good start-up.*)
+    fb_TonCleanerPumpOffset(IN := TRUE, PT := tR_CleanerPumpOffset);
+    bL_Busy := NOT fb_TonCleanerPumpOffset.Q;
+    
+  7: //Cleaning
+    bL_Busy := FALSE;
+    
+  8: //Wait until cleaning equipment ready
+    bL_VacuumValve         := TRUE;
+
+    bL_VacuumPump          := TRUE;
+    lL_SetPointVacuumPump  := lR_SetPoint1VacuumPump;
+
+    bL_CleanerPump         := FALSE;
+    lL_SetPointCleanerPump := lR_SetPoint1CleanerPump;
+    
+    mSetOutput();
+
+    bL_Busy := FALSE;
+    
+  9: //Move CH to end position
+    (*Off delay vacuum pump.*)
+    fb_TonVacuumPumpDelay(IN := TRUE, PT := tR_VacuumPumpDelay);
+    bL_Busy := NOT fb_TonVacuumPumpDelay.Q;
+    
+  10: //Wait for PU axis to lift
+    bL_VacuumValve := FALSE;
+    bL_VacuumPump  := FALSE;
+    mSetOutput();
+
+    bL_Busy := FALSE;
+    
+  11: //Move CH back to start 
+    bL_VacuumValve         := FALSE;
+
+    bL_VacuumPump          := TRUE;
+    lL_SetPointVacuumPump  := lR_SetPoint1VacuumPump;
+
+    bL_CleanerPump         := FALSE;
+    lL_SetPointCleanerPump := lR_SetPoint1CleanerPump;
+    
+    mSetOutput();
+
+    bL_Busy := FALSE;
+    
+  12: //End
+    bL_VacuumValve := FALSE;
+    bL_VacuumPump  := FALSE;
+    mSetOutput();
+
+    bL_Busy := FALSE;
+  
+  ELSE
+    bL_Busy := FALSE;    
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mManuSetCleanerPump" Id="{ef3c4ead-649f-4b80-81c5-dbf8a6bce179}">
+      <Declaration><![CDATA[METHOD mManuSetCleanerPump
+VAR_INPUT
+  bI_CleanerPump                         : BOOL;     (*Enable cleaner pump for CleaningStation*)
+  bI_VacuumPump                          : BOOL;     (*Enable vacuum pump for CleaningStation*)
+  wI_SetPointCleanerPump                 : DINT;     (*Cleaner pump set point*)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF bI_CleanerPump THEN
+  bO_CleanerPump         := TRUE;
+  wO_SetPointCleanerPump := DINT_TO_WORD(lR_AnalogMaxDigitCleanerPump * wI_SetPointCleanerPump / 100);
+
+  bO_VacuumPump          := bI_VacuumPump;                                                              
+  wO_SetPointVacuumPump  := DINT_TO_WORD(lR_AnalogMaxDigitVacuumPump);
+ELSE
+  bO_CleanerPump         := FALSE;
+  bO_VacuumPump          := FALSE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mProduction" Id="{dfcadc18-cfa1-4819-bd44-372bd2f4c5f0}">
+      <Declaration><![CDATA[METHOD mProduction : BOOL
+VAR_INPUT
+  iI_Step : INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//Abort: Stop whereever axis is and return
+IF bL_AbortReq THEN
+  bL_Busy        := FALSE;
+  bL_Ready       := TRUE;
+  bL_VacuumValve := FALSE;
+  bL_VacuumPump  := FALSE;
+  bL_CleanerPump := FALSE;
+  mSetOutput();
+  RETURN;
+END_IF
+
+//Normal operation
+CASE iI_Step OF
+  0: //Init - Check if axis is not activated, restore safety
+    fb_TonCleanerPumpOffset(IN := FALSE, PT := tR_VacuumPumpEmptyBin);
+
+    bL_Busy := FALSE;
+
+  1: //Wait for PU axis to lift
+    bL_Busy := FALSE;
+    
+  2: //Wait for CU axis to move out & empty bin
+    (*Timer vacuum pump to empty bin.*)
+    fb_TonCleanerPumpOffset(IN := TRUE, PT := tR_VacuumPumpEmptyBin);
+
+    bL_VacuumValve         := FALSE;
+
+    bL_VacuumPump          := NOT fb_TonCleanerPumpOffset.Q;
+    lL_SetPointVacuumPump  := lR_SetPoint1VacuumPump;
+
+    mSetOutput();
+
+    bL_Busy := FALSE;
+    
+  3: //Wait for PU axis to lower
+    (*Timer vacuum pump to empty bin.*)
+    fb_TonCleanerPumpOffset(IN := TRUE, PT := tR_VacuumPumpEmptyBin);
+
+    bL_VacuumValve := FALSE;
+    bL_VacuumPump  := NOT fb_TonCleanerPumpOffset.Q;
+    mSetOutput();
+
+    bL_Busy := NOT fb_TonCleanerPumpOffset.Q;
+    
+  4: //End
+    bL_VacuumValve := FALSE;
+    bL_VacuumPump  := FALSE;
+    mSetOutput();
+
+    bL_Busy := FALSE;
+
+  ELSE
+    bL_Busy := FALSE;    
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mSetOutput" Id="{d0ed947f-4246-4e0d-9691-5c94a204a406}">
+      <Declaration><![CDATA[METHOD mSetOutput
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bO_VacuumValve         := bL_VacuumValve;
+
+bO_VacuumPump          := bL_VacuumPump;
+wO_SetPointVacuumPump  := DINT_TO_WORD(lR_AnalogMaxDigitVacuumPump * lL_SetPointVacuumPump / 100);
+
+bO_CleanerPump         := bL_CleanerPump;
+wO_SetPointCleanerPump := DINT_TO_WORD(lR_AnalogMaxDigitCleanerPump * lL_SetPointCleanerPump / 100);]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="pManuEmptyTub" Id="{c08f1dd7-0a5d-4529-9818-0b776133d536}">
+      <Declaration><![CDATA[PROPERTY pManuEmptyTub : BOOL]]></Declaration>
+      <Get Name="Get" Id="{8470b583-73b0-4518-babb-d5883db90fbb}">
+        <Declaration><![CDATA[
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[pManuEmptyTub := _bManuEmptyTub;
+]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{9ee247dc-da3c-4726-8cee-df4ab71433e0}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_bManuEmptyTub := pManuEmptyTub;
+IF _bManuEmptyTub THEN
+  bO_VacuumValve         := FALSE;
+  bO_VacuumPump          := TRUE;
+  wO_SetPointVacuumPump  := DINT_TO_WORD(lR_AnalogMaxDigitVacuumPump);
+ELSE
+  bO_VacuumValve         := FALSE;
+  bO_VacuumPump          := FALSE;
+END_IF]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <LineIds Name="FB_Cleaning_ValvePump">
+      <LineId Id="49" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Cleaning_ValvePump.mCleaning">
+      <LineId Id="197" Count="2" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="205" Count="0" />
+      <LineId Id="207" Count="2" />
+      <LineId Id="202" Count="2" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="3" Count="1" />
+      <LineId Id="168" Count="0" />
+      <LineId Id="170" Count="0" />
+      <LineId Id="169" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="102" Count="1" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="214" Count="2" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="134" Count="1" />
+      <LineId Id="116" Count="6" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="38" Count="1" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="52" Count="1" />
+      <LineId Id="136" Count="1" />
+      <LineId Id="123" Count="6" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="55" Count="2" />
+      <LineId Id="171" Count="2" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="174" Count="6" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="138" Count="11" />
+      <LineId Id="181" Count="0" />
+      <LineId Id="185" Count="4" />
+      <LineId Id="184" Count="0" />
+      <LineId Id="85" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Cleaning_ValvePump.mManuSetCleanerPump">
+      <LineId Id="8" Count="0" />
+      <LineId Id="10" Count="1" />
+      <LineId Id="14" Count="2" />
+      <LineId Id="12" Count="1" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Cleaning_ValvePump.mProduction">
+      <LineId Id="138" Count="0" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="192" Count="6" />
+      <LineId Id="134" Count="0" />
+      <LineId Id="131" Count="1" />
+      <LineId Id="3" Count="1" />
+      <LineId Id="234" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="199" Count="0" />
+      <LineId Id="102" Count="1" />
+      <LineId Id="216" Count="1" />
+      <LineId Id="223" Count="5" />
+      <LineId Id="232" Count="1" />
+      <LineId Id="253" Count="0" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="169" Count="0" />
+      <LineId Id="240" Count="1" />
+      <LineId Id="251" Count="1" />
+      <LineId Id="243" Count="0" />
+      <LineId Id="249" Count="1" />
+      <LineId Id="254" Count="0" />
+      <LineId Id="175" Count="0" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="236" Count="3" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="85" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Cleaning_ValvePump.mSetOutput">
+      <LineId Id="11" Count="1" />
+      <LineId Id="6" Count="4" />
+    </LineIds>
+    <LineIds Name="FB_Cleaning_ValvePump.pManuEmptyTub.Get">
+      <LineId Id="6" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Cleaning_ValvePump.pManuEmptyTub.Set">
+      <LineId Id="2" Count="0" />
+      <LineId Id="6" Count="6" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

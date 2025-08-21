@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <Itf Name="I_CleaningStateCallback" Id="{9e2b1d7f-14a9-427c-91dc-aa99d83c1c41}">
+    <Declaration><![CDATA[INTERFACE I_CleaningStateCallback
+]]></Declaration>
+    <Method Name="mChangeState" Id="{791fe484-0614-4ca3-8ffd-aa8144f1231d}">
+      <Declaration><![CDATA[METHOD mChangeState
+VAR_INPUT
+	sI_NextState : EN_Cleaning_State;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="mDeviceAbort" Id="{f2c0cdde-162f-475f-807f-82c1b567a3c5}">
+      <Declaration><![CDATA[METHOD mDeviceAbort : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="mDeviceAckError" Id="{b3adda9e-4885-4832-8e5c-9cfffcdbe7e7}">
+      <Declaration><![CDATA[METHOD mDeviceAckError
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="mDeviceOperation" Id="{0860f684-1c2d-4ef9-9cb2-eb50cd1f317b}">
+      <Declaration><![CDATA[METHOD mDeviceOperation : BOOL
+VAR_INPUT
+	iI_Step : INT;	
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="mSetMode" Id="{17e00825-f735-4663-b79b-fcda0e4f1d96}">
+      <Declaration><![CDATA[METHOD mSetMode : BOOL
+VAR_INPUT
+	sI_CleanMode	: EN_CLEANING_OP;
+END_VAR]]></Declaration>
+    </Method>
+    <Property Name="pDeviceStatus" Id="{f38ed1de-c880-4578-9def-59fb056d2d4b}">
+      <Declaration><![CDATA[PROPERTY pDeviceStatus : ST_CLEANING_DEV_STATUS]]></Declaration>
+      <Get Name="Get" Id="{9acb1614-cdf3-4ef8-b7e3-ba2f228e7879}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+  </Itf>
+</TcPlcObject>

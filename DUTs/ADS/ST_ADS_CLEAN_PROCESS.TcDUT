@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_ADS_CLEAN_PROCESS" Id="{71d7b6f8-ce0c-4e10-9e78-b5564d4c4b8c}">
+    <Declaration><![CDATA[TYPE ST_ADS_CLEAN_PROCESS :
+(*************************************************************************************************)
+(*  FILENAME:    ST_ADS_CLEAN_PROCESS                                                            *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*     User commands from ADS and info feedback to ADS for cleaning station axis.                *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+  iO_Version                 : INT :=  010001;  (*1.0.1*)
+  aO_Type                    : STRING := 'CleanProcess';
+  aO_Name                    : STRING :='';
+  sO_Message                 : ST_ADS_MSG_IF;
+                             
+  (*User commands - Trigger operation*)
+  bI_StartCapping            : BOOL := FALSE;
+  bO_StartCappingCanEx       : BOOL := FALSE;
+  bO_StartCappingExec        : BOOL := FALSE;
+                             
+  bI_StopCapping             : BOOL := FALSE;
+  bO_StopCappingCanEx        : BOOL := FALSE;
+  bO_StopCappingExec         : BOOL := FALSE;
+                             
+  bI_Purge                   : BOOL := FALSE;
+  bO_PurgeCanEx              : BOOL := FALSE;
+  bO_PurgeExec               : BOOL := FALSE;
+                             
+  bI_Clean                   : BOOL := FALSE;
+  bO_CleanCanEx              : BOOL := FALSE;
+  bO_CleanExec               : BOOL := FALSE;
+                             
+  bI_Maintenance             : BOOL := FALSE;
+  bO_MaintenanceCanEx        : BOOL := FALSE;
+  bO_MaintenanceExec         : BOOL := FALSE;
+                             
+  bI_OpenShutter             : BOOL := FALSE;
+  bO_OpenShutterCanEx        : BOOL := FALSE;
+  bO_OpenShutterExec         : BOOL := FALSE;
+                             
+  bI_Abort                   : BOOL := FALSE;
+  bO_AbortCanEx              : BOOL := FALSE;
+  bO_AbortExec               : BOOL := FALSE;
+
+  bI_AcknowledgeError        : BOOL := FALSE;
+  bO_AcknowledgeErrorCanEx   : BOOL := FALSE;
+  bO_AcknowledgeErrorExec    : BOOL := FALSE;
+
+  (*User settings - State operation*)
+  bI_AutoMode                : BOOL := TRUE;  (*del*)
+  bI_CleanAfterCapp          : BOOL := FALSE;
+  bI_CleanAfterPurge         : BOOL := FALSE;
+  bI_PurgeAfterCapp          : BOOL := FALSE; (*del*)
+  bI_MaintenanceMode         : BOOL := FALSE;
+                             
+  (*Flags*)                  
+  bO_Busy                    : BOOL;
+  bO_Ready                   : BOOL;
+  bO_ServiceEnabled          : BOOL;
+  bO_AxisProcessMovingVisible: BOOL := TRUE;  (*Cleaning process axis moving is shown at PUC*)
+                             
+  (*Message Queue - TODO update*)
+  bI_FaultAck                : BOOL := FALSE;
+  wO_ErrorCode               : WORD;
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

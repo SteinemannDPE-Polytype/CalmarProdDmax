@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_ADS_DRYER" Id="{d9d5f977-5c50-4a93-b5ad-9e6692f9b456}">
+    <Declaration><![CDATA[TYPE ST_ADS_DRYER :
+(*************************************************************************************************)
+(*  FILENAME:    ST_ADS_DRYER.EXP                                                                *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*     ADS structure for dryer.                                                                  *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+  iO_Version                  : INT    := 010001;             (*1.0.1*)
+  aO_Type                     : STRING := 'Dryer';
+  aO_Name                     : STRING := 'DRYER';
+  sO_Message                  : ST_ADS_MSG_IF;                (*Messaging*)
+
+  (*I*)
+  bI_Enable                   : BOOL := TRUE;                 (*Enable this device*)
+
+  sI_PositionX                : ST_VAR_IN_DINT;               (*Actual position of the dryer on the axis, in micro meters*)
+  sI_StartPositionX           : ST_VAR_IN_DINT;               (*Actual position of the dryer on the axis, in micro meters*)
+
+  (*O*)
+  cO_StatusDryer              : BYTE;                         (*Bit0:  1h: exist
+                                                                Bit1:  2h: enabled
+                                                                Bit2:  4h: dryer activ
+                                                                Bit3:  8h: warning
+                                                                Bit4: 10h: error*)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

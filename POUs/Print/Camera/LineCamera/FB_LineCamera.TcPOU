@@ -166,7 +166,7 @@ SimUpdate();
 ]]></ST>
     </Implementation>
     <Folder Name="I_Sim" Id="{c9ac893d-3196-4f97-b905-933fa9169f85}" />
-    <Method Name="binarySearch" Id="{ec9741bc-2bbe-4c20-8c7d-1086ec7b5bc3}">
+    <Method Name="binarySearch" Id="{986a0142-b2aa-4e24-bc0c-60dc723d18d3}">
       <Declaration><![CDATA[METHOD PRIVATE binarySearch : DINT
 VAR_INPUT
   nLow : DINT;     // range lower

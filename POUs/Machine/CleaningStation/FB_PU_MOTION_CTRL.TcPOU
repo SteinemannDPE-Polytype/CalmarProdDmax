@@ -1,0 +1,704 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_PU_MOTION_CTRL" Id="{43ddf709-8e33-4d32-8e86-a581a416ba25}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_PU_MOTION_CTRL
+(*************************************************************************************************)
+(*  FILENAME:     FB_PU_MOTION_CTRL.EXP                                                          *)
+(*  PROJECT:      Steinemann                                                                     *)
+(*  COPYRIGHT:    Wifag//Polytype Fribourg                                                       *)
+(*  ENVIRONMENT:  TwinCAT PLC / CoDeSys                                                          *)
+(*  VERSION:      1.0                                                                            *)
+(*  DESCRIPTION:                                                                                 *)
+(*    This Function is to control the mouvements of the Printer Unit                             *)
+(*    on the Z Axis. It will control the operation type and the service                          *)
+(*    mode to send motion commands to the axis                                                   *)
+(*  AUTHOR:       M: BOYRAZ, GoConcept                                                           *)
+(*************************************************************************************************)
+(*  MODIFICATIONS:                                                                               *)
+(*************************************************************************************************)
+(*  Date        Author   Comments                                                                *)
+(*  21.07.2014  HOA      Added using of fI_SheetThickness for print position                     *)
+(*************************************************************************************************)
+
+VAR_INPUT
+(*Commands from Cleaning Process Controller*)
+	sI_CleanDevCmd             : ST_CLEANING_DEV_CMD;	(*Initialize operation*)
+
+(*Settings*)
+	sI_SpeedDef_Z              : ST_SPEEDS;
+	fI_CurrentPosition         : REAL;					(*Current axis position*)
+	fI_WaitingPosition         : REAL := 0.01;	(*Waiting position (Production Mode)*)
+	fI_PrintPosition           : REAL := 0.001;	(*Print position (Production Mode)*)
+	fI_SheetThickness          : REAL := 0.000;	(*Sheet thickness (Production Mode)*)
+	fI_ServicePosition         : REAL := 0.4;		(*Service position (Service Mode)*)
+	fI_CleanPosition1          : REAL := 0.325;	(*Cleaning station moving position (Service Mode)*)
+	fI_CleanPosition2          : REAL := 0.315;	(*Cleaning position (Service Mode)*)
+	fI_PositionTolerance       : REAL := 0.0001;(*Service position (Service Mode)*)
+
+(*User Commands*)
+	sI_ManualCommands          : ST_MANUAL_CMD;
+	bI_AckFault                : BOOL;	(* Acknowledge errors*)
+	bI_Enable                  : BOOL;	(* Enable PrintUnit axis*)
+
+(*Machine Flags*)
+	bI_DeviceOnline            : BOOL;	(*Check link to device*)
+	bI_LimitSW_UP              : BOOL;	(* Axis upper limit switch*)
+	bI_LimitSW_DOWN            : BOOL;	(* Axis lower limit switch*)
+	bI_SystemReady             : BOOL;	(*General ready flag*)
+	bI_MachineReady            : BOOL;	(*Machine ready = go to print if not in service*)
+	bI_MovementAllowed         : BOOL;	(*No collision danger*)
+	bI_SafetyOk                : BOOL;	(*Safety ok for movement*)
+	eI_ELmodule_State          : EN_EL7201_STATE;	(*Feedback from Axis*)
+	bI_Chopper_Error           : BOOL := FALSE;
+	bI_Chopper_Overvoltage     : BOOL := FALSE;
+	bI_Chopper_Undervoltage    : BOOL := FALSE;
+	bI_MoveDone                : BOOL;
+	bI_AxisNotInit             : BOOL;
+	bI_EmergencyMoveUp         : BOOL;
+
+	pC_MsgInterface            : POINTER TO ST_ADS_MSG_IF;
+	iC_BlockId                 : INT;
+END_VAR
+
+VAR_OUTPUT
+	sO_PrintUnit_Mvt_Status    : ST_PU_STATUS;
+	sO_CleanDevStatus          : ST_CLEANING_DEV_STATUS;	(*Initialize operation*)
+
+	fO_TargetPosition          : REAL;	(*Target position for axis*)
+	fO_SpeedLimit              : REAL;	(*Speed limit for axis*)
+	bO_MoveEnable              : BOOL;	(*Move enable for axis*)
+	bO_RegActive               : BOOL;	(*Close control loop for axis*)
+	bO_FaultReset              : BOOL;	(*Fault reset for axis*)
+END_VAR
+
+VAR
+	bL_SafeRunningCondition    : BOOL;
+	bL_SafeMoveDown            : BOOL;
+	bL_SafeMoveUp              : BOOL;
+
+	bL_AxisReady               : BOOL;	(*Axis has no pending operation*)
+	bL_PrintReady              : BOOL;	(*Axis is ready to print*)
+
+	wL_ErrorCode               : WORD;
+
+	fL_PrintPosition           : REAL;	(*Print position (Production Mode)*)
+
+	bL_InPosition_C1           : BOOL;
+	bL_InPosition_C2           : BOOL;
+	bL_InPosition_Waiting      : BOOL;
+	bL_InPosition_Printing     : BOOL;
+	bL_InPosition_Service      : BOOL;
+	bL_MotionActive            : BOOL;
+	bL_SafeMoveRequired        : BOOL := TRUE;
+	bL_MoveStarted             : BOOL := FALSE;
+	bL_MoveStartRequested      : BOOL := FALSE;
+	bL_MoveDone                : BOOL := FALSE;
+
+	tL_TimerSurv               : TON;			(* Timer for Motorization check *)
+
+	(*Memory registers*)
+	bL_mem_MotionActive        : BOOL;
+	bL_memAckFault             : BOOL;
+	fL_memZ_Position           : REAL;
+	bL_mem_MoveEnable          : BOOL;
+	bL_memLimitSW_UP           : BOOL;
+	bL_memLimitSW_DOWN         : BOOL;
+	bL_Cdtion_LimitSW_UP       : BOOL;
+	bL_memCdtion_LimitSW_UP    : BOOL;
+	bL_Cdtion_LimitSW_DOWN     : BOOL;
+	bL_memCdtion_LimitSW_DOWN  : BOOL;
+	bL_FirstRun                : BOOL := TRUE;
+
+	(*Message Queue*)
+ 	fB_MsgQueue                : FB_MSG_QUEUE;
+	fB_MsgHandler              : FB_MSG_HANDLER;
+	sL_MsgConfig               : ST_MSG_CONFIG;
+	fB_Msg                     : ARRAY [1..iC_NUM_MSG] OF FB_MESSAGE;
+END_VAR
+
+VAR CONSTANT
+	iC_NUM_MSG                 : INT := 4;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[tL_TimerSurv.PT := T#3s;
+tL_TimerSurv();
+
+fL_PrintPosition := fI_PrintPosition + fI_SheetThickness;
+
+
+
+(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+(*Position detection*)
+(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+
+IF     (fI_CurrentPosition >= fI_WaitingPosition - fI_PositionTolerance)
+   AND (fI_CurrentPosition <= fI_WaitingPosition + fI_PositionTolerance)
+THEN
+	bL_InPosition_C1        := FALSE;
+	bL_InPosition_C2        := FALSE;
+	bL_InPosition_Waiting   := TRUE;
+	bL_InPosition_Printing  := FALSE;
+	bL_InPosition_Service   := FALSE;
+ELSIF  (fI_CurrentPosition >= fL_PrintPosition - fI_PositionTolerance)
+   AND (fI_CurrentPosition <= fL_PrintPosition + fI_PositionTolerance)
+THEN
+	bL_InPosition_C1        := FALSE;
+	bL_InPosition_C2        := FALSE;
+	bL_InPosition_Waiting   := FALSE;
+	bL_InPosition_Printing  := TRUE;
+	bL_InPosition_Service   := FALSE;
+ELSIF  (fI_CurrentPosition >= fI_ServicePosition - fI_PositionTolerance)
+   AND (fI_CurrentPosition <= fI_ServicePosition + fI_PositionTolerance)
+THEN
+	bL_InPosition_C1        := FALSE;
+	bL_InPosition_C2        := FALSE;
+	bL_InPosition_Waiting   := FALSE;
+	bL_InPosition_Printing  := FALSE;
+	bL_InPosition_Service   := TRUE;
+ELSIF  (fI_CurrentPosition >= fI_CleanPosition1 - fI_PositionTolerance)
+   AND (fI_CurrentPosition <= fI_CleanPosition1 + fI_PositionTolerance)
+THEN
+	bL_InPosition_C1        := TRUE;
+	bL_InPosition_C2        := FALSE;
+	bL_InPosition_Waiting   := FALSE;
+	bL_InPosition_Printing  := FALSE;
+	bL_InPosition_Service   := FALSE;
+ELSIF  (fI_CurrentPosition >= fI_CleanPosition2 - fI_PositionTolerance)
+   AND (fI_CurrentPosition <= fI_CleanPosition2 + fI_PositionTolerance)
+THEN
+	bL_InPosition_C1        := FALSE;
+	bL_InPosition_C2        := TRUE;
+	bL_InPosition_Waiting   := FALSE;
+	bL_InPosition_Printing  := FALSE;
+	bL_InPosition_Service   := FALSE;
+ELSE
+	bL_InPosition_C1        := FALSE;
+	bL_InPosition_C2        := FALSE;
+	bL_InPosition_Waiting   := FALSE;
+	bL_InPosition_Printing  := FALSE;
+	bL_InPosition_Service   := FALSE;
+END_IF;
+
+(*If the axis has been moved above the waiting position, a deblocking move is required before entering print state*)
+IF fI_CurrentPosition > fI_WaitingPosition+fI_PositionTolerance THEN
+	bL_SafeMoveRequired := TRUE;		(*This flag is cleared in production mode*)
+END_IF;
+
+(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+(*----------------------------------- Safe Running Conditions  For Printing Unit  -------------------------------------------- *)
+(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+IF bI_Enable AND bI_SystemReady AND bI_DeviceOnline AND bI_SafetyOk AND (wL_ErrorCode = 0 OR wL_ErrorCode.5 OR wL_ErrorCode.6)THEN	(*Dont check limit switch here*)
+	bL_SafeRunningCondition := TRUE;
+ELSE
+	bL_SafeRunningCondition := FALSE;
+END_IF;
+bL_SafeMoveDown := bL_SafeRunningCondition AND NOT bI_LimitSW_Down AND bI_MovementAllowed;
+bL_SafeMoveUp 	:= bL_SafeRunningCondition AND NOT bI_LimitSW_Up;
+
+(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+(* Printer Unit Mouvement Control 																																																								*)
+(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+IF sI_CleanDevCmd.bService THEN
+	ServiceMode();
+ELSE		(* IN PRODUCTION *)
+	ProductionMode();
+END_IF;
+
+
+(*----------------------------------------------------------------------------------------------------------------------- *)
+(*----------------------------------- Output Structure Data Update  --------------------------------------- *)
+(*----------------------------------------------------------------------------------------------------------------------- *)
+sO_CleanDevStatus.bBusy     := NOT(bL_AxisReady);
+sO_CleanDevStatus.bReady    := bL_AxisReady;
+sO_CleanDevStatus.bRefKnown := NOT bI_AxisNotInit;
+
+IF wL_ErrorCode = 0 THEN
+	sO_CleanDevStatus.bError := FALSE;
+ELSE
+	sO_CleanDevStatus.bError := TRUE;
+END_IF;
+
+sO_PrintUnit_Mvt_Status.bO_Active              := bI_Enable;
+sO_PrintUnit_Mvt_Status.bO_Busy                := bO_MoveEnable;
+sO_PrintUnit_Mvt_Status.bO_Ready               := bL_AxisReady;
+sO_PrintUnit_Mvt_Status.fO_Position            := fI_CurrentPosition;
+sO_PrintUnit_Mvt_Status.bO_InPosition_C1       := bL_InPosition_C1;
+sO_PrintUnit_Mvt_Status.bO_InPosition_C2       := bL_InPosition_C2;
+sO_PrintUnit_Mvt_Status.bO_InPosition_Printing := bL_InPosition_Printing;
+sO_PrintUnit_Mvt_Status.bO_InPosition_Service  := bL_InPosition_Service;
+sO_PrintUnit_Mvt_Status.bO_InPosition_Waiting  := bL_InPosition_Waiting;
+sO_PrintUnit_Mvt_Status.wO_FaultCode           := wL_ErrorCode;
+
+bO_FaultReset := bI_AckFault (*OR fb_MsgQueue.bO_ReceiptMessage*) OR sI_CleanDevCmd.bAckError;
+
+IF wL_ErrorCode = 0 THEN
+	sO_PrintUnit_Mvt_Status.bO_Error := FALSE;
+ELSE
+	sO_PrintUnit_Mvt_Status.bO_Error := TRUE;
+END_IF;
+
+bO_RegActive := bI_Enable AND  bL_SafeRunningCondition;
+
+IF fI_CurrentPosition < fO_TargetPosition THEN			(*  is UP Mouvement *)
+	bO_MoveEnable := bL_MotionActive AND bL_SafeMoveUp;
+ELSE											(*  is DOWN Mouvement *)
+	bO_MoveEnable := bL_MotionActive AND bL_SafeMoveDown;
+END_IF;
+
+IF bL_MotionActive AND NOT bL_mem_MotionActive THEN
+	bL_MoveStartRequested := TRUE;
+	bL_MoveStarted        := FALSE;
+	bL_MoveDone           := FALSE;
+END_IF;
+
+IF bO_MoveEnable AND NOT bL_mem_MoveEnable AND bL_MoveStartRequested THEN
+	bL_MoveStarted := TRUE;
+	bL_MoveDone    := FALSE;
+ELSIF bL_MoveStarted THEN
+	IF bI_MoveDone OR sI_CleanDevCmd.bAbort THEN
+		bL_MoveDone           := TRUE;
+		bL_MoveStarted        := FALSE;
+		bL_MoveStartRequested := FALSE;
+	END_IF;
+END_IF;
+
+(*----------------------------------------------------------------------------------------------------------------------- *)
+(*--------------------------------- Fault Diagnosis and Management  ---------------------------------- *)
+(*----------------------------------------------------------------------------------------------------------------------- *)
+(*Messaging*)
+fB_MsgHandler();
+
+IF eI_ELmodule_State = eFault THEN
+  fB_Msg[1].bI_Status := TRUE;
+ELSE
+  fB_Msg[1].bI_Status := FALSE;
+END_IF;
+fB_Msg[1]();
+
+fB_Msg[2](bI_Status := bI_Chopper_Error);
+fB_Msg[3](bI_Status := bI_Chopper_Overvoltage);
+fB_Msg[4](bI_Status := bI_Chopper_Undervoltage);
+
+
+fB_MsgQueue();
+
+
+
+IF (bI_AckFault OR sI_CleanDevCmd.bAckError) AND NOT bL_memAckFault THEN
+	tL_TimerSurv.IN := FALSE;
+END_IF;
+
+IF bI_AckFault (*OR fb_MsgQueue.bO_ReceiptMessage*) OR sI_CleanDevCmd.bAckError THEN
+	wL_ErrorCode := 0;
+END_IF;
+
+
+IF bO_MoveEnable AND NOT bL_mem_MoveEnable THEN
+	tL_TimerSurv.IN  := TRUE;
+	fL_memZ_Position := fI_CurrentPosition;
+END_IF;
+
+
+IF tL_TimerSurv.Q THEN
+	IF NOT bO_MoveEnable THEN			(* If the mouvement is stopped, reset the startup monitoring timer *)
+		tL_TimerSurv.IN := FALSE;
+	END_IF;
+	IF bO_MoveEnable AND (fL_memZ_Position <> fI_CurrentPosition) THEN
+		tL_TimerSurv.IN := FALSE;
+	END_IF;
+END_IF;
+
+IF bI_AxisNotInit THEN
+	wL_ErrorCode.1  := TRUE;						(* Axis has lost its value *)
+END_IF;
+(*
+IF bL_MotionActive AND tL_TimerSurv.Q AND (fL_memZ_Position = fI_CurrentPosition) THEN			(* Motorization Fault, Command is active but position is not changing *)
+	wL_ErrorCode.2  := TRUE;
+END_IF;
+*)
+IF (sI_SpeedDef_Z.fP_PlaceSpeed = 0) OR (sI_SpeedDef_Z.fP_WorkSpeed = 0) OR (sI_SpeedDef_Z.fP_ServiceSpeed = 0) THEN	(* Speed Configuration not done *)
+	wL_Errorcode.3  := TRUE;
+END_IF;
+
+IF (fL_PrintPosition = 0) OR (fI_ServicePosition = 0) OR (fI_CleanPosition1 = 0) OR (fI_CleanPosition2 = 0)THEN		(* Position Configuration not done *)
+	wL_ErrorCode.4  := TRUE;
+END_IF;
+
+IF bI_LimitSW_UP AND NOT bL_memLimitSW_UP THEN
+	wL_ErrorCode.5  := TRUE;						(* Safety Fault : Limit Switch UP activated *)
+END_IF;
+
+IF bI_LimitSW_DOWN AND NOT bL_memLimitSW_DOWN THEN
+	wL_ErrorCode.6  := TRUE;						(* Safety Fault : Limit Switch DOWN activated *)
+END_IF;
+
+IF bI_LimitSW_UP AND bI_LimitSW_DOWN THEN
+	wL_ErrorCode.7  := TRUE;						(* Safety Fault : Sensor discordance, both Limit Switch UP and DOWN are activated *)
+END_IF;
+
+bL_Cdtion_LimitSW_UP := fI_CurrentPosition > (fI_ServicePosition + 0.020);	(*@@@@@@@CONSTANT VALUE*)
+IF bL_Cdtion_LimitSW_UP AND NOT bL_memCdtion_LimitSW_UP THEN
+	wL_ErrorCode.8  := TRUE;						(* Safety Fault : Limit Switch UP expected *)
+END_IF;
+
+bL_Cdtion_LimitSW_DOWN := fI_CurrentPosition < (fL_PrintPosition - 0.020); (*@@@@@@@CONSTANT VALUE*)
+IF bL_Cdtion_LimitSW_DOWN AND NOT bL_memCdtion_LimitSW_DOWN THEN
+	wL_ErrorCode.9  := TRUE;						(* Safety Fault : Limit Switch DOWN expected *)
+END_IF;
+
+IF (eI_ELmodule_State = eFault) OR NOT bI_DeviceOnline THEN
+	wL_ErrorCode.10 := TRUE;						(* EL7201 module fault *)
+END_IF;
+(*
+IF NOT bI_SafetyCoversON AND bL_mem_SafetyCoversON  THEN
+	wL_ErrorCode.14 := TRUE;						(* Safety Fault *)
+END_IF;
+*)
+(*
+IF eI_ELmodule_State = eEstopped THEN
+	wL_ErrorCode.15 := TRUE;						(* EL7201 Emergency Stop*)
+END_IF;
+*)
+
+bL_mem_MotionActive       := bL_MotionActive;
+bL_mem_MoveEnable         := bO_MoveEnable;
+bL_memAckFault            := bI_AckFault (*OR fb_MsgQueue.bO_ReceiptMessage*) OR sI_CleanDevCmd.bAckError;
+bL_memLimitSW_UP          := bI_LimitSW_UP;
+bL_memLimitSW_DOWN        := bI_LimitSW_DOWN;
+bL_memCdtion_LimitSW_UP   := bL_Cdtion_LimitSW_UP;
+bL_memCdtion_LimitSW_DOWN := bL_Cdtion_LimitSW_DOWN;]]></ST>
+    </Implementation>
+    <Action Name="Init" Id="{3f4aef75-5243-4c6c-b8e1-3d61d845c50d}">
+      <Implementation>
+        <ST><![CDATA[	(*Messages*)
+	sL_MsgConfig.bI_Enable       := TRUE;
+	sL_MsgConfig.pI_FbMsgHandler := ADR(fB_MsgHandler);
+	fB_MsgHandler.pI_MsgQueue    := ADR(fB_MsgQueue);
+	fB_MsgQueue.pI_MsgInterface  := pC_MsgInterface;
+	fB_MsgQueue.cI_MaxElement    := 5;
+
+	fB_Msg[1].iI_MsgLocation     := iC_BlockId;
+	fB_Msg[1].pI_MsgConfig       := ADR(sL_MsgConfig);
+	fB_Msg[1].iI_MsgNumber       := eCMa_AxisErrorZ;
+
+	fB_Msg[2].iI_MsgLocation     := iC_BlockId;
+	fB_Msg[2].pI_MsgConfig       := ADR(sL_MsgConfig);
+	fB_Msg[2].iI_MsgNumber       := eCMa_DC_LINK_ERROR;
+
+	fB_Msg[3].iI_MsgLocation     := iC_BlockId;
+	fB_Msg[3].pI_MsgConfig       := ADR(sL_MsgConfig);
+	fB_Msg[3].iI_MsgNumber       := eCMa_DC_LINK_OVERVOLTAGE;
+
+	fB_Msg[4].iI_MsgLocation     := iC_BlockId;
+	fB_Msg[4].pI_MsgConfig       := ADR(sL_MsgConfig);
+	fB_Msg[4].iI_MsgNumber       := eCMa_DC_LINK_UNDERVOLTAGE;]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ProductionMode" Id="{6f65cdb0-4c45-4d60-b184-7bad7b25a70a}">
+      <Implementation>
+        <ST><![CDATA[bL_SafeMoveRequired := FALSE;
+
+IF (fI_CurrentPosition >= fI_WaitingPosition) THEN
+	fO_SpeedLimit := sI_SpeedDef_Z.fP_PlaceSpeed;
+ELSE
+	fO_SpeedLimit := sI_SpeedDef_Z.fP_WorkSpeed;
+END_IF;
+
+IF bL_SafeRunningCondition THEN		(* If the Cleaning unit is out of the collision area*)
+	IF bI_MachineReady THEN	(*Move to print position*)
+		IF    (NOT bL_InPosition_Printing AND NOT bI_EmergencyMoveUp)
+       OR (NOT bL_InPosition_Waiting  AND     bI_EmergencyMoveUp)
+		THEN
+			IF bI_EmergencyMoveUp THEN
+				fO_TargetPosition := fI_WaitingPosition;			(* move to WaitingPosition*)
+			ELSE
+				fO_TargetPosition := fL_PrintPosition;				(* move to PrintPosition*)
+			END_IF;
+			bL_MotionActive   := TRUE;
+			bL_PrintReady     := FALSE;
+			bL_AxisReady      := FALSE;
+		ELSE
+			bL_MotionActive   := FALSE;											(* stop when the position is reached*)
+			bL_PrintReady     := TRUE;
+			bL_AxisReady      := TRUE;
+		END_IF;
+	ELSE
+		bL_MotionActive := FALSE;
+	END_IF;
+ELSE
+	bL_MotionActive := FALSE;
+END_IF;]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ServiceMode" Id="{e67d690e-2378-44f6-8f08-f267fa3eba45}">
+      <Implementation>
+        <ST><![CDATA[(*Default speed*)
+IF (fI_CurrentPosition >= fI_WaitingPosition) THEN
+	fO_SpeedLimit := sI_SpeedDef_Z.fP_ServiceSpeed;
+ELSE
+	fO_SpeedLimit := sI_SpeedDef_Z.fP_WorkSpeed;
+END_IF;
+
+(*Mode selection*)
+IF sI_CleanDevCmd.bAuto THEN	(*Control by cleaning process*)
+	CASE 	sI_CleanDevCmd.eOperation OF
+		eNOP:	(*No operation active*)
+			bL_MotionActive := FALSE;
+			bL_AxisReady    := TRUE;
+
+		eOPENDSERVICE: (*End service mode ---------------------------*)
+			IF sI_CleanDevCmd.bInit THEN
+				IF bL_SafeMoveRequired OR NOT bI_MovementAllowed THEN
+					fO_TargetPosition := fI_CleanPosition1;
+				ELSE
+					fO_TargetPosition := fI_WaitingPosition;
+				END_IF;
+				bL_MotionActive := TRUE;
+				bL_AxisReady    := FALSE;
+
+			ELSIF sI_CleanDevCmd.bPrep THEN
+				bL_MotionActive := FALSE;
+				bL_AxisReady    := TRUE;
+
+			ELSIF sI_CleanDevCmd.bStart THEN
+				bL_MotionActive := FALSE;
+				bL_AxisReady    := TRUE;
+
+			ELSIF sI_CleanDevCmd.bStop THEN
+				bL_MotionActive := FALSE;
+				bL_AxisReady    := TRUE;
+
+			ELSE	(*Command removed, wait until axis finished movement*)
+				IF NOT bL_MoveDone THEN
+					bL_MotionActive := TRUE;
+					bL_AxisReady    := FALSE;
+				ELSE
+					bL_MotionActive := FALSE;
+					bL_AxisReady    := TRUE;
+				END_IF;
+			END_IF;
+
+		eOPPREPSERVICE, eOPSTARTUP: (*Start service mode ---------------------------*)
+			IF sI_CleanDevCmd.bInit THEN
+				IF bL_SafeMoveRequired OR sI_CleanDevCmd.eOperation = eOPSTARTUP THEN
+					fO_TargetPosition := fI_CleanPosition1;
+				ELSE
+					fO_TargetPosition := fI_WaitingPosition;
+				END_IF;
+				bL_MotionActive := TRUE;
+				bL_AxisReady    := FALSE;
+
+			ELSIF sI_CleanDevCmd.bPrep THEN
+				bL_MotionActive := FALSE;
+				bL_AxisReady    := TRUE;
+
+			ELSIF sI_CleanDevCmd.bStart THEN
+				bL_MotionActive := FALSE;
+				bL_AxisReady    := TRUE;
+
+			ELSIF sI_CleanDevCmd.bStop THEN
+				bL_MotionActive := FALSE;
+				bL_AxisReady    := TRUE;
+
+			ELSE	(*Command removed, wait until axis finished movement*)
+				IF NOT bL_MoveDone THEN
+					bL_MotionActive := TRUE;
+					bL_AxisReady    := FALSE;
+				ELSE
+					bL_MotionActive := FALSE;
+					bL_AxisReady    := TRUE;
+				END_IF;
+			END_IF;
+
+		eOPCLEAN:	(*Cleaning Mode -------------------------------------*)
+			IF sI_CleanDevCmd.bInit THEN
+				fO_TargetPosition := fI_CleanPosition1;
+				bL_MotionActive   := TRUE;
+				bL_AxisReady      := FALSE;
+
+			ELSIF sI_CleanDevCmd.bPrep THEN
+				fO_TargetPosition := fI_CleanPosition2;
+				bL_MotionActive   := TRUE;
+				bL_AxisReady      := FALSE;
+
+			ELSIF sI_CleanDevCmd.bStart THEN
+				bL_MotionActive   := FALSE;
+				bL_AxisReady      := TRUE;
+
+			ELSIF sI_CleanDevCmd.bStop THEN
+				fO_TargetPosition := fI_CleanPosition1;
+				bL_MotionActive   := TRUE;
+
+			ELSE	(*Command removed, wait until axis finished movement*)
+				IF NOT bL_MoveDone THEN
+					bL_MotionActive := TRUE;
+					bL_AxisReady    := FALSE;
+				ELSE
+					bL_MotionActive := FALSE;
+					bL_AxisReady    := TRUE;
+				END_IF;
+			END_IF;
+
+		eOPPURGE:	(*Purge Mode -------------------------------------*)
+			IF sI_CleanDevCmd.bInit THEN
+				fO_TargetPosition := fI_CleanPosition1;
+				bL_MotionActive   := TRUE;
+				bL_AxisReady      := FALSE;
+
+			ELSIF sI_CleanDevCmd.bPrep THEN
+				fO_TargetPosition := fI_CleanPosition2;
+				bL_MotionActive   := TRUE;
+				bL_AxisReady      := FALSE;
+
+			ELSIF sI_CleanDevCmd.bStart THEN
+				bL_MotionActive   := FALSE;
+				bL_AxisReady      := TRUE;
+
+			ELSIF sI_CleanDevCmd.bStop THEN
+				fO_TargetPosition := fI_CleanPosition1;
+				bL_MotionActive   := TRUE;
+
+			ELSE	(*Command removed, wait until axis finished movement*)
+				IF NOT bL_MoveDone THEN
+					bL_MotionActive := TRUE;
+					bL_AxisReady    := FALSE;
+				ELSE
+					bL_MotionActive := FALSE;
+					bL_AxisReady    := TRUE;
+				END_IF;
+			END_IF;
+
+		eOPCAPENTER:	(*Enter Capping Mode -------------------------------------*)
+			IF sI_CleanDevCmd.bInit THEN
+				fO_TargetPosition := fI_CleanPosition1;
+				bL_MotionActive   := TRUE;
+				bL_AxisReady      := FALSE;
+
+			ELSIF sI_CleanDevCmd.bPrep THEN
+				fO_TargetPosition := fI_CleanPosition2;
+				bL_MotionActive   := TRUE;
+				bL_AxisReady      := FALSE;
+
+			ELSIF sI_CleanDevCmd.bStart THEN
+				bL_MotionActive   := FALSE;
+				bL_AxisReady      := TRUE;
+
+			ELSIF sI_CleanDevCmd.bStop THEN
+				bL_MotionActive   := FALSE;
+				bL_AxisReady      := TRUE;
+
+			ELSE	(*Command removed, wait until axis finished movement*)
+				IF NOT bL_MoveDone THEN
+					bL_MotionActive := TRUE;
+					bL_AxisReady    := FALSE;
+				ELSE
+					bL_MotionActive := FALSE;
+					bL_AxisReady    := TRUE;
+				END_IF;
+			END_IF;
+
+		eOPCAPEXIT:	(*Exit Capping Mode -------------------------------------*)
+			IF sI_CleanDevCmd.bInit THEN
+				fO_TargetPosition := fI_CleanPosition1;
+				bL_MotionActive   := TRUE;
+				bL_AxisReady      := FALSE;
+
+			ELSIF sI_CleanDevCmd.bPrep THEN
+				bL_MotionActive   := FALSE;
+				bL_AxisReady      := TRUE;
+
+			ELSIF sI_CleanDevCmd.bStart THEN
+				bL_MotionActive   := FALSE;
+				bL_AxisReady      := TRUE;
+
+			ELSIF sI_CleanDevCmd.bStop THEN
+				bL_MotionActive   := FALSE;
+				bL_AxisReady      := TRUE;
+
+			ELSE	(*Command removed, wait until axis finished movement*)
+				IF NOT bL_MoveDone THEN
+					bL_MotionActive := TRUE;
+					bL_AxisReady    := FALSE;
+				ELSE
+					bL_MotionActive := FALSE;
+					bL_AxisReady    := TRUE;
+				END_IF;
+			END_IF;
+
+		eOPMAINT:	(*Maintenance -------------------------------------*)
+			IF sI_CleanDevCmd.bInit THEN
+				fO_TargetPosition := fI_ServicePosition;
+				bL_MotionActive   := TRUE;
+				bL_AxisReady      := FALSE;
+
+			ELSIF sI_CleanDevCmd.bPrep THEN
+				bL_MotionActive   := FALSE;
+				bL_AxisReady      := TRUE;
+
+			ELSIF sI_CleanDevCmd.bStart THEN
+				bL_MotionActive   := FALSE;
+				bL_AxisReady      := TRUE;
+
+			ELSIF sI_CleanDevCmd.bStop THEN
+				bL_MotionActive   := FALSE;
+				bL_AxisReady      := TRUE;
+
+			ELSE	(*Command removed, wait until axis finished movement*)
+				IF NOT bL_MoveDone THEN
+					bL_MotionActive := TRUE;
+					bL_AxisReady    := FALSE;
+				ELSE
+					bL_MotionActive := FALSE;
+					bL_AxisReady    := TRUE;
+				END_IF;
+			END_IF;
+
+		eOPSHUTTEROPEN: (*Open Shutters, do nothing*)
+			bL_AxisReady    := TRUE;
+			bL_MotionActive := FALSE;
+
+		ELSE
+			bL_MotionActive := FALSE;
+			bL_AxisReady    := TRUE;
+		END_CASE;
+
+		(*In case of abort set target position to current position and wait for MoveDone flag*)
+		IF sI_CleanDevCmd.bAbort THEN
+			fO_TargetPosition := fI_CurrentPosition;
+		END_IF;
+
+ELSE		(* MANUAL MODE *)
+	IF sI_ManualCommands.bI_Do AND NOT sI_ManualCommands.bI_Undo THEN
+		fO_TargetPosition := sI_ManualCommands.fI_Start_position;
+		bL_AxisReady      := FALSE;
+	ELSIF NOT sI_ManualCommands.bI_Do AND sI_ManualCommands.bI_Undo THEN
+		fO_TargetPosition := sI_ManualCommands.fI_Stop_position;
+		bL_AxisReady      := FALSE;
+	ELSE
+		bL_AxisReady      := TRUE;
+		fO_TargetPosition := fI_CurrentPosition;
+	END_IF;
+
+	bL_MotionActive := sI_ManualCommands.bI_Do OR sI_ManualCommands.bI_Undo;
+END_IF;]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_PU_MOTION_CTRL">
+      <LineId Id="966" Count="245" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PU_MOTION_CTRL.Init">
+      <LineId Id="2" Count="20" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PU_MOTION_CTRL.ProductionMode">
+      <LineId Id="2" Count="30" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PU_MOTION_CTRL.ServiceMode">
+      <LineId Id="2" Count="247" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

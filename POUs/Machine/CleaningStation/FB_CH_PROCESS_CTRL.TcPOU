@@ -1,0 +1,218 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_CH_PROCESS_CTRL" Id="{9810967e-449a-4009-ae28-f722ee88aa2e}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CH_PROCESS_CTRL
+(*************************************************************************************************)
+(*  FILENAME:    FB_CH_PROCESS_CTRL                                                              *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2019)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    This function pilots the Cleaning Head valves.                                             *)
+(*    It sends the commands from the FB_CH_MOTION_CTRL to the outputs that controls the valves.  *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+VAR_INPUT
+  (*From Motion Control*)
+  bI_EnableClnHead      : BOOL;
+
+  (*From User*)
+  bI_WithOutLiquid      : BOOL;
+  bI_AckFault           : BOOL;
+  tI_VacuumTimer        : TIME := T#2500MS;
+  tI_PumpTimer          : TIME := T#1000MS;
+
+  (*From machine*)
+  bI_RunningConditions  : BOOL;
+  bI_VaccumON           : BOOL;
+  bI_NozzleON           : BOOL;
+END_VAR
+
+VAR_OUTPUT
+  (*To motion control*)
+  bO_ClnHeadEnabled     : BOOL;
+  bO_ClnHeadError       : BOOL;
+
+  (*To cleaning devices*)
+  bO_NozzleActive       : BOOL;
+  bO_VaccumActive       : BOOL;
+  bO_PumpActive         : BOOL;
+END_VAR
+
+VAR
+  fb_TonVaccumTimer     : TON;
+  fb_TonNozzleTimer     : TON;
+  fb_TonTimerSurv       : TON;
+  fb_TonPumpTimer       : TON;
+  fb_RTrigEnableClnHead : R_TRIG;
+
+  bL_memVaccumCleaning  : BOOL;
+  bL_memNozzleCleaning  : BOOL;
+
+  wL_ErrorCode          : WORD;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(* -------------- Timer Settings -------------- *)
+fb_TonVaccumTimer.PT := tI_VacuumTimer;
+fb_TonNozzleTimer.PT := T#100MS;
+fb_TonTimerSurv.PT   := T#2600MS;
+IF tI_PumpTimer > fb_TonVaccumTimer.PT THEN
+  fb_TonPumpTimer.PT := T#0S;
+ELSE
+  fb_TonPumpTimer.PT := fb_TonVaccumTimer.PT - tI_PumpTimer;
+END_IF
+
+fb_TonVaccumTimer();
+fb_TonNozzleTimer();
+fb_TonTimerSurv();
+fb_TonPumpTimer();
+
+(* ----------------- Rising and Falling Edge Detection for Timer Start --------------- *)
+IF bO_VaccumActive <> bL_memVaccumCleaning THEN        (* The timer for Vaccom ON_OFF will start  *)
+  fb_TonVaccumTimer.IN := TRUE;                        (* on each edge of the vavle control bit *)
+  fb_TonTimerSurv.IN   := TRUE;                        (* start surveillance of the valve *)
+END_IF;
+(* This timer function is used because *)
+(* the system doesn't have a sensor feedback information *)
+(* start surveillance of the valve *)
+
+IF bO_NozzleActive <> bL_memNozzleCleaning THEN        (* The timer for Nozzle ON_OFF will start *)
+  fb_TonNozzleTimer.IN := TRUE;                        (* on each edge of the valve control bit*)
+  fb_TonTimerSurv.IN   := TRUE;                        (* start surveillance of the valve *)
+END_IF;
+
+fb_RTrigEnableClnHead(CLK := bI_EnableClnHead);
+IF fb_RTrigEnableClnHead.Q THEN
+  fb_TonPumpTimer.IN := TRUE;                          (* Timer for cleaner pump *)
+END_IF
+
+(* ----------------------- Memorization for Edge Detection ------------------------ *)
+bL_memVaccumCleaning := bO_VaccumActive;
+bL_memNozzleCleaning := bO_NozzleActive;
+
+
+(* --------------------- Timer Count Finished --------------------- *)
+IF fb_TonVaccumTimer.Q THEN                            (* When the timer for the Vaccum feedback is finished*)
+  IF bI_EnableClnHead THEN                             (* Check if the process is for a  Cleaning start*)
+    bI_VaccumON := TRUE;                               (* --> Send a sensor ON feedback *)
+  ELSE                                                 (* Check if the process is for a Cleaning stop*)
+    bI_VaccumON := FALSE;                              (* --> Send a sensor OFF feddback*)
+  END_IF;
+END_IF;
+
+IF fb_TonNozzleTimer.Q THEN                            (* Same code for the Nozzle *)
+  IF bI_EnableClnHead THEN
+    bI_NozzleON := TRUE;
+  ELSE
+    bI_NozzleON := FALSE;
+  END_IF;
+END_IF;
+
+IF fb_TonPumpTimer.Q THEN
+  IF bI_EnableClnHead THEN
+    bO_PumpActive := TRUE;
+  END_IF;
+END_IF;
+
+
+(* ------------ Valves Controls  -------------- *)
+IF bI_RunningConditions AND (wL_ErrorCode = 0) THEN    (* if the running conditions are met and the Cleaning Head is operationnal*)
+  IF bI_EnableClnHead THEN                             (* after the start signal has been received, *)
+    bO_VaccumActive := TRUE;                           (* Set the Open Vaccum valve control bit, *)
+
+    IF bI_VaccumON THEN                                (* Once the vaccum valve is opened *)
+      fb_TonVaccumTimer.IN := FALSE;                   (* Disable the delay timer *)
+      fb_TonTimerSurv.IN   := FALSE;                   (* Stop surveillance of the valve *)
+
+      IF NOT bI_WithOutLiquid THEN
+        bO_NozzleActive := TRUE;                       (* Set the Open Nozzle Valve control bit *)
+
+        IF bI_NozzleON THEN                            (* Once the nozzle valve is opened *)
+          fb_TonNozzleTimer.IN := FALSE;               (* Disable the delay timer *)
+          fb_TonTimerSurv.IN   := FALSE;               (* Stop surveillance of the valve *)
+        END_IF;
+      END_IF;
+    END_IF;
+  ELSE                                                 (* When the Cleaning is OFF *)
+    bO_NozzleActive := FALSE;                          (* First Stop/Close the Nozzle system to stop the liquid flow *)
+
+    IF NOT bI_NozzleON THEN                            (* Once the Nozzle Valve closed *)
+      fb_TonNozzleTimer.IN := FALSE;                   (* Disable the timer delay *)
+      fb_TonTimerSurv.IN   := FALSE;                   (* Stop surveillance of the valve *)
+      bO_VaccumActive      := FALSE;                   (* Once the nozzle is cut off, the system can stop the vaccum *)
+
+      IF NOT bI_VaccumON THEN                          (* Once the Vaccum is stoped*)
+        fb_TonVaccumTimer.IN := FALSE;                 (* Disable the timer delay *)
+        fb_TonTimerSurv.IN   := FALSE;                 (* Stop surveillance of the valve *)
+      END_IF;
+    END_IF;
+
+    fb_TonPumpTimer.IN := FALSE;                       (* Disable the pump timer *)
+    bO_PumpActive      := FALSE;
+  END_IF;
+END_IF;
+
+
+(* ------------------ Error / Warning Definition ---------------------- *)
+(* FAULT : Vaccum valve can't open*)
+IF (bO_VaccumActive=TRUE  AND fb_TonTimerSurv.Q AND bI_VaccumON=FALSE ) THEN
+  wL_ErrorCode.1 := TRUE;
+END_IF;
+(* FAULT : Vaccum valve can't close*)
+IF (bO_VaccumActive=FALSE AND fb_TonTimerSurv.Q AND bI_VaccumON=TRUE  ) THEN
+  wL_ErrorCode.2 := TRUE;
+END_IF;
+(* FAULT : Nozzle valve can't open *)
+IF (bO_NozzleActive=TRUE  AND fb_TonTimerSurv.Q AND bI_NozzleON=FALSE ) THEN
+  wL_ErrorCode.3 := TRUE;
+END_IF;
+(* FAULT : Nozzle valve can't close*)
+IF (bO_NozzleActive=FALSE AND fb_TonTimerSurv.Q AND bI_NozzleON=TRUE  ) THEN
+  wL_ErrorCode.4 := TRUE;
+END_IF;
+
+IF (wL_ErrorCode <> 0) OR NOT bI_RunningConditions THEN
+  (* the CH have a problem can't operate, need to put everything in safe mode *)
+  bO_NozzleActive := FALSE;
+  bO_VaccumActive := FALSE;
+  bO_PumpActive   := FALSE;
+
+  fb_TonTimerSurv.IN   := FALSE;
+  fb_TonNozzleTimer.IN := FALSE;
+  fb_TonVaccumTimer.IN := FALSE;
+  fb_TonPumpTimer.IN   := FALSE;
+END_IF;
+
+IF bI_AckFault THEN
+  wL_ErrorCode := 0;
+END_IF;
+
+(* ------------------------- Output Value Update ----------------------- *)
+bO_ClnHeadEnabled := bI_VaccumON AND bI_NozzleON;
+bO_ClnHeadError   := (wL_ErrorCode <> 0);]]></ST>
+    </Implementation>
+    <LineIds Name="FB_CH_PROCESS_CTRL">
+      <LineId Id="478" Count="3" />
+      <LineId Id="597" Count="1" />
+      <LineId Id="600" Count="0" />
+      <LineId Id="602" Count="0" />
+      <LineId Id="599" Count="0" />
+      <LineId Id="482" Count="3" />
+      <LineId Id="596" Count="0" />
+      <LineId Id="486" Count="13" />
+      <LineId Id="604" Count="2" />
+      <LineId Id="609" Count="0" />
+      <LineId Id="608" Count="0" />
+      <LineId Id="500" Count="22" />
+      <LineId Id="613" Count="2" />
+      <LineId Id="618" Count="2" />
+      <LineId Id="523" Count="31" />
+      <LineId Id="610" Count="2" />
+      <LineId Id="555" Count="39" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

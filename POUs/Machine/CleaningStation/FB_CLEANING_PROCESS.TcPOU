@@ -1,0 +1,543 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_CLEANING_PROCESS" Id="{45c7aa7c-2a96-42ee-995e-8c30e8ba2579}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CLEANING_PROCESS
+(*************************************************************************************************)
+(*  FILENAME:    FB_CLEANING_PROCESS.EXP                                                         *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*     This block controls the cleaning process.                                                 *)
+(*     cL_State: cL_IDLE  : (*Idle-State, no operation active*)                                  *)
+(*               cL_INIT  : (*Initialize*)                                                       *)
+(*               cL_PREP  : (*Prepare*)                                                          *)
+(*               cL_START : (*Start*)                                                            *)
+(*               cL_STOP  : (*Stop*)                                                             *)
+(*     Messaging: - fb_Msg[1] := `eCSy_TestMessageErrorStatus`                                   *)
+(*                - fb_Msg[2] := `eCMa_LOCK_CLEANING_MACHINE`                                    *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+{library public}
+VAR_INPUT
+(*User commands*)
+  bI_UsrPurge                    : BOOL;                         (*User requests purge*)
+  bI_UsrStartCapping             : BOOL;                         (*User requests start of capping*)
+  bI_UsrStopCapping              : BOOL;                         (*User requests end of capping*)
+  bI_UsrClean                    : BOOL;                         (*User requests cleaning*)
+  bI_UsrMaintenance              : BOOL;                         (*User requests maintenance*)
+  bI_UsrShutter                  : BOOL;                         (*User requests maintenance*)
+  bI_UsrAbort                    : BOOL;                         (*User requests abort*)
+  bI_UsrAckError                 : BOOL;                         (*User acknowledes error*)
+  bI_UsrAutoMode                 : BOOL;                         (*User has selected automatic mode*)
+  bI_UsrService                  : BOOL;                         (*User has selected service (1) or print(0) mode*)
+  bI_UsrCleanAfterPurge          : BOOL;                         (*Automatically clean after Purge*)
+  bI_UsrCleanAfterCapp           : BOOL;                         (*Automatically clean after Capping*)
+  bI_UsrPurgeAfterCapp           : BOOL;                         (*Automatically purge after Capping*)
+  bI_MachineReady                : BOOL;                         (*Machine ready*)
+  bI_CleaningStepEnabled         : ARRAY[1..cL_NB_CLEANSTEPS] OF BOOL;             (*Cleaning step enabled*)
+  bI_LockCleaning                : BOOL := FALSE;                (*Lock cleaning*)
+
+(*Device feedback*)
+  iI_CfgCleaningPos              : INT;                          (*Number of cleaning positions*)
+  sI_CleanDevStatus              : ARRAY[1..cL_NB_CD] OF ST_CLEANING_DEV_STATUS;   (*Initialize operation*)
+
+(*Message system*)
+  pC_MsgInterface                : POINTER TO ST_ADS_MSG_IF;     (*Pointer to message interface*)
+  iC_BlockId                     : INT;                          (*Message system block ID*)
+
+(*Config*)
+  cI_NB_CD                       : INT;                          (*Config number of cleaning devices*)
+END_VAR
+
+VAR_OUTPUT
+(*Commands*)
+  sO_CleanDevCmd                 : ARRAY[1..cL_NB_CD] OF ST_CLEANING_DEV_CMD;      (*Initialize operation*)
+  iO_CurrentCleanPos             : INT;                          (*Currently active cleaning position*)
+
+(*Status*)
+  bO_CleaningActive              : BOOL;                         (*Any operation active*)
+  bO_PurgeActive                 : BOOL;                         (*Purge active*)
+  bO_StartCappingActive          : BOOL;                         (*Start of capping active*)
+  bO_StopCappingActive           : BOOL;                         (*End of capping active*)
+  bO_CleanActive                 : BOOL;                         (*Cleaning active*)
+  bO_MaintenanceActive           : BOOL;                         (*Maintenance active*)
+  bO_ShutterActive               : BOOL;                         (*Shutter open active*)
+  bO_AbortActive                 : BOOL;                         (*Abort active*)
+  bO_AckErrorActive              : BOOL;                         (*Acknowledge error active*)
+
+  bO_CmdCleaningCanExec          : BOOL;                         (*Can accept new cleaning commands*)
+  bO_CmdCappingCanExec           : BOOL;                         (*Can accept new capping commands*)
+  bO_CmdCanExec                  : BOOL;                         (*Can accept new commands other than abort*)
+  bO_AbortCanEx                  : BOOL;                         (*Can accept abort command*)
+  bO_AckErrorCanEx               : BOOL;                         (*Can accept acknowledge error command*)
+END_VAR
+
+{library private}
+VAR
+  iL_CdCount                     : INT;                          (*Cleaning device counter*)
+  cL_State                       : BYTE;                         (*State type*)
+  cL_Operation                   : EN_CLEANING_OP;               (*Operation type*)
+  bL_ProcessStart                : BOOL;
+  iL_CleanStepsDone              : INT;                          (*Cleaning step counter*)
+  bL_StepDone                    : BOOL;                         (*The requested step is complete*)
+  bL_StateChange                 : BOOL;                         (*The state has changed recently*)
+  bL_AllDone                     : BOOL;                         (*All attached axes are done*)
+  bL_AllReferenced               : BOOL;                         (*All axes are referenced*)
+  bL_AxisError                   : BOOL;                         (*No axis has error*)
+  bL_ServiceMode                 : BOOL := TRUE;                 (*Service mode*)
+  bL_memServiceMode              : BOOL;                         (*Memory service mode*)
+  bL_ServiceModeRequest          : BOOL;                         (*Service mode request*)
+  fB_AckErrorHandshake           : FB_FOURCYCLEHANDSHAKE;        (*Acknowledge error*)
+
+  (*Commands*)
+  bL_Init                        : BOOL;                         (*Initialize operation*)
+  bL_Prep                        : BOOL;                         (*Prepare operation*)
+  bL_Start                       : BOOL;                         (*Start operation*)
+  bL_Stop                        : BOOL;                         (*Stop operation*)
+  bL_Abort                       : BOOL;                         (*Abort operation*)
+
+  (*Message Queue*)
+  fB_MsgQueue                    : FB_MSG_QUEUE;                 (*Message queue*)
+  fB_MsgHandler                  : FB_MSG_HANDLER;               (*Message handler*)
+  sL_MsgConfig                   : ST_MSG_CONFIG;                (*Message config*)
+  fB_Msg                         : ARRAY [1..iC_NUM_MSG] OF FB_MESSAGE;  (*Messages*)
+END_VAR
+
+VAR CONSTANT
+  (*Configuration Placeholders*)
+  cL_NB_CD                       : WORD := 5;                    (*Number of cleaning devices*)
+  cL_NB_CLEANSTEPS               : WORD := 2;                    (*Number of cleaning steps*)
+
+  (*State*)
+  cL_IDLE                        : BYTE := 0;                    (*Idle-State, no operation active*)
+  cL_INIT                        : BYTE := 10;                   (*Initialize*)
+  cL_PREP                        : BYTE := 20;                   (*Prepare*)
+  cL_START                       : BYTE := 30;                   (*Start*)
+  cL_STOP                        : BYTE := 40;                   (*Stop*)
+
+  (*Message config*)
+  iC_NUM_MSG                     : INT  := 2;                    (*Config number of messages*)
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*Check if devices are done*)
+bL_AllDone       := TRUE;
+bL_AllReferenced := TRUE;
+bL_AxisError     := FALSE;
+
+FOR iL_CdCount := 1 TO cI_NB_CD DO
+	IF NOT sI_CleanDevStatus[iL_CdCount].bReady  THEN
+		bL_AllDone := FALSE;
+	END_IF;
+
+	IF NOT sI_CleanDevStatus[iL_CdCount].bRefKnown  THEN
+		bL_AllReferenced := FALSE;
+	END_IF;
+
+	IF sI_CleanDevStatus[iL_CdCount].bError THEN
+		bL_AxisError := TRUE;
+	END_IF;
+END_FOR;
+
+IF bL_StateChange THEN
+	bL_AllDone := FALSE;
+END_IF;
+
+IF NOT bL_AllReferenced THEN
+	bL_ServiceModeRequest := TRUE;
+	bL_memServiceMode     := FALSE;
+ELSE
+	bL_ServiceModeRequest := bI_UsrService;
+END_IF;
+
+(*StateMachine*)
+StateActionLogic();
+NextStateLogic();
+
+(*Update Commands*)
+iO_CurrentCleanPos := 1 + iL_CleanStepsDone;
+FOR iL_CdCount := 1 TO cI_NB_CD DO
+	sO_CleanDevCmd[iL_CdCount].bInit      := bL_Init;
+	sO_CleanDevCmd[iL_CdCount].bPrep      := bL_Prep;
+	sO_CleanDevCmd[iL_CdCount].bStart     := bL_Start;
+	sO_CleanDevCmd[iL_CdCount].bStop      := bL_Stop;
+	sO_CleanDevCmd[iL_CdCount].bAbort     := bL_Abort;
+	sO_CleanDevCmd[iL_CdCount].eOperation := cL_Operation;
+	sO_CleanDevCmd[iL_CdCount].bAuto      := bI_UsrAutoMode;
+	sO_CleanDevCmd[iL_CdCount].bService   := bL_ServiceMode;
+	sO_CleanDevCmd[iL_CdCount].bAckError  := fB_AckErrorHandshake.bO_PlcCmd;
+END_FOR;
+
+(*Update Flags*)
+IF     cL_State = cL_IDLE
+   AND NOT bL_AxisError
+   AND bI_UsrAutoMode
+   AND bI_UsrService
+   AND bL_memServiceMode
+THEN
+  bO_CmdCanExec           := TRUE;
+  IF NOT bI_LockCleaning THEN
+    bO_CmdCleaningCanExec := TRUE;
+    bO_CmdCappingCanExec  := TRUE;
+  ELSE
+    bO_CmdCleaningCanExec := FALSE;
+    bO_CmdCappingCanExec  := NOT bI_UsrCleanAfterCapp;
+  END_IF
+ELSE
+  bO_CmdCanExec           := FALSE;
+  bO_CmdCleaningCanExec   := FALSE;
+  bO_CmdCappingCanExec    := FALSE;
+END_IF;
+
+IF cL_State <> cL_IDLE AND NOT bL_AxisError THEN
+	bO_AbortCanEx := TRUE;
+ELSE
+	bO_AbortCanEx := FALSE;
+END_IF;
+
+bO_AckErrorCanEx               := bL_AxisError;
+fB_AckErrorHandshake.bI_AdsCmd := bI_UsrAckError;
+fB_AckErrorHandshake.bI_PlcAck := NOT bL_AxisError;
+
+fB_AckErrorHandshake();
+
+bO_AckErrorActive              := fB_AckErrorHandshake.bO_AdsAck;
+
+
+bO_PurgeActive        := FALSE;
+bO_StartCappingActive := FALSE;
+bO_StopCappingActive  := FALSE;
+bO_CleanActive        := FALSE;
+bO_MaintenanceActive  := FALSE;
+bO_ShutterActive      := FALSE;
+
+CASE cL_Operation OF
+	eOPPURGE:         bO_PurgeActive        := TRUE;
+	eOPCAPENTER:      bO_StartCappingActive := TRUE;
+	eOPCAPEXIT:       bO_StopCappingActive  := TRUE;
+	eOPCLEAN:         bO_CleanActive        := TRUE;
+	eOPMAINT:         bO_MaintenanceActive  := TRUE;
+	eOPSHUTTEROPEN:   bO_ShutterActive      := TRUE;
+END_CASE;
+
+bO_AbortActive := bL_Abort;
+
+(*Message Queue --------------------------------------------------------------------*)
+fB_MsgHandler();
+
+(*eCSy_TestMessageErrorStatus
+IF ERROR THEN
+  fB_Msg[1].bI_Status := TRUE;
+ELSE
+  fB_Msg[1].bI_Status := FALSE;
+END_IF;
+fB_Msg[1]();
+*)
+fB_Msg[2](bI_Status := bI_LockCleaning);
+
+fB_MsgQueue();
+
+(********************************* END OF FB *****************************************************)]]></ST>
+    </Implementation>
+    <Action Name="Init" Id="{2d6d0d17-82a4-4030-8dc4-1272b0ab72cb}">
+      <Implementation>
+        <ST><![CDATA[(*Messages*)
+sL_MsgConfig.bI_Enable       := TRUE;
+sL_MsgConfig.pI_FbMsgHandler := ADR(fB_MsgHandler);
+fB_MsgHandler.pI_MsgQueue    := ADR(fB_MsgQueue);
+fB_MsgQueue.pI_MsgInterface  := pC_MsgInterface;
+fB_MsgQueue.cI_MaxElement    := 5;
+
+fB_Msg[1].iI_MsgLocation     := iC_BlockId;
+fB_Msg[1].pI_MsgConfig       := ADR(sL_MsgConfig);
+fB_Msg[1].iI_MsgNumber       := eCSy_TestMessageErrorStatus;
+
+fB_Msg[2].iI_MsgLocation     := iC_BlockId;
+fB_Msg[2].pI_MsgConfig       := ADR(sL_MsgConfig);
+fB_Msg[2].iI_MsgNumber       := eCMa_LOCK_CLEANING_MACHINE;
+
+(********************************* END OF ACTION *************************************************)]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="NextStateLogic" Id="{1821de67-bb9b-4fa7-803a-7fc9f5e12e7e}">
+      <Implementation>
+        <ST><![CDATA[(*Next state logic -----------------------------------------------------------------*)
+
+CASE cL_State OF
+	cL_IDLE: 		(*No active operation*)
+		IF bL_ProcessStart AND bI_MachineReady AND NOT bL_AxisError THEN		(*Start process*)
+			cL_State       := cL_INIT;
+			bL_StateChange := TRUE;
+
+			(*Select Operation*)
+			IF bI_UsrPurge THEN
+				cL_Operation := eOPPURGE;
+			ELSIF bI_UsrClean THEN
+				iL_CleanStepsDone := 0;
+				WHILE bI_CleaningStepEnabled[iL_CleanStepsDone + 1] = FALSE AND (iL_CleanStepsDone < iI_CfgCleaningPos) DO
+					iL_CleanStepsDone := iL_CleanStepsDone + 1;
+				END_WHILE;
+
+				IF (iL_CleanStepsDone >= iI_CfgCleaningPos) OR bI_CleaningStepEnabled[iL_CleanStepsDone + 1] = FALSE THEN
+					cL_Operation := eNOP;
+				ELSE
+					cL_Operation := eOPCLEAN;
+				END_IF;
+
+			ELSIF bI_UsrStartCapping THEN
+				cL_Operation := eOPCAPENTER;
+			ELSIF bI_UsrStopCapping THEN
+				cL_Operation := eOPCAPEXIT;
+			ELSIF bI_UsrMaintenance THEN
+				cL_Operation := eOPMAINT;
+			ELSIF bI_UsrShutter THEN
+				cL_Operation := eOPSHUTTEROPEN;
+			ELSE
+				cL_Operation := eNOP;
+			END_IF;
+		ELSIF bL_ServiceModeRequest AND NOT bL_memServiceMode AND bI_MachineReady AND NOT bL_AxisError THEN	(*Enter Service*)
+			IF NOT bL_AllReferenced THEN
+				cL_Operation := eOPSTARTUP;
+			ELSE
+				cL_Operation := eOPPREPSERVICE;
+			END_IF;
+
+			cL_State       := cL_INIT;
+			bL_StateChange := TRUE;
+		ELSIF NOT bL_ServiceModeRequest AND bL_memServiceMode AND bI_MachineReady	AND NOT bL_AxisError THEN(*Enter Print*)
+			cL_Operation   := eOPENDSERVICE;
+			cL_State       := cL_INIT;
+			bL_StateChange := TRUE;
+		ELSE
+			cL_State       := cL_IDLE;
+			bL_StateChange := FALSE;
+			cL_Operation   := eNOP;
+		END_IF;
+
+	cL_INIT: 		(*Initialize system*)
+		IF bL_StepDone THEN 	(**)
+			cL_State       := cL_PREP;
+			bL_StateChange := TRUE;
+		ELSE										(**)
+			cL_State       := cL_INIT;
+			bL_StateChange := FALSE;
+		END_IF;
+
+	cL_PREP: 		(*Prepare system*)
+		IF bL_StepDone THEN 	(**)
+			cL_State       := cL_START;
+			bL_StateChange := TRUE;
+		ELSE										(**)
+			cL_State       := cL_PREP;
+			bL_StateChange := FALSE;
+		END_IF;
+
+	cL_START: (*Start process*)
+		IF bL_StepDone THEN
+			cL_State       := cL_STOP;
+			bL_StateChange := TRUE;
+		ELSE
+			cL_State       := cL_START;
+			bL_StateChange := FALSE;
+		END_IF;
+
+	cL_STOP: (*Stop process*)
+		IF bL_StepDone THEN
+			IF cL_Operation = eOPCLEAN THEN
+					iL_CleanStepsDone := iL_CleanStepsDone + 1;
+				WHILE bI_CleaningStepEnabled[iL_CleanStepsDone + 1] = FALSE AND (iL_CleanStepsDone < iI_CfgCleaningPos) DO
+					iL_CleanStepsDone := iL_CleanStepsDone + 1;
+				END_WHILE;
+
+				IF iL_CleanStepsDone >= iI_CfgCleaningPos THEN
+					cL_State          := cL_IDLE;
+					iL_CleanStepsDone := 0;
+				ELSE
+					cL_State          := cL_INIT;
+				END_IF;
+
+				bL_StateChange      := TRUE;
+			ELSIF cL_Operation = eOPPURGE AND bI_UsrCleanAfterPurge THEN
+					iL_CleanStepsDone := 0;
+					WHILE bI_CleaningStepEnabled[iL_CleanStepsDone + 1] = FALSE AND (iL_CleanStepsDone < iI_CfgCleaningPos) DO
+						iL_CleanStepsDone := iL_CleanStepsDone + 1;
+					END_WHILE;
+
+					IF (iL_CleanStepsDone >= iI_CfgCleaningPos) OR bI_CleaningStepEnabled[iL_CleanStepsDone + 1] = FALSE THEN
+						cL_State     := cL_IDLE;
+					ELSE
+						cL_Operation := eOPCLEAN;
+						cL_State     := cL_INIT;
+					END_IF;
+
+					bL_StateChange := TRUE;
+			ELSIF cL_Operation = eOPCAPEXIT AND bI_UsrCleanAfterCapp THEN
+					IF (iL_CleanStepsDone >= iI_CfgCleaningPos) OR bI_CleaningStepEnabled[iL_CleanStepsDone + 1] = FALSE THEN
+						cL_State     := cL_IDLE;
+					ELSE
+						cL_Operation := eOPCLEAN;
+						cL_State     := cL_INIT;
+					END_IF;
+
+					bL_StateChange := TRUE;
+			ELSIF cL_Operation = eOPCAPEXIT AND bI_UsrPurgeAfterCapp THEN
+					cL_State       := cL_INIT;
+					bL_StateChange := TRUE;
+					cL_Operation   := eOPPURGE;
+			ELSE
+				cL_State       := cL_IDLE;
+				bL_StateChange := TRUE;
+			END_IF;
+		ELSE
+			cL_State       := cL_STOP;
+			bL_StateChange := FALSE;
+		END_IF;
+END_CASE;
+
+IF bI_UsrAbort OR bL_AxisError THEN
+	cL_State          := cL_IDLE;
+	cL_Operation      := eNOP;
+	bL_StateChange    := TRUE;
+	iL_CleanStepsDone := 0;
+END_IF;
+
+(********************************* END OF ACTION *************************************************)]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="StateActionLogic" Id="{cab8bf36-c09c-4a7d-a676-2a15d8f5a5a1}">
+      <Implementation>
+        <ST><![CDATA[(*State action logic -----------------------------------------------------------------*)
+
+CASE cL_State OF
+	cL_IDLE: 		(*No active operation*)
+		IF bI_UsrPurge THEN
+			bL_ProcessStart	:= TRUE;
+		ELSIF bI_UsrClean THEN
+			bL_ProcessStart	:= TRUE;
+		ELSIF bI_UsrStartCapping OR bI_UsrStopCapping THEN
+			bL_ProcessStart	:= TRUE;
+		ELSIF bI_UsrMaintenance THEN
+			bL_ProcessStart	:= TRUE;
+		ELSIF bI_UsrShutter THEN
+			bL_ProcessStart	:= TRUE;
+		ELSE
+			bL_ProcessStart	:= FALSE;
+		END_IF;
+		bL_StepDone       := FALSE;
+		bO_CleaningActive := FALSE;
+
+	cL_INIT: 		(*Initialize system*)
+		IF bL_StateChange THEN
+			bL_StepDone  := FALSE;
+			bL_Init			 := TRUE;
+
+			IF cL_Operation = eOPPREPSERVICE OR cL_Operation = eOPSTARTUP THEN
+				bL_ServiceMode := TRUE;
+			END_IF;
+
+		ELSE
+			bL_StepDone  := bL_AllDone AND NOT bL_Init;	(*Delay by one cycle*)
+			bL_Init			 := FALSE;
+		END_IF;
+		bO_CleaningActive := TRUE;
+
+	cL_PREP: 		(*Prepare system*)
+		IF bL_StateChange THEN
+			bL_StepDone  := FALSE;
+			bL_Prep			 := TRUE;
+		ELSE
+			bL_StepDone  := bL_AllDone AND NOT bL_Prep;	(*Delay by one cycle*)
+			bL_Prep		 	 := FALSE;
+		END_IF;
+		bO_CleaningActive := TRUE;
+
+	cL_START: (*Start process*)
+		IF bL_StateChange THEN
+			bL_StepDone  := FALSE;
+			bL_Start		 := TRUE;
+		ELSE
+			bL_StepDone  := bL_AllDone AND NOT bL_Start;	(*Delay by one cycle*)
+			bL_Start	 	 := FALSE;
+		END_IF;
+		bO_CleaningActive := TRUE;
+
+	cL_STOP: (*Stop process*)
+		IF bL_StateChange THEN
+			bL_StepDone  := FALSE;
+			bL_Stop			 := TRUE;
+
+			IF cL_Operation = eOPENDSERVICE THEN
+				bL_ServiceMode    := FALSE;
+				bL_memServiceMode := FALSE;
+			END_IF;
+
+			IF cL_Operation = eOPPREPSERVICE OR cL_Operation = eOPSTARTUP THEN
+				bL_memServiceMode := TRUE;
+			END_IF;
+
+		ELSE
+			bL_StepDone  := bL_AllDone AND NOT bL_Stop;	(*Delay by one cycle*)
+			bL_Stop		 	 := FALSE;
+		END_IF;
+		bO_CleaningActive := TRUE;
+END_CASE;
+
+IF bI_UsrAbort OR bL_Abort THEN
+	bL_Init  := FALSE;
+	bL_Prep  := FALSE;
+	bL_Start := FALSE;
+	bL_Stop  := FALSE;
+	IF bL_AllDone THEN
+		bL_StepDone := TRUE;
+		bL_Abort    := FALSE;
+	ELSE
+		bL_StepDone := TRUE;
+		bL_Abort    := TRUE;
+	END_IF;
+ELSE
+	bL_Abort      := FALSE;
+END_IF;
+
+IF bL_AxisError THEN
+	bL_Init  := FALSE;
+	bL_Prep  := FALSE;
+	bL_Start := FALSE;
+	bL_Stop  := FALSE;
+END_IF;
+
+(********************************* END OF ACTION *************************************************)]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_CLEANING_PROCESS">
+      <LineId Id="3" Count="53" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="232" Count="1" />
+      <LineId Id="362" Count="0" />
+      <LineId Id="235" Count="0" />
+      <LineId Id="234" Count="0" />
+      <LineId Id="356" Count="0" />
+      <LineId Id="364" Count="0" />
+      <LineId Id="59" Count="1" />
+      <LineId Id="231" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="363" Count="0" />
+      <LineId Id="62" Count="49" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CLEANING_PROCESS.Init">
+      <LineId Id="2" Count="14" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CLEANING_PROCESS.NextStateLogic">
+      <LineId Id="2" Count="139" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CLEANING_PROCESS.StateActionLogic">
+      <LineId Id="2" Count="98" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

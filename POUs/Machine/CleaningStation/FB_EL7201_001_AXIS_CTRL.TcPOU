@@ -1,0 +1,236 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_EL7201_001_AXIS_CTRL" Id="{79fc4671-d092-4908-b55e-a8a93ffee00b}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_EL7201_001_AXIS_CTRL
+(*************************************************************************************************)
+(*  FILENAME:    FB_EL7201_001_AXIS_CTRL.EXP                                                     *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*     This function transfers the movement commands to the motor.                               *)
+(*     It also controls the states of the EL7201 for the Cleaning Unit.                          *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+{library public}
+VAR_INPUT
+  fI_TargetPosition              : REAL;                         (*Target position*)
+  fI_Tolerance                   : REAL := 0.00002;              (*Position tolerance*)
+  fI_SpeedLimit                  : REAL;                         (*Speed limit*)
+  bI_MoveEnable                  : BOOL;                         (*Enable movement*)
+  bI_RegActive                   : BOOL;                         (*Regulation active*)
+  bI_FaultReset                  : BOOL;                         (*Fault reset*)
+  bI_EStop                       : BOOL;                         (*Emergency stop*)
+  bI_SetPosition                 : BOOL;                         (*Set position*)
+
+  wI_StatusWord                  : UINT;                         (*Status word: 6041:0*)
+  lI_EncoderValue                : UDINT;                        (*Encoder value*)
+  fI_PosControllerGain           : REAL := 1.0;                  (*Position controller gain*)
+  fI_EncoderScaling              : REAL := 1048576;              (*Encoder scaling [counts/rev]*)
+  fI_Axis_Scaling                : REAL := 0.0002;               (*Axis scaling [m/rev]*)
+  fI_SetPositionValue            : REAL := 0.0;                  (*Set position value [m]*)
+  fI_SpeedScaling                : REAL := 268435;               (*Speed scaling [counts/rev]*)
+
+  pI_OffsetEncoder               : POINTER TO DINT;              (*Offset to remanent value in encoder*)
+END_VAR
+
+VAR_OUTPUT
+  wO_ControlWord                 : UINT;                         (*Control word:  6040:0*)
+  iO_TargetVelocity              : DINT;                         (*Target velocity:  60FF:0*)
+  fO_ActualPosition              : REAL;                         (*Actual position [m]*)
+  bO_MoveOk                      : BOOL;                         (*Movement ok*)
+  eO_EL7201Status                : EN_EL7201_STATE;              (*EL7201 Status*)
+  bO_AxisNotInit                 : BOOL;                         (*Axis not initialized*)
+END_VAR
+
+{library private}
+VAR
+  fL_Delta_P                     : REAL;                         (*Delta position*)
+  fL_CommandSignal               : REAL;                         (*Command signal*)
+
+  tL_TimerRampUP                 : TON;                          (*Timer ramp up*)
+  fL_PercentageRampUP            : REAL;                         (*Percentage ramp up*)
+  tL_TimerRampDN                 : TON;                          (*Timer ramp down*)
+  fL_PercentageRampDN            : REAL;                         (*Percentage ramp down*)
+
+  wL_MaskedStatusWord            : WORD;                         (*Masked status word*)
+  bL_memMoveEnable               : BOOL;                         (*Memory enable movement*)
+  bL_memSetPosition              : BOOL;                         (*Memory set position*)
+  fL_memTargetPosition           : REAL := 0.0;                  (*Memory target position*)
+  bL_StopRamp                    : BOOL;                         (*Stop ramp*)
+  bL_FirstRun                    : BOOL := TRUE;                 (*First run*)
+
+  fL_Divider                     : REAL;                         (*Divider for percent calculation*)
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Input();
+
+tL_TimerRampUP.PT :=T#100ms;
+tL_TimerRampUP();
+
+tL_TimerRampDN.PT :=T#100ms;
+tL_TimerRampDN();
+
+IF bI_MoveEnable=FALSE AND bL_memMoveEnable THEN
+	bL_StopRamp := TRUE;
+END_IF;
+
+IF bI_MoveEnable AND NOT bL_memMoveEnable THEN
+	fL_memTargetPosition := fI_TargetPosition;
+	bO_MoveOK := FALSE;
+ELSIF bL_FirstRun THEN
+	fL_memTargetPosition := fO_ActualPosition;
+END_IF;
+
+
+IF tL_TimerRampDN.Q THEN
+	bL_StopRamp:=FALSE;
+END_IF;
+
+tL_TimerRampDN.IN := bL_StopRamp;
+
+fL_Divider := TIME_TO_REAL(tL_TimerRampDN.PT);
+IF fL_Divider <> 0 THEN
+	fL_PercentageRampDN := TIME_TO_REAL(tL_TimerRampDN.ET)/fL_Divider;
+END_IF;
+
+tL_TimerRampUP.IN := bI_MoveEnable AND bI_RegActive;
+
+fL_Divider := TIME_TO_REAL(tL_TimerRampUP.PT);
+IF fL_Divider <> 0 THEN
+	fL_PercentageRampUP := TIME_TO_REAL(tL_TimerRampUP.ET)/fL_Divider;
+END_IF;
+
+(* ---------------------- Calculation of the Error Signal between the Target and the Actual Position -----------------*)
+fL_Delta_P := fI_TargetPosition - fO_ActualPosition;
+
+(* --------------------------------- Calculation of the Command Signal for the Target Velocity  ---------------------------*)
+fL_CommandSignal := fL_Delta_P * fI_PosControllerGain;
+
+(* ----------------------------- Limitation of the Command Signal between +/- SpeedLimit --------------------------------*)
+IF fL_CommandSignal > (fI_SpeedLimit) THEN
+	fL_CommandSignal:= fI_SpeedLimit;
+ELSIF fL_CommandSignal < (-fI_SpeedLimit) THEN
+	fL_CommandSignal:=-fI_SpeedLimit;
+END_IF;
+
+IF bI_MoveEnable THEN
+	IF fI_Axis_Scaling <> 0 THEN
+		iO_TargetVelocity:= FC_REAL_TO_DINT((fI_SpeedScaling / fI_Axis_Scaling * fL_CommandSignal * fL_PercentageRampUP));			(* Send the Target velocity command to module *)
+	END_IF;
+ELSE
+	IF fI_Axis_Scaling <> 0 THEN
+		iO_TargetVelocity:= FC_REAL_TO_DINT((fI_SpeedScaling / fI_Axis_Scaling * fL_CommandSignal * (1-fL_PercentageRampDN)));	(* Send the Target velocity command to module *)
+	END_IF;
+END_IF;
+(* ---------------------- MDP StateMachine ----------------- *)
+
+wL_MaskedStatusWord := UINT_TO_WORD(wI_StatusWord) AND 16#006F;
+
+IF bI_EStop=FALSE THEN
+	iO_TargetVelocity:=0;
+	eO_EL7201Status := eEstopped;
+	wO_ControlWord := 16#0000;
+	wO_ControlWord := 16#0002;
+ELSE
+
+	CASE wL_MaskedStatusWord OF
+			16#0000, 16#0020:								(* ------------------ State : Not Ready to Switch On : x0xx0000 ---------------------- *)
+				eO_EL7201Status := eNotReadyToSwitchON ;
+
+			16#0040, 16#0060:								(* ------------------ State : Switch ON Disable : x1xx0000 ---------------------- *)
+				eO_EL7201Status := eSwitchONDisabled ;
+				wO_ControlWord := 16#0006;
+
+			16#0021:										(* ------------------ State : Ready To Switch ON : x01x0001---------------------- *)
+				eO_EL7201Status := eReadyToSwitchON ;
+				IF bI_RegActive=TRUE THEN
+					wO_ControlWord := 16#0007;
+				ELSE
+					wO_ControlWord := 16#0006;
+				END_IF;
+
+			16#0023:										(* ---------------- State : Switched ON : x01x0011------------------ *)
+				eO_EL7201Status := eSwitchedON ;
+				IF bI_MoveEnable=TRUE THEN
+					wO_ControlWord := 16#000F;
+				END_IF;
+
+				IF bI_RegActive=FALSE THEN
+					wO_ControlWord := 16#0006;
+				END_IF;
+
+			16#0027:										(* -------------- State : Enabled : x01x0111------------------ *)
+				eO_EL7201Status := eEnabled;
+				IF (bI_MoveEnable=FALSE AND tL_TimerRampDN.Q) THEN
+					wO_ControlWord := 16#0007;
+				END_IF;
+
+			16#000F, 16#002F:								(* -------------- State : Fault Reaction Active : x0xx1111----------------- *)
+				eO_EL7201Status := eFaultReactionActive ;
+
+			16#0008, 16#0028, 16#0068:								(* --------------- State :  Fault : x0xx1000 ------------------- *)
+				eO_EL7201Status := eFault;
+				IF bI_FaultReset THEN
+					wO_ControlWord := 16#0080;
+				ELSE
+					wO_ControlWord := 16#0000;
+				END_IF;
+	END_CASE;
+END_IF;
+
+(* ---------------------- Encoder Offset Calibration ----------------- *)
+
+IF bI_SetPosition AND NOT bL_memSetPosition AND NOT bI_MoveEnable THEN
+	IF fI_Axis_Scaling <> 0 THEN
+		pI_OffsetEncoder^:= FC_REAL_TO_DINT((fI_SetPositionValue * fI_EncoderScaling / fI_Axis_Scaling - UDINT_TO_REAL(lI_EncoderValue)));
+	END_IF;
+
+	fL_memTargetPosition := fO_ActualPosition;
+END_IF;
+
+IF pI_OffsetEncoder^ = 0 OR pI_OffsetEncoder = 0 THEN
+	bO_AxisNotInit := TRUE;
+ELSE
+	bO_AxisNotInit := FALSE;
+END_IF;
+
+(* ---------------------- Memory ----------------- *)
+bL_memSetPosition := bI_SetPosition;
+bL_memMoveEnable  := bI_MoveEnable;
+bL_FirstRun       := FALSE;
+
+(********************************* END OF FB *****************************************************)]]></ST>
+    </Implementation>
+    <Action Name="Input" Id="{6e24e597-ade5-420a-a88e-94e81517d310}">
+      <Implementation>
+        <ST><![CDATA[(*EL7201 Standard: 20 Singleturn bits and 12 Multiturn bits*)
+IF fI_EncoderScaling <> 0 AND pI_OffsetEncoder <> 0 THEN
+	fO_ActualPosition:=(UDINT_TO_REAL(lI_EncoderValue) + DINT_TO_REAL(pI_OffsetEncoder^)) * fI_Axis_Scaling / fI_EncoderScaling;
+END_IF;
+
+(*Movement done?*)
+IF ABS(fL_memTargetPosition - fO_ActualPosition) < fI_Tolerance THEN
+	bO_MoveOK := TRUE;
+ELSE
+	bO_MoveOK := FALSE;
+END_IF;
+
+(********************************* END OF ACTION *************************************************)]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_EL7201_001_AXIS_CTRL">
+      <LineId Id="3" Count="121" />
+      <LineId Id="203" Count="1" />
+      <LineId Id="125" Count="12" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_EL7201_001_AXIS_CTRL.Input">
+      <LineId Id="2" Count="11" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

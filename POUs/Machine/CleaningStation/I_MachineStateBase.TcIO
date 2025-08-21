@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <Itf Name="I_MachineStateBase" Id="{5034dbdc-4a20-4d45-96e4-dedda69c386c}">
+    <Declaration><![CDATA[INTERFACE I_MachineStateBase
+]]></Declaration>
+    <Property Name="pMachineReady" Id="{93bf9d89-dfff-4030-82e8-8fd526a7b64c}">
+      <Declaration><![CDATA[PROPERTY pMachineReady : BOOL]]></Declaration>
+      <Get Name="Get" Id="{d5a35970-def6-4c03-802c-39cc28f01f13}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="pSafetyOk" Id="{2b32670e-956e-4140-92ca-8dd8e5574288}">
+      <Declaration><![CDATA[PROPERTY pSafetyOk : BOOL]]></Declaration>
+      <Get Name="Get" Id="{525124a2-4635-445a-a87c-df62c2aa9ca7}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+  </Itf>
+</TcPlcObject>

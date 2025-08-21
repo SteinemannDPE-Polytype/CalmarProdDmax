@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
-  <POU Name="FB_PrintPositionDmax" Id="{726347b1-24f3-41dd-8d38-18de7bf18c3b}" SpecialFunc="None">
+  <POU Name="FB_PrintPositionDmax" Id="{0c33b757-4f12-48d1-b71a-f8c104332bd2}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_PrintPositionDmax EXTENDS FB_BasePrint IMPLEMENTS I_PrintPosition, I_Sim
 VAR_INPUT
   IlEncoderPulse      AT%I* : UDINT;                // Encoder counter intput
@@ -75,14 +75,14 @@ _bStarted := rTrigMoving.Q OR fbPositionMaster.bSyncReq;
 // simulation
 simulation();]]></ST>
     </Implementation>
-    <Folder Name="I_PrintPosition" Id="{160a1713-28bb-44b2-a2a8-bb85d0f25507}" />
-    <Folder Name="I_Sim" Id="{bd8ec4af-70d9-4e9b-8cdc-91b3cc2e54db}" />
-    <Property Name="bMoving" Id="{7521517d-ad76-4b9f-8b75-983dc045006f}" FolderPath="I_PrintPosition\">
+    <Folder Name="I_PrintPosition" Id="{3f5d164d-302f-4982-b03c-080e55e1e09d}" />
+    <Folder Name="I_Sim" Id="{0751e001-913d-4ab2-9b32-7d45887037a3}" />
+    <Property Name="bMoving" Id="{7a8063a6-fbac-45f0-bb5e-fc9645c77f91}" FolderPath="I_PrintPosition\">
       <Declaration><![CDATA[(*
   Position is moving.
 *)
 PROPERTY bMoving : BOOL]]></Declaration>
-      <Get Name="Get" Id="{4aca6610-6c03-4327-947a-4962495a26fe}">
+      <Get Name="Get" Id="{d7636e36-8591-46e7-bd9d-577c4637ca09}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -91,12 +91,12 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Property Name="bSimEnable" Id="{30fe551a-b50f-4bf8-9016-a91da26e946e}" FolderPath="I_Sim\">
+    <Property Name="bSimEnable" Id="{d49f8e35-badf-45e2-b8bf-03a13aa49665}" FolderPath="I_Sim\">
       <Declaration><![CDATA[{attribute 'monitoring' := 'call'}
 (*Simulation is enabled set/get*)
 PROPERTY bSimEnable : BOOL
 ]]></Declaration>
-      <Get Name="Get" Id="{ba61aeca-91e8-4a46-b50a-3f72adba58be}">
+      <Get Name="Get" Id="{219d6f5b-7fba-45e7-a94d-c8bb5241fcac}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -104,7 +104,7 @@ END_VAR
           <ST><![CDATA[bSimEnable := _bSim;]]></ST>
         </Implementation>
       </Get>
-      <Set Name="Set" Id="{bfec738f-7656-45d1-b0ac-a7a5be9bcbcf}">
+      <Set Name="Set" Id="{94486a69-39aa-4e9e-9031-cac96a30529f}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -113,12 +113,12 @@ END_VAR
         </Implementation>
       </Set>
     </Property>
-    <Property Name="bStarted" Id="{a5e6e7c4-c990-4c4c-8c02-08500f77b2ea}" FolderPath="I_PrintPosition\">
+    <Property Name="bStarted" Id="{4290f2ea-42e9-4ec4-a58e-522649a213bc}" FolderPath="I_PrintPosition\">
       <Declaration><![CDATA[(*
   Started moving event.
 *)
 PROPERTY bStarted : BOOL]]></Declaration>
-      <Get Name="Get" Id="{d0faf2d8-9582-4046-9c77-0e497244db51}">
+      <Get Name="Get" Id="{0b7acd4e-93af-41bf-822c-434df041196e}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -127,12 +127,12 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Property Name="fEnoderResolution" Id="{48893527-b087-4406-b1d0-258ef0d4826e}" FolderPath="I_PrintPosition\">
+    <Property Name="fEnoderResolution" Id="{2e9830b2-05f0-470b-9c4c-1af33ab5e30d}" FolderPath="I_PrintPosition\">
       <Declaration><![CDATA[(*
   Read / Write Encoder resolution.
 *)
 PROPERTY fEnoderResolution : LREAL]]></Declaration>
-      <Get Name="Get" Id="{6cd2975c-4091-4856-aaae-e3fa9a7e3c7d}">
+      <Get Name="Get" Id="{ee7ac5f7-4ff9-499a-ba4d-5e8064eedc9d}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -140,7 +140,7 @@ END_VAR
           <ST><![CDATA[fEnoderResolution := _fEncoderResolution;]]></ST>
         </Implementation>
       </Get>
-      <Set Name="Set" Id="{8933a36c-a8a6-43ad-800f-50ac32d72fc6}">
+      <Set Name="Set" Id="{77e18f5f-19e6-4d22-8a5a-e490d88c3550}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -149,13 +149,13 @@ END_VAR
         </Implementation>
       </Set>
     </Property>
-    <Property Name="fPrintResolution" Id="{48eff3cf-7d99-449a-8526-266094650008}" FolderPath="I_PrintPosition\">
+    <Property Name="fPrintResolution" Id="{b9e728b0-7318-437c-8c43-21f368ca88a9}" FolderPath="I_PrintPosition\">
       <Declaration><![CDATA[(*
   print(head) resolution in [dpi]
 *)
 PROPERTY fPrintResolution : LREAL
 ]]></Declaration>
-      <Get Name="Get" Id="{41eb1aa4-7459-49d4-ab44-e05aefd05fe0}">
+      <Get Name="Get" Id="{a5be8d5b-21e5-49a7-809d-42269edc8e4b}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -164,13 +164,13 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Property Name="fSubPxResolution" Id="{36f7a9b2-ad44-4da7-acb0-b38231b661c0}" FolderPath="I_PrintPosition\">
+    <Property Name="fSubPxResolution" Id="{a090979f-2cc2-4113-9f71-33654ee80321}" FolderPath="I_PrintPosition\">
       <Declaration><![CDATA[(*
    SubPixel resolution [SubPx]
 *)
 PROPERTY fSubPxResolution : LREAL
 ]]></Declaration>
-      <Get Name="Get" Id="{960643e9-6989-4523-9c9c-eedf45e14680}">
+      <Get Name="Get" Id="{64e7964f-e4a5-4adb-9f68-64f28ff05764}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -179,7 +179,7 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <Method Name="getPosition" Id="{f3e3b96b-183e-4641-b112-e525c3bb6c11}" FolderPath="I_PrintPosition\">
+    <Method Name="getPosition" Id="{6c60b518-7e33-4ab5-92be-75459f96ec3a}" FolderPath="I_PrintPosition\">
       <Declaration><![CDATA[(*
   Get current "default" position.
   [SubPx] as return value and [um] as output
@@ -197,7 +197,7 @@ nPosition_px := fbPositionMaster.lMasterPosition / LREAL_TO_DINT(_fSubPxResoluti
 fPosition_um := fbPositionMaster.fMasterPosition;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="getSpeed" Id="{89c2b88d-36bc-48c9-87d7-952cfd236342}" FolderPath="I_PrintPosition\">
+    <Method Name="getSpeed" Id="{cbc425e9-c4e9-4966-b4a3-dc2419da353c}" FolderPath="I_PrintPosition\">
       <Declaration><![CDATA[(*
   Get "default" speed [m/s].
   :returns: current speed in [m/s]
@@ -211,7 +211,7 @@ END_VAR]]></Declaration>
 fSpeedMpMin := fbPositionMaster.fMasterSpeed*60;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="Init" Id="{0edf7ce9-df28-43fb-8910-213c45b50fdb}">
+    <Method Name="Init" Id="{247234a8-392e-4b62-9cf9-9baea0ceb8d2}">
       <Declaration><![CDATA[METHOD Init : BOOL
 VAR_INPUT
   fPrintResolution    : LREAL := 600;         // print(head) resolution in [dpi]
@@ -236,7 +236,7 @@ fbPositionMaster.init(
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="reset" Id="{2192cbfc-67ef-40f5-ae03-86c2f311383b}">
+    <Method Name="reset" Id="{b4a56331-55e1-48a0-9f2d-01444b8ec17f}">
       <Declaration><![CDATA[METHOD reset
 VAR_INPUT
 END_VAR

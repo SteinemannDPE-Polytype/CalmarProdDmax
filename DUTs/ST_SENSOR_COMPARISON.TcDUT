@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_SENSOR_COMPARISON" Id="{98ce384f-f351-4940-9613-fff64130eff0}">
+    <Declaration><![CDATA[TYPE ST_SENSOR_COMPARISON :
+(*************************************************************************************************)
+(*  FILENAME:    ST_SENSOR_COMPARISON.EXP                                                        *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    Structure for comparison of mark and camera values.                                        *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+ 	xMark                : DINT;  (*Start position in pixels in Xprint-axis*)
+  yMark                : INT;   (*Shift in pixels in Yprint-axis*)
+  phiMark              : DINT;  (*Rotation angle*)
+ 	xCam                 : DINT;  (*Start position in pixels in Xprint-axis*)
+  yCam                 : INT;   (*Shift in pixels in Yprint-axis*)
+  phiCam               : DINT;  (*Rotation angle*)
+ 	dx                   : DINT;  (*Start position in pixels in Xprint-axis*)
+  dy                   : INT;   (*Shift in pixels in Yprint-axis*)
+  dphi                 : DINT;  (*Rotation angle*)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

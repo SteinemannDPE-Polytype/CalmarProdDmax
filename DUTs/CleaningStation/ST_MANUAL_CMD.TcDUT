@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_MANUAL_CMD" Id="{f604885f-159b-459a-a9a6-51c1ce4ec5f7}">
+    <Declaration><![CDATA[TYPE ST_MANUAL_CMD :
+(*************************************************************************************************)
+(*  FILENAME:    ST_MANUAL_CMD.EXP                                                               *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*     Structure to regroup the manual command actions and parameter.                            *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+  fI_Start_position  : REAL;  (*  Position ID for the Upper limit    *)
+  fI_Stop_position   : REAL;  (*  Position ID for the lower limit    *)
+  bI_Do              : BOOL;  (*  Do action    *)
+  bI_Undo            : BOOL;  (*  Undo action    *)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

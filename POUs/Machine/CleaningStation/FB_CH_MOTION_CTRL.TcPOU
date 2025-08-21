@@ -1,0 +1,680 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_CH_MOTION_CTRL" Id="{738b2944-e6b3-438c-b905-a2263ed33b6d}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CH_MOTION_CTRL
+(******************************************************************************************)
+(*  FILENAME:     FB_CH_MOTION_CTRL                                                       *)
+(*  PROJECT:      Steinemann                                                              *)
+(*  COPYRIGHT:    Wifag-Polytype                                                          *)
+(*  ENVIRONMENT:  TwinCat2, v2.11                                                         *)
+(*  VERSION:      1.0                                                                     *)
+(*  DESCRIPTION:                                                                          *)
+(*    This function pilots the mouvements of the Cleaning Head                            *)
+(*    It checks the status of the Cleaning Unit and the Printer Unit                      *)
+(*    to put the Cleaning Head in position and send command to it                         *)
+(*  AUTHOR:      M: BOYRAZ, GoConcept                                                     *)
+(******************************************************************************************)
+(*	MODIFICATIONS:                                                                        *)
+(******************************************************************************************)
+(*  Date        Authtor   Descriptons                                                     *)
+(*                                                                                        *)
+(******************************************************************************************)
+
+VAR_INPUT
+  (*From Cleaning Head*)
+  bI_ClnHeadEnabled          : BOOL;
+  bI_ClnHeadError            : BOOL;
+
+  (*From Machine*)
+  bI_DeviceOnline            : BOOL;	(*Check link to device*)
+  bI_Sensor_pA               : BOOL;	(*Physical sensor feedback for pA Position *)
+  bI_Sensor_pB               : BOOL;	(*Physical sensor feedback for pB Position *)
+  bI_SystemReady             : BOOL;	(*General ready flag*)
+  bI_MovementAllowed         : BOOL;	(*No collision danger*)
+  bI_HomingAllowed           : BOOL;	(*Homing allowed*)
+  bI_SafetyOk                : BOOL;	(*Safety ok for movement*)
+  bI_AbortCleaning           : BOOL;	(*Abort cleaning, drive to pA*)
+
+  (*Commands from Cleaning Process Controller*)
+  sI_CleanDevCmd             : ST_CLEANING_DEV_CMD;	(*Initialize operation*)
+
+  (*From User*)
+  sI_ManualCommands          : ST_MANUAL_CMD;
+  bI_AckFault                : BOOL;	(* Acknowledge errors*)
+  bI_Enable                  : BOOL;	(* Enable PrintUnit axis*)
+  fI_Position_p1             : REAL;
+  fI_Position_p2             : REAL;
+  fI_Position_A              : REAL;
+  fI_Position_B              : REAL;
+  fI_PositionTolerance       : REAL := 0.001;
+  fI_SetPositionValue        : REAL := 0.0;    (*Set position value [m]*)
+  sI_SpeedDef_Y              : ST_SPEEDS;	(*Speed defs*)
+  bI_ShinyMode               : BOOL;	(*Cleaning option*)
+  bI_EnableBinClean          : BOOL := TRUE;
+
+  (*From Motor Controller*)
+  eI_ELmodule_State          : EN_EL7201_STATE;	(*Feedback from Axis*)
+  bI_MoveDone                : BOOL;
+  fI_CurrentPosition         : REAL;
+
+  pC_MsgInterface            : POINTER TO ST_ADS_MSG_IF;
+  iC_BlockId                 : INT;
+END_VAR
+
+VAR_OUTPUT
+  (*To Cleaning Head*)
+  bO_EnableClnHead           : BOOL;
+  bO_EnableVacuum            : BOOL;
+
+  (*To Motor Controller*)
+  fO_TargetPosition          : REAL;	(*Target position for axis*)
+  fO_SpeedLimit              : REAL;	(*Speed limit for axis*)
+  bO_MoveEnable              : BOOL;	(*Move enable for axis*)
+  bO_RegActive               : BOOL;	(*Close control loop for axis*)
+  bO_FaultReset              : BOOL;	(*Fault reset for axis*)
+  bO_SetPosition             : BOOL; (*Reset Encoder*)
+  bO_PositionUnknown         : BOOL; (*Position of axis is unknown*)
+
+  (*To machine/user*)
+  sO_CleanDevStatus          : ST_CLEANING_DEV_STATUS;	(*Initialize operation*)
+  sO_ClnHead_Mvt_Status      : ST_CH_MVT_STATUS;
+  bO_CleanAborted            : BOOL;  (*Cleaning aborted*)
+END_VAR
+
+VAR
+  cL_State                   : BYTE;	(*State type*)
+  bL_CleaningActive          : BOOL;
+  bL_AfterCleaning           : BOOL := FALSE;
+  bL_AxisReady               : BOOL;
+  bL_CleanActive             : BOOL;
+  bL_MoveAReq                : BOOL;
+  bL_MoveBReq                : BOOL;
+  bL_MoveDone                : BOOL;
+  bL_SafeRunningCondition    : BOOL;
+  bL_SafeMoveNeg             : BOOL;
+  bL_SafeMovePos             : BOOL;
+  bL_Ref_Known               : BOOL := FALSE;
+  bL_MoveStarted             : BOOL := FALSE;
+  bL_MoveStartRequested      : BOOL := FALSE;
+
+  bL_InPosA                  : BOOL;
+  bL_InPosB                  : BOOL;
+
+  wL_ErrorCode               : WORD;
+
+  bL_MotionActive            : BOOL;
+
+  tL_TimerSurv               : TON;			(* Timer for Motorization check *)
+  tL_TimerSensor             : TON;			(* Timer for Sensor check *)
+  bL_memRefSensor            : BOOL;
+  bL_memAck                  : BOOL;
+  bL_mem_MotionActive        : BOOL;
+  bL_mem_MoveEnable          : BOOL;
+  bL_FirstRun                : BOOL := TRUE;
+  tL_TonMoveAReq             : TON;			(* Timer for moving back to A *)
+
+  (*Messaging*)
+  fB_MsgQueue                : FB_MSG_QUEUE;
+  fB_MsgHandler              : FB_MSG_HANDLER;
+  sL_MsgConfig               : ST_MSG_CONFIG;
+  fB_Msg                     : ARRAY [1..iC_NUM_MSG] OF FB_MESSAGE;
+END_VAR
+
+VAR CONSTANT
+	(*State*)
+  cL_IDLE_A                  : BYTE := 0;										(*Idle-State @ Start*)
+  cL_MOVE_P1                 : BYTE := 10;										(*Move to Position where Cleaning starts*)
+  cL_ENABLE_CLEAN            : BYTE := 20;										(*Enable Cleaning System*)
+  cL_MOVE_P2                 : BYTE := 30;										(*Move to Position where Cleaning stops*)
+  cL_DISABLE_CLEAN           : BYTE := 40;										(*Disable Cleaning System*)
+  cL_MOVE_A                  : BYTE := 50;										(*Move to start*)
+  cL_MOVE_A_CLEANBIN         : BYTE := 51;										(*Move to start with cleaning the bin*)
+  cL_MOVE_B                  : BYTE := 60;										(*Move to end*)
+  cL_IDLE_B                  : BYTE := 70;										(*Idle-State @ Stop*)
+  cL_UNKNOWN                 : BYTE := 80;										(*Position unknown*)
+
+  iC_NUM_MSG                 : INT  := 1;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[tL_TimerSurv.PT := T#3s;
+tL_TimerSurv();
+tL_TimerSensor.PT := T#105s	;	(* 1meter at 10mm*)
+tL_TimerSensor();
+
+IF bL_FirstRun THEN
+	bL_FirstRun     := FALSE;
+	bL_memRefSensor := bI_Sensor_pA;
+END_IF;
+
+(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+(*Running Conditions  For Cleaning Head  *)
+(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+IF bI_SystemReady AND bI_DeviceOnline AND bI_MovementAllowed AND bI_SafetyOk AND (wL_ErrorCode = 0 OR wL_ErrorCode.5)THEN	(*Dont check limit switch here*)
+	bL_SafeRunningCondition := TRUE;
+ELSE
+	bL_SafeRunningCondition := FALSE;
+END_IF;
+
+bL_SafeMoveNeg := bL_SafeRunningCondition AND NOT bI_Sensor_pA AND bI_MovementAllowed;
+bL_SafeMovePos := bL_SafeRunningCondition AND NOT bI_Sensor_pB AND bI_MovementAllowed;
+
+IF NOT bI_DeviceOnline THEN
+	bL_Ref_Known := FALSE;				(*Reset Reference when link to device is lost, e.g. when machine power off*)
+END_IF;
+
+(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+(*Position detection*)
+(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+
+IF     (fI_CurrentPosition >= (fI_Position_A - fI_PositionTolerance)
+   AND  fI_CurrentPosition <= (fI_Position_A + fI_PositionTolerance)) OR bI_Sensor_pA
+THEN
+	bL_InPosA := TRUE;
+	bL_InPosB := FALSE;
+ELSIF  fI_CurrentPosition >= (fI_Position_B - fI_PositionTolerance)
+   AND fI_CurrentPosition <= (fI_Position_B + fI_PositionTolerance)
+THEN
+	bL_InPosA := FALSE;
+	bL_InPosB := TRUE;
+ELSE
+	bL_InPosA := FALSE;
+	bL_InPosB := FALSE;
+END_IF;
+
+
+(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+(* Motion Control For the Cleaning Head 																																																					*)
+(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+
+(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+(*------------------------------------------- Motion Control For the Cleaning Unit   ------------------------------------------------------------ *)
+(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+IF NOT bL_Ref_Known THEN	(* if the Y axis hasn't been initialized with Ref Sensor*)
+	bL_AxisReady := FALSE;
+
+	IF bI_Sensor_pA AND NOT bL_memRefSensor AND NOT bL_Ref_Known THEN
+		bL_Ref_Known    := TRUE;											(* When the sensor is activated, Save the correction value*)
+		bL_MotionActive := FALSE;
+		bO_SetPosition  := TRUE;											(*Initialize position to preset value*)
+		bL_AxisReady    := TRUE;
+
+		fO_TargetPosition := fI_SetPositionValue;
+	ELSE
+		IF bI_Sensor_pA AND bL_memRefSensor THEN
+			fO_TargetPosition := fI_CurrentPosition + 0.01;            (*@@@@CONST, change to JOG_NEGATIVE*)
+			fO_SpeedLimit     := sI_SpeedDef_Y.fP_ServiceSpeed;        (* Start backward motion, the motor will run until Ref Sensor is ON*)
+			bL_MotionActive   := bI_HomingAllowed;
+			bO_SetPosition    := FALSE;
+		ELSE
+			fO_TargetPosition := -100.0;                               (*@@@@CONST, change to JOG_NEGATIVE*)
+			fO_SpeedLimit     := sI_SpeedDef_Y.fP_ServiceSpeed * 0.1;  (* Start backward motion, the motor will run until Ref Sensor is ON*)
+			bL_MotionActive   := bI_HomingAllowed;
+			bO_SetPosition    := FALSE;
+		END_IF;
+    (*Security check if sensor malfunction:*)
+    (*The CH tries to leave the sensor and drives to side B.*)
+    (*If sensor malfunction the axis drives only to the end and stops there.*)
+    IF (fO_TargetPosition >= fI_Position_B) THEN
+      bL_Ref_Known    := FALSE;
+      bL_MotionActive := FALSE;
+      bO_SetPosition  := FALSE;
+      bL_AxisReady    := FALSE;
+		END_IF
+	END_IF;
+ELSE	(* If the axis has been initialized *)
+	IF sI_CleanDevCmd.bService THEN
+		ServiceMode();
+	ELSE
+		ProductionMode();
+	END_IF;
+END_IF;
+bL_memRefSensor := bI_Sensor_pA;				(* Memorization of the Ref sensor state for edge detection*)
+bO_RegActive    := bI_Enable AND  bL_SafeRunningCondition;
+
+IF fI_CurrentPosition < fO_TargetPosition THEN			(*  is UP mouvement *)
+	bO_MoveEnable := bL_MotionActive AND bL_SafeMovePos;
+ELSE																								(*  is DOWN mouvement *)
+	bO_MoveEnable := bL_MotionActive AND bL_SafeMoveNeg;
+END_IF;
+
+(*----------------------------------------------------------------------------------------------------------------------- *)
+(* Output Structure Data Update  																																													*)
+(*----------------------------------------------------------------------------------------------------------------------- *)
+sO_CleanDevStatus.bBusy     := NOT(bL_AxisReady);
+sO_CleanDevStatus.bReady    := bL_AxisReady;
+sO_CleanDevStatus.bRefKnown := NOT bO_PositionUnknown;
+
+
+sO_ClnHead_Mvt_Status.fO_ClnHead_Position := fI_CurrentPosition;
+sO_ClnHead_Mvt_Status.bO_Active           := bL_SafeRunningCondition;
+sO_ClnHead_Mvt_Status.bO_Ready            := bL_AxisReady;
+sO_ClnHead_Mvt_Status.bO_Busy             := bO_MoveEnable;
+sO_ClnHead_Mvt_Status.wO_FaultCode        := wL_ErrorCode;
+
+bO_FaultReset := bI_AckFault OR sI_CleanDevCmd.bAckError (*OR fb_MsgQueue.bO_ReceiptMessage*);
+
+IF wL_ErrorCode = 0 THEN
+	sO_ClnHead_Mvt_Status.bO_Error := FALSE;
+ELSE
+	sO_ClnHead_Mvt_Status.bO_Error := TRUE;
+END_IF;
+
+(*----------------------------------------------------------------------------------------------------------------------- *)
+(*--------------------------------- Fault Diagnosis and Management  ----------------------------------------------------- *)
+(*----------------------------------------------------------------------------------------------------------------------- *)
+(*Messaging*)
+fB_MsgHandler();
+
+IF eI_ELmodule_State = eFault THEN
+  fB_Msg[1].bI_Status := TRUE;
+ELSE
+  fB_Msg[1].bI_Status := FALSE;
+END_IF;
+fB_Msg[1]();
+
+fB_MsgQueue();
+
+
+IF (bI_AckFault OR sI_CleanDevCmd.bAckError) AND NOT bL_memAck THEN
+	tL_TimerSurv.IN   := FALSE;
+	tL_TimerSensor.IN := FALSE;
+END_IF;
+
+IF bI_AckFault (*OR fb_MsgQueue.bO_ReceiptMessage*) OR sI_CleanDevCmd.bAckError THEN
+	wL_ErrorCode := 0;
+END_IF;
+
+IF bI_ClnHeadError THEN	(* Clean Head work status faulty *)
+	wL_ErrorCode.1 := TRUE ;
+END_IF;
+
+IF (bI_Sensor_pB AND bI_Sensor_pA) THEN			(* Sensor Fault : pB and pA can't be active at the same time *)
+	wL_ErrorCode.2 := TRUE ;
+END_IF;
+
+IF (sI_SpeedDef_Y.fP_PlaceSpeed=0) OR  (sI_SpeedDef_Y.fP_WorkSpeed=0) OR (sI_SpeedDef_Y.fP_ServiceSpeed=0) THEN	(* Speed Configuration not done *)
+	wL_Errorcode.6 := TRUE;
+END_IF;
+
+IF (fI_Position_p1=0) OR (fI_Position_p2=0) THEN		(* Position Configuration not done *)
+	wL_ErrorCode.7 := TRUE;
+END_IF;
+
+IF (eI_ELmodule_State = eFault) OR NOT bI_DeviceOnline THEN
+	wL_ErrorCode.8 := TRUE;						(* EL7342 module fault *)
+END_IF;
+
+(*IF eI_ELmodule_State=eEstopped THEN
+	wL_ErrorCode.15 :=TRUE;						(* EL7342 module fault *)
+END_IF;*)
+
+IF wl_ErrorCode = 0 THEN
+	sO_CleanDevStatus.bError := FALSE;
+ELSE
+	sO_CleanDevStatus.bError := TRUE;
+END_IF;
+
+bL_mem_MoveEnable   := bO_MoveEnable;
+bL_mem_MotionActive := bL_MotionActive;
+bL_memAck           := bI_AckFault (*OR fb_MsgQueue.bO_ReceiptMessage*) OR sI_CleanDevCmd.bAckError;]]></ST>
+    </Implementation>
+    <Action Name="CleaningProcess" Id="{cc484f0a-d8c7-484d-bf66-05017dded474}">
+      <Implementation>
+        <ST><![CDATA[(*Default*)
+bL_MotionActive   := FALSE;
+bO_EnableClnHead  := FALSE;
+bO_EnableVacuum   := FALSE;
+fO_SpeedLimit     := 0;					(*Default speed*)
+fO_TargetPosition := fI_Position_A;
+bL_MoveDone       := FALSE;
+bO_CleanAborted   := FALSE;
+
+(*State Machine -----------------------------------------------------------------*)
+CASE cL_State OF
+	cL_UNKNOWN:
+		IF bL_InPosA THEN	(*The position may be unknown, go automatically to A*)
+			bL_MotionActive := FALSE;
+			cL_State        := cL_IDLE_A;
+			bL_MoveDone     := TRUE;
+		ELSE
+			IF bL_SafeMovePos OR bL_SafeMoveNeg THEN
+				bL_MotionActive := TRUE;
+				bL_MoveDone     := FALSE;
+			ELSE
+				bL_MotionActive := FALSE;
+				bL_MoveDone     := TRUE;
+			END_IF;
+			fO_TargetPosition := fI_Position_A;
+			cL_State          := cL_UNKNOWN;
+		END_IF;
+		fO_SpeedLimit := sI_SpeedDef_Y.fP_PlaceSpeed;
+(*		bL_MoveDone:=FALSE;*)
+
+	cL_IDLE_A: 		(*No active operation, the head is at position A*)
+		IF bL_InPosA THEN 					(*Position ok*)
+			IF bL_MoveBReq THEN					(*Command to move to other end*)
+				IF bL_CleanActive THEN		(*When cleaning enabled*)
+					cL_State  := cL_MOVE_P1;	(*go step-by-step*)
+				ELSE				  							(*otherwise*)
+					cL_State  := cL_MOVE_B;		(*go direct*)
+				END_IF;
+				bL_MoveDone := FALSE;
+			ELSE
+				bL_MoveDone := TRUE;
+			END_IF;
+		ELSE	(*Position lost*)
+			cL_State    := cL_UNKNOWN;			(*Reinit*)
+			bL_MoveDone := FALSE;
+		END_IF;
+
+	cL_MOVE_P1: 		(*Move to position P1*)
+		IF fI_CurrentPosition < fI_Position_p1 AND NOT (bI_Sensor_pB OR bL_InPosB) THEN
+			cL_State        := cL_MOVE_P1;
+			bL_MotionActive := TRUE;
+    ELSIF bI_AbortCleaning THEN
+			cL_State        := cL_MOVE_A;
+			bL_MotionActive := FALSE;
+      bO_CleanAborted := TRUE;
+		ELSE
+			cL_State        := cL_ENABLE_CLEAN;
+			bL_MotionActive := FALSE;
+		END_IF;
+		fO_TargetPosition := fI_Position_p1;
+		fO_SpeedLimit     := sI_SpeedDef_Y.fP_PlaceSpeed;
+		bL_MoveDone       := FALSE;
+
+	cL_ENABLE_CLEAN:	(*Enable Clean Head Valves, Vacuum, etc...*)
+		bO_EnableClnHead := TRUE;
+		bO_EnableVacuum	 := TRUE;
+		IF bI_ClnHeadEnabled THEN
+			cL_State        := cL_MOVE_P2;
+    ELSIF bI_AbortCleaning THEN
+			cL_State        := cL_MOVE_A;
+      bO_CleanAborted := TRUE;
+		ELSE
+			cL_State        := cL_ENABLE_CLEAN;
+		END_IF;
+		bL_MoveDone       := FALSE;
+		bL_AfterCleaning  := TRUE;	(*Set Flag that bin has to be cleaned afterwards*)
+
+	cL_MOVE_P2: 		(*Move to position P2*)
+		bO_EnableClnHead  := TRUE;
+		bO_EnableVacuum   := TRUE;
+		IF fI_CurrentPosition < fI_Position_p2 AND NOT (bI_Sensor_pB OR bL_InPosB) THEN
+			cL_State        := cL_MOVE_P2;
+			bL_MotionActive := TRUE;
+    ELSIF bI_AbortCleaning THEN
+			cL_State        := cL_MOVE_A;
+			bL_MotionActive := FALSE;
+      bO_CleanAborted := TRUE;
+		ELSE
+			cL_State        := cL_DISABLE_CLEAN;
+			bL_MotionActive := FALSE;
+		END_IF;
+		fO_TargetPosition := fI_Position_p2;
+		IF bI_ShinyMode THEN
+			fO_SpeedLimit := sI_SpeedDef_Y.fP_WorkSpeed/2;
+		ELSE
+			fO_SpeedLimit := sI_SpeedDef_Y.fP_WorkSpeed;
+		END_IF;
+		bL_MoveDone := FALSE;
+
+	cL_DISABLE_CLEAN:	(*Disable Clean Head Valves, Vacuum, etc...*)
+		IF NOT bI_ClnHeadEnabled THEN
+			cL_State := cL_MOVE_B;
+		ELSE
+			cL_State := cL_DISABLE_CLEAN;
+		END_IF;
+		bL_MoveDone := FALSE;
+
+	cL_MOVE_B:	(*Move to position B*)
+		IF bL_InPosB THEN
+			cL_State        := cL_IDLE_B;
+			bL_MotionActive := FALSE;
+    ELSIF bI_AbortCleaning THEN
+			cL_State        := cL_MOVE_A;
+			bL_MotionActive := FALSE;
+      bO_CleanAborted := TRUE;
+		ELSE
+			cL_State        := cL_MOVE_B;
+			bL_MotionActive := TRUE;
+		END_IF;
+		fO_TargetPosition := fI_Position_B;
+		fO_SpeedLimit     := sI_SpeedDef_Y.fP_PlaceSpeed;
+		bL_MoveDone       := FALSE;
+		bO_EnableVacuum   := TRUE;
+
+	cL_IDLE_B: 		(*No active operation, the head is at position B*)
+		IF bL_MoveAReq THEN					(*Command to move to other end*)
+			IF bL_AfterCleaning AND bI_EnableBinClean AND NOT bI_AbortCleaning THEN
+				cL_State := cL_MOVE_A_CLEANBIN;	(*go direct, clean bin*)
+			ELSE
+				cL_State := cL_MOVE_A;	(*go direct, no cleaning*)
+			END_IF;
+			bL_MoveDone := FALSE;
+		ELSE
+			bL_MoveDone := TRUE;
+		END_IF;
+
+		IF NOT bL_InPosB THEN 		(*Position lost*)
+			;	(*Do nothing*)
+		END_IF;
+
+	cL_MOVE_A:
+		IF bL_InPosA THEN
+			bL_MotionActive := FALSE;
+			cL_State        := cL_IDLE_A;
+      tL_TonMoveAReq(IN := FALSE);             (*Delay for move back to A*)
+		ELSE
+      tL_TonMoveAReq(IN := TRUE, PT := T#2S);  (*Delay for move back to A*)
+			bL_MotionActive := tL_TonMoveAReq.Q;
+			cL_State        := cL_MOVE_A;
+		END_IF;
+		fO_TargetPosition := fI_Position_A;
+		fO_SpeedLimit     := sI_SpeedDef_Y.fP_PlaceSpeed;
+		bL_MoveDone       := FALSE;
+
+	cL_MOVE_A_CLEANBIN:
+		IF bL_InPosA OR bI_Sensor_pA THEN
+			bL_MotionActive := FALSE;
+			cL_State        := cL_IDLE_A;
+			bL_AfterCleaning:= FALSE;
+      tL_TonMoveAReq(IN := FALSE);             (*Delay for move back to A*)
+		ELSE
+      tL_TonMoveAReq(IN := TRUE, PT := T#2S);  (*Delay for move back to A*)
+			bL_MotionActive := tL_TonMoveAReq.Q;
+			cL_State        := cL_MOVE_A_CLEANBIN;
+			bO_EnableVacuum := bI_EnableBinClean AND NOT bI_AbortCleaning;
+		END_IF;
+		fO_TargetPosition := fI_Position_A;
+		fO_SpeedLimit     := sI_SpeedDef_Y.fP_PlaceSpeed;
+		bL_MoveDone       := FALSE;
+END_CASE;]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="Init" Id="{84ae880b-be1e-4949-be86-5e5d99196abf}">
+      <Implementation>
+        <ST><![CDATA[	(*Messages*)
+	sL_MsgConfig.bI_Enable       := TRUE;
+	sL_MsgConfig.pI_FbMsgHandler := ADR(fB_MsgHandler);
+	fB_MsgHandler.pI_MsgQueue    := ADR(fB_MsgQueue);
+	fB_MsgQueue.pI_MsgInterface  := pC_MsgInterface;
+	fB_MsgQueue.cI_MaxElement    := 5;
+
+	fB_Msg[1].iI_MsgLocation     := iC_BlockId;
+	fB_Msg[1].pI_MsgConfig       := ADR(sL_MsgConfig);
+	fB_Msg[1].iI_MsgNumber       := eCMa_AxisErrorY;]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ProductionMode" Id="{5d036a71-8e68-418d-9605-0fe78ca12369}">
+      <Implementation>
+        <ST><![CDATA[(*Axis inactive in Production mode*)
+bL_MotionActive := FALSE;
+bL_AxisReady	  := TRUE;]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ServiceMode" Id="{0c670610-4c20-47ab-be8e-43642fd5c0c8}">
+      <Implementation>
+        <ST><![CDATA[(*Mode selection*)
+IF sI_CleanDevCmd.bAuto THEN  (*Control by cleaning process*)
+  CASE sI_CleanDevCmd.eOperation OF
+    eNOP:  (*No operation active*)
+      bL_AxisReady        := TRUE;
+      bL_CleanActive      := FALSE;
+      bL_MoveAReq         := FALSE;
+      bL_MoveBReq         := FALSE;
+      bO_EnableVacuum     := FALSE;
+      bL_MotionActive     := FALSE;
+    eOPCLEAN:  (*Cleaning Mode -------------------------------------*)
+      IF sI_CleanDevCmd.bInit THEN
+        bL_CleanActive    := FALSE;
+        bL_AxisReady      := FALSE;
+        bL_MoveAReq       := TRUE;
+        bL_MoveBReq       := FALSE;
+
+      ELSIF sI_CleanDevCmd.bPrep THEN
+        bL_CleanActive    := FALSE;
+        bL_AxisReady      := TRUE;
+        bL_MoveAReq       := FALSE;
+        bL_MoveBReq       := FALSE;
+
+      ELSIF sI_CleanDevCmd.bStart THEN
+        bL_CleanActive    := TRUE;
+        bL_AxisReady      := FALSE;
+        bL_MoveAReq       := FALSE;
+        bL_MoveBReq       := TRUE;
+      ELSIF sI_CleanDevCmd.bStop THEN
+        bL_CleanActive    := FALSE;
+        bL_AxisReady      := FALSE;
+        bL_MoveAReq       := TRUE;
+        bL_MoveBReq       := FALSE;
+      ELSE  (*Command removed, wait until axis finished movement*)
+        IF bL_MoveDone = FALSE THEN
+          bL_AxisReady := FALSE;
+          (*Keep other flags as they are*)
+        ELSE
+          bL_CleanActive  := FALSE;
+          bL_AxisReady    := TRUE;
+          bL_MoveAReq     := FALSE;
+          bL_MoveBReq     := FALSE;
+        END_IF;
+      END_IF;
+      CleaningProcess();        (*Run Cleaning process state machine*)
+
+    eOPCAPENTER:
+      IF sI_CleanDevCmd.bInit THEN
+        bL_CleanActive    := FALSE;
+        bL_AxisReady      := FALSE;
+        bL_MoveAReq       := TRUE;
+        bL_MoveBReq       := FALSE;
+
+    ELSIF sI_CleanDevCmd.bPrep OR sI_CleanDevCmd.bStart OR sI_CleanDevCmd.bStop THEN
+        bL_CleanActive    := FALSE;
+        bL_AxisReady      := TRUE;
+        bL_MoveAReq       := FALSE;
+        bL_MoveBReq       := FALSE;
+
+      ELSE  (*Command removed, wait until axis finished movement*)
+        IF bL_MoveDone = FALSE THEN
+          bL_AxisReady    := FALSE;
+          (*Keep other flags as they are*)
+        ELSE
+          bL_CleanActive  := FALSE;
+          bL_AxisReady    := TRUE;
+          bL_MoveAReq     := FALSE;
+          bL_MoveBReq     := FALSE;
+        END_IF;
+      END_IF;
+      CleaningProcess();        (*Run Cleaning process state machine*)
+
+    eOPCAPEXIT:
+      IF sI_CleanDevCmd.bPrep THEN
+        bL_CleanActive    := FALSE;
+        bL_AxisReady      := FALSE;
+        bL_MoveAReq       := TRUE;
+        bL_MoveBReq       := FALSE;
+
+      ELSE  (*Command removed, wait until axis finished movement*)
+        IF bL_MoveDone = FALSE THEN
+          bL_AxisReady    := FALSE;
+          (*Keep other flags as they are*)
+        ELSE
+          bL_CleanActive  := FALSE;
+          bL_AxisReady    := TRUE;
+          bL_MoveAReq     := FALSE;
+          bL_MoveBReq     := FALSE;
+        END_IF;
+      END_IF;
+      CleaningProcess();        (*Run Cleaning process state machine*)
+
+    eOPPURGE, eOPMAINT, eOPSHUTTEROPEN:  (*Other Mode -------------------------------------*)
+      bL_AxisReady    := TRUE;
+      bL_CleanActive  := FALSE;
+      bL_MotionActive := FALSE;
+      bO_EnableVacuum := FALSE;
+      bL_MotionActive := FALSE;
+
+  ELSE
+    bO_EnableVacuum := FALSE;
+    bL_AxisReady    := TRUE;
+    bL_CleanActive  := FALSE;
+    bL_MotionActive := FALSE;
+  END_CASE;
+
+  (*In case of abort set target position to current position and wait for MoveDone flag*)
+  IF sI_CleanDevCmd.bAbort THEN
+    fO_TargetPosition := fI_CurrentPosition;
+    cL_State          := cL_UNKNOWN;  (*Reset cleaning process state machine*)
+  END_IF;
+
+ELSE    (* MANUAL MODE *)
+  fO_SpeedLimit    := sI_SpeedDef_Y.fP_ServiceSpeed;
+  bO_EnableClnHead := FALSE;
+
+  IF sI_ManualCommands.bI_Do = TRUE AND sI_ManualCommands.bI_Undo = FALSE THEN
+    fO_TargetPosition := sI_ManualCommands.fI_Start_position;
+    bL_AxisReady      := FALSE;
+    cL_State := cL_UNKNOWN;  (*Reset cleaning process state machine*)
+  ELSIF sI_ManualCommands.bI_Do = FALSE AND sI_ManualCommands.bI_Undo = TRUE THEN
+    fO_TargetPosition := sI_ManualCommands.fI_Stop_position;
+    bL_AxisReady      := FALSE;
+    cL_State := cL_UNKNOWN;  (*Reset cleaning process state machine*)
+  ELSE
+    fO_TargetPosition := fI_CurrentPosition;
+    bL_AxisReady      := TRUE;
+  END_IF;
+  bL_MotionActive := sI_ManualCommands.bI_Do OR sI_ManualCommands.bI_Undo;
+END_IF;]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_CH_MOTION_CTRL">
+      <LineId Id="706" Count="179" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CH_MOTION_CTRL.CleaningProcess">
+      <LineId Id="151" Count="143" />
+      <LineId Id="317" Count="0" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="316" Count="0" />
+      <LineId Id="296" Count="11" />
+      <LineId Id="318" Count="0" />
+      <LineId Id="308" Count="0" />
+      <LineId Id="319" Count="0" />
+      <LineId Id="309" Count="6" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CH_MOTION_CTRL.Init">
+      <LineId Id="2" Count="8" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CH_MOTION_CTRL.ProductionMode">
+      <LineId Id="2" Count="1" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CH_MOTION_CTRL.ServiceMode">
+      <LineId Id="130" Count="128" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

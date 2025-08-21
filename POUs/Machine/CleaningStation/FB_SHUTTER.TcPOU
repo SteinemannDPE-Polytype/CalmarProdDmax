@@ -1,0 +1,332 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_SHUTTER" Id="{bfa1d112-d442-448b-b6e2-081d45e2ab52}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SHUTTER
+
+(******************************************************************************************)
+(*	FILENAME:	FB_SHUTTER											*)
+(*	PROJECT:	Steinemann											*)
+(*	COPYRIGHT:	Wifag-Polytype								*)
+(*	ENVIRONMENT:	TwinCat2, v2.11							*)
+(*	VERSION:	1.0															*)
+(*	DESCRIPTION:															*)
+(*		This function controls the shutters 		*)
+(*	AUTHOR:	FAF							*)
+(*																*)
+(******************************************************************************************)
+(*	Changes:													*)
+(******************************************************************************************)
+(*	Date	Authtor	Descriptons									*)
+(*																*)
+(******************************************************************************************)
+VAR_INPUT
+	(*From Shutter*)
+	bI_ShutterInletClosed		: BOOL;
+	bI_ShutterOutletClosed	: BOOL;
+
+	(*From Machine*)
+	bI_ESTopOk				: BOOL;	(*General ready flag*)
+
+	(*Commands from Cleaning Process Controller*)
+	sI_CleanDevCmd				: ST_CLEANING_DEV_CMD;	(*Initialize operation*)
+
+	(*From User*)
+	bI_ForceInletOpen			: BOOL;
+	bI_ForceInletClose		: BOOL;
+	bI_ForceOutletOpen		: BOOL;
+	bI_ForceOutletClose		: BOOL;
+
+	pC_MsgInterface		: POINTER TO ST_ADS_MSG_IF;
+	iC_BlockId				: INT;
+END_VAR
+
+VAR_OUTPUT
+	(*To Shutter*)
+	bO_ShutterInletOpen		:BOOL;
+	bO_ShutterInletClose	:BOOL;
+	bO_ShutterOutletOpen	:BOOL;
+	bO_ShutterOutletClose	:BOOL;
+
+	(*To machine/user*)
+	bO_SafetyOk				: BOOL;	(*Safety ok for movement*)
+	sO_CleanDevStatus	:ST_CLEANING_DEV_STATUS;	(*Initialize operation*)
+END_VAR
+
+VAR
+	cL_State									:	BYTE := cL_UNKNOWN;	(*State type*)
+	tL_OpenTime								: TON;			(* Timer for Sensor check *)
+	bL_AxisReady							: BOOL := FALSE;
+	bL_CloseRequest						: BOOL := FALSE;
+	bL_OpenRequest						: BOOL := FALSE;
+	bL_SafeRunningCondition		: BOOL := FALSE;
+	bL_RefKnown								: BOOL := FALSE;
+	bL_AllShutterClosed				: BOOL;
+
+	bL_ShutterInletOpen				: BOOL;
+	bL_ShutterInletClose			: BOOL;
+	bL_ShutterOutletOpen			: BOOL;
+	bL_ShutterOutletClose			: BOOL;
+
+	fB_Motor_Switch_A					: FB_MOTOR_SWITCH;
+	fB_Motor_Switch_B					: FB_MOTOR_SWITCH;
+
+	(*Message Queue*)
+(* 	fB_MsgQueue				          		: FB_MSG_QUEUE;
+	fB_MsgHandler										: FB_MSG_HANDLER;
+	sL_MsgConfig										: ST_MSG_CONFIG;
+	fB_Msg													: ARRAY [1..iC_NUM_MSG] OF FB_MESSAGE;*)
+END_VAR
+
+VAR CONSTANT
+	(*State*)
+	cL_OPEN						: BYTE := 01;										(*Shutter open = Safety not ok*)
+	cL_CLOSING				: BYTE := 12;										(*Shutter moving = Safety not ok*)
+	cL_CLOSED					: BYTE := 02;										(*Shutter closed = Safety ok*)
+	cL_OPENING				: BYTE := 21;										(*Shutter moving = Safety not ok*)
+	cL_UNKNOWN				: BYTE := 99;										(*State unknown, Init*)
+
+	iC_NUM_MSG											: INT :=1;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+(*Running Conditions *)
+(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+IF bI_ESTopOk THEN
+	bL_SafeRunningCondition := TRUE;
+ELSE
+	bL_SafeRunningCondition := FALSE;
+END_IF;
+
+bL_AllShutterClosed := bI_ShutterInletClosed AND bI_ShutterOutletClosed;
+
+(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+(* Motion Control  *)
+(*----------------------------------------------------------------------------------------------------------------------------------------------- *)
+IF bL_RefKnown = FALSE THEN	(* Startup condition*)
+	bL_OpenRequest := FALSE;
+
+	IF bL_AllShutterClosed THEN		(**)
+		bL_CloseRequest := FALSE;
+		bL_RefKnown     := TRUE;
+	ELSE
+		bL_CloseRequest := TRUE;
+		bL_RefKnown     := FALSE;
+	END_IF;																(**)
+ELSE	(* Axis has been initialized *)
+	IF sI_CleanDevCmd.bService THEN
+		ServiceMode();
+	ELSE
+		bL_OpenRequest	:= FALSE;
+		bL_CloseRequest := FALSE;
+	END_IF;
+END_IF;
+
+IF bL_SafeRunningCondition THEN
+	ShutterProcess();
+ELSE
+	bL_ShutterInletOpen   := FALSE;
+	bL_ShutterInletClose  := FALSE;
+	bL_ShutterOutletOpen  := FALSE;
+	bL_ShutterOutletClose := FALSE;
+	bL_AxisReady          := FALSE;
+END_IF;
+
+(*----------------------------------------------------------------------------------------------------------------------- *)
+(* Output Structure Data Update  																																													*)
+(*----------------------------------------------------------------------------------------------------------------------- *)
+sO_CleanDevStatus.bBusy     := NOT(bL_AxisReady) AND bL_SafeRunningCondition;
+sO_CleanDevStatus.bReady    := bL_AxisReady;
+sO_CleanDevStatus.bRefKnown := bL_RefKnown;
+sO_CleanDevStatus.bError    := FALSE;
+
+(*----------------------------------------------------------------------------------------------------------------------- *)
+(* Safety																																													                        *)
+(*----------------------------------------------------------------------------------------------------------------------- *)
+IF bL_AllShutterClosed THEN
+	bO_SafetyOk := TRUE;
+ELSE
+	bO_SafetyOk := FALSE;
+END_IF;
+
+fB_Motor_Switch_A.bI_A := bL_ShutterInletClose;
+fB_Motor_Switch_A.bI_B := bL_ShutterInletOpen;
+
+fB_Motor_Switch_A();
+
+bO_ShutterInletClose := fB_Motor_Switch_A.bO_QA;
+bO_ShutterInletOpen  := fB_Motor_Switch_A.bO_QB;
+
+fB_Motor_Switch_B.bI_A := bL_ShutterOutletClose;
+fB_Motor_Switch_B.bI_B := bL_ShutterOutletOpen;
+
+fB_Motor_Switch_B();
+
+bO_ShutterOutletClose := fB_Motor_Switch_B.bO_QA;
+bO_ShutterOutletOpen  := fB_Motor_Switch_B.bO_QB;
+
+(*----------------------------------------------------------------------------------------------------------------------- *)
+(*--------------------------------- Fault Diagnosis and Management  ---------------------------------- *)
+(*----------------------------------------------------------------------------------------------------------------------- *)
+(*fB_Msg[1](bI_Status:=NOT bO_SafetyOk);
+
+fB_MsgQueue(); *)]]></ST>
+    </Implementation>
+    <Action Name="ServiceMode" Id="{68bed6d8-3809-4816-9448-4742b96f973e}">
+      <Implementation>
+        <ST><![CDATA[(*Mode selection*)
+IF sI_CleanDevCmd.bAuto THEN	(*Control by cleaning process*)
+	CASE 	sI_CleanDevCmd.eOperation OF
+		eNOP:	(*No operation active*)
+			bL_OpenRequest				:= FALSE;
+			bL_CloseRequest 			:= FALSE;
+		eOPCLEAN, eOPCAPENTER, eOPCAPEXIT, eOPPURGE, eOPPREPSERVICE, eOPENDSERVICE, eOPSTARTUP:	(*All modes except maintenance and shutter open*)
+			IF sI_CleanDevCmd.bInit THEN
+				bL_CloseRequest 		:= TRUE;
+				bL_OpenRequest			:= FALSE;
+			ELSE
+				bL_OpenRequest			:= FALSE;
+				bL_CloseRequest 		:= FALSE;
+			END_IF;
+
+		eOPMAINT:	(*Maintenance -------------------------------------*)
+			IF sI_CleanDevCmd.bInit THEN
+				bL_CloseRequest 		:= TRUE;
+				bL_OpenRequest			:= FALSE;
+			ELSIF sI_CleanDevCmd.bStart THEN
+				bL_CloseRequest 		:= FALSE;
+				bL_OpenRequest			:= TRUE;
+			ELSE
+				bL_OpenRequest			:= FALSE;
+				bL_CloseRequest 		:= FALSE;
+			END_IF;
+
+		eOPSHUTTEROPEN:	(*Open Shutter ------------------------------*)
+			IF sI_CleanDevCmd.bStart THEN
+				bL_CloseRequest 		:= FALSE;
+				bL_OpenRequest			:= TRUE;
+			ELSE
+				bL_OpenRequest			:= FALSE;
+				bL_CloseRequest 		:= FALSE;
+			END_IF;
+		ELSE
+			bL_OpenRequest				:= FALSE;
+			bL_CloseRequest 			:= FALSE;
+		END_CASE;
+
+ELSE		(* MANUAL MODE *)
+	bL_OpenRequest			:= FALSE;
+	bL_CloseRequest 		:= FALSE;
+END_IF;]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="ShutterProcess" Id="{f3dd4cad-6daf-4baf-94f9-90386e898e65}">
+      <Implementation>
+        <ST><![CDATA[(*Default*)
+
+(*Mode selection*)
+IF sI_CleanDevCmd.bAuto THEN	(*Control by cleaning process*)
+	IF NOT bL_RefKnown THEN
+		cL_State:= cL_UNKNOWN;
+	END_IF;
+	
+	(*State Machine -----------------------------------------------------------------*)
+	CASE cL_State OF
+		cL_UNKNOWN:
+			IF bL_AllShutterClosed THEN
+				cL_State:= cL_CLOSED;
+			ELSE
+				cL_State:= cL_UNKNOWN;
+			END_IF;
+	
+			bL_AxisReady:=FALSE;
+			bL_ShutterInletOpen	:=FALSE;
+			bL_ShutterOutletOpen:=FALSE;
+			bL_ShutterInletClose:=bL_CloseRequest AND NOT bI_ShutterInletClosed;
+			bL_ShutterOutletClose:=bL_CloseRequest AND NOT bI_ShutterOutletClosed;
+	
+		cL_OPEN:
+			IF bL_CloseRequest THEN
+				cL_State:= cL_CLOSING;
+				bL_AxisReady:=FALSE;
+			ELSE
+				cL_State:= cL_OPEN;
+				bL_AxisReady:=TRUE;
+			END_IF;
+	
+			tL_OpenTime.IN:=FALSE;
+			bL_ShutterInletOpen	:=FALSE;
+			bL_ShutterOutletOpen:=FALSE;
+			bL_ShutterInletClose:=FALSE;
+			bL_ShutterOutletClose:=FALSE;
+	
+		cL_CLOSING:
+			IF bL_AllShutterClosed THEN
+				cL_State:= cL_CLOSED;
+			ELSE
+				cL_State:= cL_CLOSING;
+			END_IF;
+	
+			tL_OpenTime.IN:=FALSE;
+			bL_ShutterInletOpen	:=FALSE;
+			bL_ShutterOutletOpen:=FALSE;
+			bL_ShutterInletClose:= NOT bI_ShutterInletClosed;
+			bL_ShutterOutletClose:=NOT bI_ShutterOutletClosed;
+			bL_AxisReady:=FALSE;
+	
+		cL_CLOSED:
+			IF bL_OpenRequest THEN
+				cL_State:= cL_OPENING;
+
+				tL_OpenTime.IN:=TRUE;
+				tL_OpenTime.PT:=T#20s;
+				bL_AxisReady:=FALSE;
+			ELSE
+				cL_State:= cL_CLOSED;
+				tL_OpenTime.IN:=FALSE;
+				bL_AxisReady:=TRUE;
+			END_IF;
+	
+			bL_ShutterInletOpen	:=FALSE;
+			bL_ShutterOutletOpen:=FALSE;
+			bL_ShutterInletClose:=TRUE;
+			bL_ShutterOutletClose:=TRUE;
+
+		cL_OPENING:
+			IF tL_OpenTime.Q THEN
+				cL_State:= cL_OPEN;
+				tL_OpenTime.IN:=FALSE;
+			ELSE
+				tL_OpenTime.IN:=TRUE;
+				cL_State:= cL_OPENING;
+			END_IF;
+
+			bL_ShutterInletOpen	:=TRUE;
+			bL_ShutterOutletOpen:=TRUE;
+			bL_ShutterInletClose:=FALSE;
+			bL_ShutterOutletClose:=FALSE;
+			bL_AxisReady:=FALSE;
+	END_CASE;
+	tL_OpenTime();
+ELSE		(* MANUAL MODE *)
+			bL_ShutterInletOpen	:=bI_ForceInletOpen;
+			bL_ShutterOutletOpen:=bI_ForceOutletOpen;
+			bL_ShutterInletClose:=bI_ForceInletClose;
+			bL_ShutterOutletClose:=bI_ForceOutletClose;
+END_IF;]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_SHUTTER">
+      <LineId Id="3" Count="80" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ServiceMode">
+      <LineId Id="2" Count="42" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ShutterProcess">
+      <LineId Id="2" Count="90" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

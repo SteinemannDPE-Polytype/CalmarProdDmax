@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_ADS_MOTION_XYR_SYSTEM" Id="{f2260655-5544-4544-a866-83373325f157}">
+    <Declaration><![CDATA[TYPE ST_ADS_MOTION_XYR_SYSTEM :
+(*************************************************************************************************)
+(*  FILENAME:    ST_ADS_MOTION_XYR_SYSTEM.EXP                                                    *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*     Add description                                                                           *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+  iO_Version        : INT :=  010000;  (*1.0.0*)
+  aO_Type           : STRING := 'MotionXyrSystem';
+  aO_Name           : STRING := 'MotionXYRSystem';
+
+  iO_Elevation      : DINT;
+  iO_Rotation       : DINT;
+  sI_PositionX      : ST_VAR_IN_DINT;
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

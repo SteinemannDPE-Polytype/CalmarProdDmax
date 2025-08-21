@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_CappingCommand" Id="{69742c6f-f044-49a2-a229-669188cd5dcb}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CappingCommand
+
+VAR_INPUT
+  IbTrigger                                 : BOOL;
+  IbReset                                   : BOOL;
+END_VAR
+
+VAR_OUTPUT
+  ObCappingCommand                          : BOOL;
+END_VAR
+
+VAR
+  fb_TonTrigger                             : TON;
+  fb_TonReset                               : TON;
+  bL_CappingCommandAfterEngaged             : BOOL;
+END_VAR
+
+VAR CONSTANT
+  tC_DELAY_CAPPING_COMMAND                  : TIME := T#500MS;    (*Delay for automatic generated capping commands*)
+  tC_RELEASE_CAPPING_COMMAND                : TIME := T#2S;       (*Release for automatic generated capping commands*)
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fb_TonTrigger(IN := IbTrigger, PT := tC_DELAY_CAPPING_COMMAND);
+IF fb_TonTrigger.Q THEN
+  ObCappingCommand := TRUE;
+END_IF
+fb_TonReset(IN := IbTrigger, PT := tC_RELEASE_CAPPING_COMMAND);
+IF fb_TonReset.Q OR IbReset THEN
+  ObCappingCommand := FALSE;
+END_IF
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_CappingCommand">
+      <LineId Id="85" Count="8" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

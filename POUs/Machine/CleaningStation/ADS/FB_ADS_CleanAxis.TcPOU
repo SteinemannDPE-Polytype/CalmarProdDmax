@@ -1,0 +1,179 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_ADS_CleanAxis" Id="{e81195e2-8818-4f5a-9a27-42b320bc7d25}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ADS_CleanAxis EXTENDS FB_AdsBlockBase
+VAR
+  // ---------------------------------
+  // ADS interface block specific
+  sO_Message            : ST_ADS_MSG_IF;    (*Messaging*)
+
+  bI_FaultAck           : BOOL := FALSE;
+
+  (*Manual Move, only possible when in maintenance and manual mode*)
+  bI_ManualMove         : BOOL := FALSE;  (*Active as long as true*)
+  bO_ManualMoveCanEx    : BOOL := FALSE;
+  bO_ManualMovekExec    : BOOL := FALSE;
+  fI_ManualTargetPos    : REAL := 0.0;
+
+  (*Current axis position*)
+  sO_AxisPosition       : ST_VAR_OUT_REAL;
+
+  wO_ErrorCode          : WORD;
+  bO_Busy               : BOOL;
+  bO_Ready              : BOOL;
+  bO_Error              : BOOL;
+END_VAR
+
+VAR PERSISTENT
+  nR_Pattern            : UDINT;  (*check pattern for rem validity*)
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="config" Id="{602858fe-2d47-42ed-b907-702dfdb24639}">
+      <Declaration><![CDATA[METHOD config
+VAR_INPUT
+  aName               : STRING;
+  sAxisPositionUnit   : STRING;  
+  fAxisPositionMin    : REAL;  
+  fAxisPositionMax    : REAL;  
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[aO_Name                  := aName;
+
+sO_AxisPosition.bC_Exist := TRUE; 
+sO_AxisPosition.aC_Unit  := sAxisPositionUnit; 
+sO_AxisPosition.fC_Min   := fAxisPositionMin; 
+sO_AxisPosition.fC_Max   := fAxisPositionMax; 
+
+(*OPC-UA: EngineeringUnits*)
+sO_AxisPosition.nC_EngineeringUnits := 5066068;  (*[mm]*)
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="initRemVar" Id="{ec2a8444-5ba7-4906-93b7-26c86a7e3c78}">
+      <Declaration><![CDATA[METHOD PROTECTED initRemVar
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(*load default initial values if pattern was invalid*)
+IF nR_Pattern <> 16#ABCD THEN
+  ;
+ELSE  
+  nR_Pattern      := 16#ABCD;
+END_IF
+
+(*Init values*)
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ResetCommands" Id="{e3c86916-a8f3-41c7-9565-d69df5982317}">
+      <Declaration><![CDATA[METHOD ResetCommands : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bI_ManualMove := FALSE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="setFeedback" Id="{808e9ee2-01fc-4620-b610-7daa8bbe91ac}">
+      <Declaration><![CDATA[METHOD setFeedback
+VAR_INPUT
+  bManualMoveCanEx         : BOOL; 
+  bManualMovekExec         : BOOL;  
+
+  fAxisPositionVal         : REAL;  
+
+  wErrorCode               : WORD; 
+  bBusy                    : BOOL; 
+  bReady                   : BOOL; 
+  bError                   : BOOL; 
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bO_ManualMoveCanEx         := bManualMoveCanEx;
+bO_ManualMovekExec         := bManualMovekExec;
+
+sO_AxisPosition.fO_Val     := fAxisPositionVal;
+
+wO_ErrorCode               := wErrorCode;
+bO_Busy                    := bBusy;
+bO_Ready                   := bReady;
+bO_Error                   := bError;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="setup" Id="{480b63e7-c4e5-483a-b879-6d3a3d0139cb}">
+      <Declaration><![CDATA[(*
+  Setup constant ADS Block definitions.
+  HOWTO: in abstract implmentation call
+      init(aVersion:=, aType:=, nType:=, eLayer:=);
+*)
+METHOD  setup]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[init( aVersion := '01.00.01'
+    , aType    := 'CleanAxis'
+    , nType    := eMa_BLK_MACHINE
+    , eLayer   := E_AdsLayer.Structural);]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="sMsgInterface" Id="{cb86ee4f-a925-4f0a-a2ca-82963da655b0}">
+      <Declaration><![CDATA[PROPERTY sMsgInterface : POINTER TO ST_ADS_MSG_IF]]></Declaration>
+      <Get Name="Get" Id="{037e6469-2d88-4619-b074-485e9444d141}">
+        <Declaration><![CDATA[]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sMsgInterface := ADR(sO_Message);]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <LineIds Name="FB_ADS_CleanAxis">
+      <LineId Id="35" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CleanAxis.config">
+      <LineId Id="109" Count="0" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="106" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CleanAxis.initRemVar">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="20" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CleanAxis.ResetCommands">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CleanAxis.setFeedback">
+      <LineId Id="75" Count="0" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="178" Count="0" />
+      <LineId Id="177" Count="0" />
+      <LineId Id="157" Count="0" />
+      <LineId Id="179" Count="0" />
+      <LineId Id="164" Count="1" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="100" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CleanAxis.setup">
+      <LineId Id="7" Count="0" />
+      <LineId Id="13" Count="2" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CleanAxis.sMsgInterface.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

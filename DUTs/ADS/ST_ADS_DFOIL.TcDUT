@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_ADS_DFOIL" Id="{52ca6b52-98bc-4ab2-8c5b-de91f722c6e6}">
+    <Declaration><![CDATA[TYPE ST_ADS_DFOIL :
+(*************************************************************************************************)
+(*  FILENAME:    ST_ADS_DFOIL                                                                    *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2019)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    ADS structure dFoil system.                                                                *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+  iO_Version         : INT    := 010000;  (*1.0.0*)
+  aO_Type            : STRING := 'dFoil';
+  aO_Name            : STRING := 'dFoil';
+
+  bI_Enable          : BOOL := TRUE;      (*Enable this device*)
+  iO_MaxNbRecords    : INT  := GVL_MachineDef.cC_DFOIL_MAX_NB_RECORDS;
+
+  iI_UsedNbRecords   : INT;
+  sI_dFoilUsagePos   : ARRAY[1..GVL_MachineDef.cC_DFOIL_MAX_NB_RECORDS] OF ST_DFOIL_RECORD;
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

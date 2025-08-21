@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <Itf Name="I_CleanDevice" Id="{f9467c5b-d9bf-4936-be7b-12ebef9b078d}">
+    <Declaration><![CDATA[INTERFACE I_CleanDevice
+]]></Declaration>
+    <Method Name="mAbort" Id="{721a87b1-409e-499c-b73e-95b1299e1770}">
+      <Declaration><![CDATA[METHOD mAbort : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="mAckError" Id="{8150d4da-4956-4062-a8af-28026f6eb0ff}">
+      <Declaration><![CDATA[METHOD mAckError
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="mOperation" Id="{fc55badb-54e3-4dd7-b7bb-c79540edd7f8}">
+      <Declaration><![CDATA[METHOD mOperation : BOOL
+VAR_INPUT
+	iI_Step : INT;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="mSetMode" Id="{cda35f5b-2fed-46c8-a615-45fa3f48223c}">
+      <Declaration><![CDATA[METHOD mSetMode : BOOL
+VAR_INPUT
+	sI_CleanMode : EN_CLEANING_OP;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Property Name="sStatus" Id="{67f9f641-6e10-4815-99f2-46d9edead7bb}">
+      <Declaration><![CDATA[PROPERTY sStatus : ST_CLEANING_DEV_STATUS]]></Declaration>
+      <Get Name="Get" Id="{aeefb536-a171-43d4-9d92-b487c509c71b}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+  </Itf>
+</TcPlcObject>

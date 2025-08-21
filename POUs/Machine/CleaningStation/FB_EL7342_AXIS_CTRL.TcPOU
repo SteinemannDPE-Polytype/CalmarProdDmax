@@ -1,0 +1,128 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_EL7342_AXIS_CTRL" Id="{e8f84210-580c-47f2-8bf8-655280b59694}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_EL7342_AXIS_CTRL
+(*************************************************************************************************)
+(*  FILENAME:    FB_EL7342_AXIS_CTRL.EXP                                                         *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*     This function transfers the movement commands to the motor.                               *)
+(*     It also provide a position control for the Cleaning Head.                                 *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+{library public}
+VAR_INPUT
+  (*From Motion Controller*)
+  bI_MovePos                     : BOOL;                         (*Movement positive direction*)
+  bI_MoveNeg                     : BOOL;                         (*Movement negative direction*)
+  fI_SpeedLimit                  : REAL;                         (*Speed limit*)
+  bI_MoveEnable                  : BOOL;                         (*Enable movement*)
+  bI_RegActive                   : BOOL;                         (*Regulation active*)
+  bI_FaultReset                  : BOOL;                         (*Reset the errors*)
+
+  (*From Machine*)
+  bI_EStop                       : BOOL;                         (*Emergency stop*)
+  bI_PositionReset               : BOOL;                         (*Position reset*)
+
+  (*Inputs from Motor*)
+  bI_MotorStatus_ReadyToEnable   : BOOL;                         (*Cleaning Head is powered up*)
+  bI_MotorStatus_Ready           : BOOL;                         (*Cleaning Head is ready for new command*)
+  bI_MotorStatus_Error           : BOOL;                         (*Motor status error*)
+
+  (*Config*)
+  fI_Axis_Scaling                : REAL := 0;                    (*Config axis scaling [m/rev]*)
+END_VAR
+
+VAR_OUTPUT
+  (*To Motor*)
+  iO_Velocity                    : INT;                          (*Defines the rotation speed of the motor*)
+  bO_Enable                      : BOOL;                         (*Activates the output stage of the module*)
+  bO_Reset                       : BOOL;                         (*Feedback reset error*)
+
+  (*To MotionController*)
+  eO_EL7342Status                : EN_EL7342_STATE;              (*EL7342 status*)
+  fO_CurrentPosition             : REAL;                         (*Curent position*)
+END_VAR
+
+{library private}
+VAR
+  fb_getSysTime                  : GETSYSTEMTIME;                (*Get system time*)
+  iL_TimeStamp                   : DINT;                         (*Time stamp*)
+  iL_PrevTimeStamp               : DINT;                         (*Previous time stamp*)
+  iL_DeltaTime                   : DINT;                         (*Delta time*)
+  iL_ElapsedTime                 : DINT;                         (*Elapsed time*)
+  fL_CurrentPosition             : REAL;                         (*Current position*)
+
+  fL_GearBoxRatio                : REAL;                         (*Gear box ratio*)
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[bO_Reset := bI_FaultReset;		(* Reset the errors if the input is active *)
+
+IF NOT bI_EStop THEN
+	bO_Enable       := FALSE;
+	iO_Velocity     := 0;
+	eO_EL7342Status := eEmergencyStopped;
+
+ELSIF bI_MotorStatus_Error THEN							(* If the Motor is faulty*)
+	eO_EL7342Status := eFaulty;
+	(* ADD ERROR CODE TREATMENT *)
+
+ELSIF bI_MotorStatus_ReadyToEnable THEN			(* When the Output Stage is ready to be Enabled *)
+	eO_EL7342Status := eReadyToEnable;
+
+	IF (bI_MotorStatus_Ready OR bI_MotorStatus_ReadyToEnable) AND fI_Axis_Scaling <> 0 THEN
+		iO_Velocity := FC_REAL_TO_INT(MIN(fI_SpeedLimit * 1000 * (32767 / fI_Axis_Scaling), 32767));	(* Speed Setup for the mouvement *)
+
+		IF bI_MovePos AND NOT bI_MoveNeg THEN
+			eO_EL7342Status := eStarted;
+			iO_Velocity     := -iO_Velocity;
+		ELSIF NOT bI_MovePos AND bI_MoveNeg THEN
+			eO_EL7342Status := eStarted;
+			iO_Velocity     := iO_Velocity;
+		ELSE
+			eO_EL7342Status := eReady;
+			iO_Velocity     := 0;
+		END_IF;
+
+		bO_Enable := bI_MoveEnable;				(* The mouvement will be executed according to the FB_CH_MOTION_CTRL Command*)
+	END_IF;
+
+	IF bI_MoveEnable AND bI_MotorStatus_Ready THEN
+		fb_getSysTime();
+		iL_TimeStamp := UDINT_TO_DINT(fb_getSysTime.timeLoDW);
+
+		IF iL_PrevTimeStamp <> 0THEN
+			iL_DeltaTime := iL_TimeStamp - iL_PrevTimeStamp; (* Give the delta time between two cycles in nanoseconds *)
+		END_IF;
+
+		IF bI_MovePos THEN
+		(*	fL_CurrentPosition := fL_CurrentPosition + (iL_DeltaTime) * ((fI_SpeedLimit*(fI_Axis_Scaling/32767))/10000000);*)
+			fL_CurrentPosition := fL_CurrentPosition + DINT_TO_REAL(iL_DeltaTime) / 10_000_000 * fI_SpeedLimit;
+		ELSIF bI_MoveNeg THEN
+(*			fL_CurrentPosition := fL_CurrentPosition - (iL_DeltaTime) * ((fI_SpeedLimit*(fI_Axis_Scaling/32767))/10000000);*)
+			fL_CurrentPosition := fL_CurrentPosition - DINT_TO_REAL(iL_DeltaTime) / 10_000_000 * fI_SpeedLimit;
+		END_IF;
+		iL_PrevTimeStamp := iL_TimeStamp;
+	ELSE
+		iL_PrevTimeStamp := 0;
+	END_IF;
+
+	IF bI_PositionReset THEN
+		fL_CurrentPosition := 0;
+	END_IF;
+END_IF;
+fO_CurrentPosition := fL_CurrentPosition;
+
+(********************************* END OF FB *****************************************************)]]></ST>
+    </Implementation>
+    <LineIds Name="FB_EL7342_AXIS_CTRL">
+      <LineId Id="3" Count="56" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

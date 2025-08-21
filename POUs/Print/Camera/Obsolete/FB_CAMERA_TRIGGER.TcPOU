@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.12">
-  <POU Name="FB_CAMERA_TRIGGER" Id="{91c8bf28-2396-47c0-aa14-fd91ee182e80}" SpecialFunc="None">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_CAMERA_TRIGGER" Id="{a1e7e65e-3918-4422-ad44-6942295217c6}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_CAMERA_TRIGGER
 (*************************************************************************************************)
 (*  FILENAME:    FB_CAMERA_TRIGGER.EXP                                                           *)
@@ -236,5 +236,9 @@ END_IF;
 
 (********************************* END OF FB *****************************************************)]]></ST>
     </Implementation>
+    <LineIds Name="FB_CAMERA_TRIGGER">
+      <LineId Id="3" Count="142" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
   </POU>
 </TcPlcObject>

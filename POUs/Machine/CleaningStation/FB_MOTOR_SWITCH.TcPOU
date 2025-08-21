@@ -1,0 +1,69 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_MOTOR_SWITCH" Id="{a525d59a-961d-495d-b309-9bf8b02a2f84}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_MOTOR_SWITCH
+(*************************************************************************************************)
+(*  FILENAME:    FB_MOTOR_SWITCH.EXP                                                             *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*     Detect change in command, commands from B are only accepted when A is false.              *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+{library public}
+VAR_INPUT
+  bI_A                           : BOOL;                         (*Input A, priority input*)
+  bI_B                           : BOOL;                         (*Input B*)
+  lC_Delay                       : INT := 100;                   (*Delay for switching*)
+END_VAR
+
+VAR_OUTPUT
+  bO_QA                          : BOOL;                         (*Output A*)
+  bO_QB                          : BOOL;                         (*Output B*)
+END_VAR
+
+{library private}
+VAR
+  fb_SwitchTimer                 : TP;                           (*Switching timer*)
+  bL_Areg                        : BOOL;                         (*Memory A*)
+  bL_Breg                        : BOOL;                         (*Memory B*)
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fb_SwitchTimer.PT := INT_TO_TIME(lC_Delay);
+
+(*Detect change in Command, commands from B are only accepted when A is false*)
+fb_SwitchTimer.IN:=	(bI_A XOR bL_Areg) OR ((bI_B XOR bL_Breg) AND NOT bI_A);
+fb_SwitchTimer();
+
+(*Switch logic, A has priority*)
+
+IF bI_A AND NOT fb_SwitchTimer.Q THEN	(*Enable A*)
+	bO_QA := TRUE;
+	bO_QB := FALSE;
+ELSE
+	bO_QA := FALSE;	(*Disable A*)
+
+	IF bI_B AND NOT fb_SwitchTimer.Q THEN	(*Enable B*)
+		bO_QB := TRUE;
+	ELSE
+		bO_QB := FALSE;	(*Disable B*)
+	END_IF;
+
+END_IF;
+
+(*Register*)
+bL_Areg := bI_A;
+bL_Breg := bI_B;
+
+(********************************* END OF FB *****************************************************)]]></ST>
+    </Implementation>
+    <LineIds Name="FB_MOTOR_SWITCH">
+      <LineId Id="3" Count="25" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

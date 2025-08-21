@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
-  <POU Name="FB_GridDataExporter" Id="{a6e16905-996c-4000-bbd3-5d1efe3b1cb5}" SpecialFunc="None">
+  <POU Name="FB_GridDataExporter" Id="{4b0c54ae-3a71-48da-99cf-253c5754e09d}" SpecialFunc="None">
     <Declaration><![CDATA[(*Converts data to exportable formats*)
 FUNCTION_BLOCK FB_GridDataExporter EXTENDS T_NamedBase
 VAR_INPUT
@@ -128,7 +128,7 @@ END_IF
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="dumpJson" Id="{97cfe1c3-c8ec-4fe7-b0f0-77e52207b625}">
+    <Method Name="dumpJson" Id="{4bea0eda-c691-4f5a-94c7-713dcd26bdd6}">
       <Declaration><![CDATA[METHOD PRIVATE dumpJson : BOOL
 VAR_OUTPUT
   nSz : UDINT;
@@ -221,7 +221,7 @@ nSz := LEN2(pSTRING:=ADR(sDoc));
 dumpJson := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="FileLoad" Id="{4cd360ab-51fe-4f58-a31a-78f496b6e5e6}">
+    <Method Name="FileLoad" Id="{4d8cfab9-61fc-463a-afff-7be586209554}">
       <Declaration><![CDATA[(*
   Load Simulation configuration file and apply settings / modes / config to each FB_Sim.
   :return: TRUE as long busy
@@ -302,7 +302,7 @@ nError := errCode;
 FileLoad := nState <> 0;   // busy]]></ST>
       </Implementation>
     </Method>
-    <Method Name="FileSave" Id="{163aa65e-e284-4ad9-ba70-5d4737ab8950}">
+    <Method Name="FileSave" Id="{fe72734d-a870-45f4-b240-fadc1fa2382c}">
       <Declaration><![CDATA[METHOD PRIVATE FileSave : BOOL
 VAR_OUTPUT
   nError : UDINT;
@@ -374,7 +374,7 @@ FileSave := nState <> 0;   // busy
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="Init" Id="{0b3b4c19-d57a-460d-a755-c549681d340e}">
+    <Method Name="Init" Id="{b8b99594-68dd-4d24-8ba9-41e43cd9cb12}">
       <Declaration><![CDATA[METHOD PRIVATE Init : BOOL]]></Declaration>
       <Implementation>
         <ST><![CDATA[LogLevel := E_LogSeverity.Info;
@@ -383,7 +383,7 @@ Init:= bInitialized := TRUE;
 ]]></ST>
       </Implementation>
     </Method>
-    <Method Name="parseJson" Id="{1f3da447-b504-4923-bfa9-b2d2ec7f6cf1}">
+    <Method Name="parseJson" Id="{eeb2f22f-a301-4b5e-b804-af1d9e2593d0}">
       <Declaration><![CDATA[(*
   Parse json sting into data.
   :return: TRUE on success

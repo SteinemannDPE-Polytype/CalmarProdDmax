@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_PU_STATUS" Id="{1773bd29-9034-41dc-a659-c05248738dbf}">
+    <Declaration><![CDATA[TYPE ST_PU_STATUS :
+(*************************************************************************************************)
+(*  FILENAME:    ST_PU_STATUS                                                                    *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    Information feedback about the mouvement cycle and the position.                           *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+  bO_Active                  : BOOL;  (*Print Head is powered up*)
+  bO_Ready                   : BOOL;  (*Print head is ready for work*)
+  bO_Busy                    : BOOL;  (*Print head is busy*)
+  fO_Position                : REAL;  (*Processed copy of absolute encoder feedback*)
+  bO_InPosition_C1           : BOOL;
+  bO_InPosition_C2           : BOOL;
+  bO_InPosition_Waiting      : BOOL;
+  bO_InPosition_Printing     : BOOL;
+  bO_InPosition_Service      : BOOL;
+  wO_FaultCode               : WORD;
+  bO_Error                   : BOOL;
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

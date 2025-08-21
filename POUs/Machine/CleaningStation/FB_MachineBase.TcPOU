@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_MachineBase" Id="{2594f27b-456b-4450-9dd7-5556e31019d7}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_MachineBase EXTENDS T_NamedBase
+(*************************************************************************************************)
+(*  FILENAME:    FB_MachineBase                                                                  *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Polytype AG, Fribourg/Switzerland (2020)                *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    add description                                                                            *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+VAR_INPUT
+	I_MachineStatus : I_MachineStateBase;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <LineIds Name="FB_MachineBase">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

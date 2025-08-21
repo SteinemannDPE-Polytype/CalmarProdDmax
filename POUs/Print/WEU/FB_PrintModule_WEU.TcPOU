@@ -166,8 +166,13 @@ VAR
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[// Parameter checks
-IF pModulesSetup = 0 OR pAdsSa = 0 OR pAdsCam = 0 OR 
-    pMachineInputs = 0 OR pMachineOutputs = 0 THEN
+IF    pModulesSetup = 0 
+   OR_ELSE pModulesSetup^.pSetupPrint = 0
+   OR pAdsSa = 0 
+   OR pAdsCam = 0
+   OR pMachineInputs = 0
+   OR pMachineOutputs = 0
+THEN
     // set here from local fb instances: OR iModuleMaster = 0 OR iPosition = 0 OR iStartPos = 0 THEN
   LogError('init(): Invalid parameter');
   RETURN;
@@ -390,7 +395,8 @@ LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
     </LineIds>
     <LineIds Name="FB_PrintModule_WEU.Init">
       <LineId Id="273" Count="0" />
-      <LineId Id="281" Count="4" />
+      <LineId Id="493" Count="6" />
+      <LineId Id="283" Count="2" />
       <LineId Id="276" Count="0" />
       <LineId Id="362" Count="0" />
       <LineId Id="360" Count="1" />

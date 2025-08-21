@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="EN_CLEANING_OP" Id="{a5f383e5-a12f-4e14-99a7-d8c70ff462f5}">
+    <Declaration><![CDATA[TYPE EN_CLEANING_OP :
+(*************************************************************************************************)
+(*  FILENAME:    EN_CLEANING_OP.EXP                                                              *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Polytype AG, Fribourg/Switzerland (2020)                *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*     Add description                                                                           *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+(
+  eNOP             := 0,          (*No operation active*)
+  eOPCLEAN         := 1,          (*Cleaning*)
+  eOPPURGE         := 2,          (*Purging*)
+  eOPCAPENTER      := 3,          (*Enter Capping*)
+  eOPCAPEXIT       := 4,          (*Exit Capping*)
+  eOPMAINT         := 5,          (*Maintenance*)
+  eOPSHUTTEROPEN   := 6,          (*Open Shutter*)
+  eOPPREPSERVICE   := 7,          (*Prepare cleaning station for servce*)
+  eOPENDSERVICE    := 8,          (*End service mode for cleaning station*)
+  eOPSTARTUP       := 9,          (*Prepare system for operation*)
+  eOPGOTOPROD	     := 10,         (*Prepare system for production*)
+  eOPGOTOWAIT	     := 11,					(*Prepare system to production pause*)
+  eOPEXITERROR	   := 20					(*Return from Error*)
+);
+END_TYPE
+
+
+
+
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

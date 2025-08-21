@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_MachineState" Id="{99306a14-ffa2-4e55-ab7a-3166624cfb8a}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_MachineState IMPLEMENTS I_MachineStateBase
+(*************************************************************************************************)
+(*  FILENAME:    FB_MachineState                                                                 *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Polytype AG, Fribourg/Switzerland (2020)                *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    add description                                                                            *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+VAR_INPUT
+  bI_SafetyOk                     : BOOL;  (*Safety ok for movement*)
+  bI_MachineReady                 : BOOL;  (*Machine ready*)
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Property Name="pMachineReady" Id="{916e6e73-8c20-4a41-848d-0dec9b17ccfb}">
+      <Declaration><![CDATA[PROPERTY pMachineReady : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{b5547524-c2ed-4117-b5b3-a9eb5cc3fce1}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[pMachineReady := bI_MachineReady;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="pSafetyOk" Id="{db974116-5989-4c02-9d25-9a14db407c1f}">
+      <Declaration><![CDATA[PROPERTY pSafetyOk : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{45c11563-1e50-4f32-bb3e-e8f5d62ab6ae}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[pSafetyOk := bI_SafetyOk;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <LineIds Name="FB_MachineState">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MachineState.pMachineReady.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MachineState.pSafetyOk.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

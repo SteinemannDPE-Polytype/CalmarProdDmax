@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_CLEANING_DEV_CMD" Id="{d749fe2e-1600-4567-b4b6-252e2150c6bb}">
+    <Declaration><![CDATA[TYPE ST_CLEANING_DEV_CMD :
+(*************************************************************************************************)
+(*  FILENAME:    ST_CLEANING_DEV_CMD.EXP                                                         *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*     Command for cleaning axis.                                                                *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+(*Commands*)
+  bInit             : BOOL;  (*Initialize operation*)
+  bPrep             : BOOL;  (*Prepare operation*)
+  bStart            : BOOL;  (*Start operation*)
+  bStop             : BOOL;  (*Stop operation*)
+  bAbort            : BOOL;  (*Abort operation*)
+  bAckError         : BOOL;  (*Acknowledge Error*)
+
+  bAuto             : BOOL;  (*Automatic mode selected*)
+  bService          : BOOL;  (*Service mode enabled*)
+
+  eOperation        : EN_CLEANING_OP;  (*Active Operation*)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

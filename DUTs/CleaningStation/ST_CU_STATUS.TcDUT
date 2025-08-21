@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_CU_STATUS" Id="{cd4896a8-abd5-479b-98e0-6629f655cd64}">
+    <Declaration><![CDATA[TYPE ST_CU_STATUS :
+(*************************************************************************************************)
+(*  FILENAME:    ST_CU_STATUS                                                                    *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    Information feedback about the mouvement cycle and the position.                           *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+  bO_Active                  : BOOL;  (*Cleaning Unit is powered up*)
+  bO_Ready                   : BOOL;  (*Cleaning Unit is ready for new command*)
+  bO_Busy                    : BOOL;  (*Cleaning Unit has a work in progress*)
+  bO_ReferenceKnown          : BOOL;  (*Copy of sensor feedback*)
+  fO_Position                : REAL;  (*Processed copy of resolver feedback*)
+  bO_InPosition_Cleaning     : BOOL;
+  bO_InPosition_Capping      : BOOL;
+  bO_InPosition_Purging      : BOOL;
+  bO_InPosition_Parking      : BOOL;
+  wO_FaultCode               : WORD;
+  bO_Error                   : BOOL;
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

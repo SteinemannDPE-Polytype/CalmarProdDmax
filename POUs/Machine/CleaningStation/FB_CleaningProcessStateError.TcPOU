@@ -1,0 +1,91 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_CleaningProcessStateError" Id="{88ff0672-26ba-4329-bfb3-65ec1ae93a52}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CleaningProcessStateError EXTENDS FB_CleaningProcessStateBase
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="mAbort" Id="{6e20911d-6b5a-47ca-9e83-6d2d980dcf59}">
+      <Declaration><![CDATA[METHOD mAbort : BOOL
+VAR_INPUT
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bL_DevOpActive THEN
+  bL_DevOpActive := TRUE; //Set to relaunch process
+  iL_CurrentStep := 0;
+END_IF
+I_ParentCallback.mSetMode(EN_Cleaning_OP.eOPEXITERROR);
+I_ParentCallback.mDeviceAbort();
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mAckError" Id="{2be7c66b-44e5-4a17-8c7e-135a3c45d3f4}">
+      <Declaration><![CDATA[METHOD mAckError : BOOL
+VAR_INPUT
+END_VAR
+
+VAR
+	sL_DeviceStatus: ST_CLEANING_DEV_STATUS;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[sL_DeviceStatus := I_ParentCallback.pDeviceStatus;
+
+IF NOT sL_DeviceStatus.bError THEN
+  IF NOT SUPER^.pInitDone THEN
+    I_ParentCallback.mChangeState(EN_Cleaning_State.Init);
+  ELSE  
+    I_ParentCallback.mChangeState(EN_Cleaning_State.Service);
+  END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mStateAction" Id="{a6f54142-1b86-4888-9377-9e0e666ff071}">
+      <Declaration><![CDATA[METHOD mStateAction
+VAR_INPUT
+END_VAR
+
+VAR
+	sL_DeviceStatus: ST_CLEANING_DEV_STATUS;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[sL_DeviceStatus := I_ParentCallback.pDeviceStatus;
+
+SUPER^.pInitDone := sL_DeviceStatus.bRefKnown;
+
+IF bL_DevOpActive THEN
+	mDevOp();
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CleaningProcessStateError">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateError.mAbort">
+      <LineId Id="3" Count="6" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateError.mAckError">
+      <LineId Id="5" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="15" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateError.mStateAction">
+      <LineId Id="3" Count="5" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

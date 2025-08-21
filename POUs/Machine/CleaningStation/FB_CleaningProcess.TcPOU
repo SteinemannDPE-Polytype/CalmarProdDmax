@@ -1,0 +1,580 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_CleaningProcess" Id="{c19bd5d3-fd53-4fe2-9bd7-be27a84309f2}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CleaningProcess EXTENDS FB_MachineBase IMPLEMENTS I_CleaningStateCallback
+VAR_INPUT
+  I_CleanDeviceList              : ARRAY[1..cI_MAXCLEANDEVICES] OF I_CleanDevice;
+
+  (*User commands*)
+  bI_UsrService                  : BOOL;                         (*User has selected service (1) or print(0) mode*)
+  bI_UsrAbort                    : BOOL;                         (*User aborted*)
+  bI_Emergency                   : BOOL;
+  bI_SafetyOk                    : BOOL;
+
+  bI_CappingCommand              : BOOL;                         (*Capping command*)
+  bI_PurgeCommand                : BOOL;                         (*Purge command*)
+  bI_CleanCommand                : BOOL;                         (*Clean command*)
+  bI_CleanLocked                 : BOOL;                         (*Cleaning locked*)
+  
+  (*User settings*)
+  bI_UsrAutoMode                 : BOOL;                         (*User has selected automatic mode*)
+  bI_UsrCleanAfterPurge          : BOOL;                         (*Automatically clean after Purge*)
+  bI_UsrCleanAfterCapp           : BOOL;                         (*Automatically clean after Capping*)
+  bI_UsrPurgeAfterCapp           : BOOL;                         (*Automatically purge after Capping*)
+
+  bI_CappingPosReached           : BOOL;                         (*Capping position reached*)
+  bI_CappingEnterPosReached      : BOOL;                         (*Capping enter position reached*)
+END_VAR
+
+VAR_OUTPUT
+END_VAR
+
+VAR
+  sADS_CleanProcess              : FB_ADS_CleanProcess;
+
+  fB_StateInit                   : FB_CleaningProcessStateInit;
+  fB_StateProduction             : FB_CleaningProcessStateProduction;
+  fB_StateService                : FB_CleaningProcessStateService;
+  fB_StateCapping                : FB_CleaningProcessStateCapping;
+  fB_StateCappingExit            : FB_CleaningProcessStateCappingExit;
+  fB_StateCleaning               : FB_CleaningProcessStateCleaning;
+  fB_StateError                  : FB_CleaningProcessStateError;
+  sL_CurrentState                : POINTER TO FB_CleaningProcessStateBase;
+  
+  bL_UsrService                  : BOOL;
+  bL_UsrProductionRequest        : BOOL;
+  bL_UsrServiceRequest           : BOOL;
+  bL_Abort                       : BOOL;  
+  bL_AbortExec                   : BOOL;
+  sL_DeviceStatus                : ST_CLEANING_DEV_STATUS;
+
+  bL_PurgeExec                   : BOOL;
+  
+  iL_CleanDeviceCount            : INT;
+  iL_CdCount                     : INT;
+END_VAR
+
+VAR CONSTANT
+  cI_MAXCLEANDEVICES             : INT := 10;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//Current state cyclic action
+sL_CurrentState^.mStateAction();
+
+IF sL_CurrentState^.pInitDone THEN
+  IF bI_UsrService AND NOT bL_UsrService THEN //Switch to service
+    bL_UsrServiceRequest    := TRUE;
+    bL_UsrProductionRequest := FALSE;
+  ELSIF NOT bI_UsrService AND bL_UsrService THEN //Switch to production
+    bL_UsrProductionRequest := TRUE;
+    bL_UsrServiceRequest    := FALSE;
+  END_IF
+  
+  bL_UsrService := bI_UsrService;
+END_IF
+  
+//Decode user commands
+mUserCommand();
+
+//Get device status
+sL_DeviceStatus := mDeviceStatus();
+
+
+]]></ST>
+    </Implementation>
+    <Method Name="mAckError" Id="{215272c3-f3be-4586-9e7a-a28a00ecf953}">
+      <Declaration><![CDATA[METHOD mAckError : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[mDeviceAckError();
+
+//Get device status
+sL_DeviceStatus := mDeviceStatus();
+
+IF bI_UsrAutoMode THEN
+  sL_CurrentState^.mAckError();
+END_IF
+
+sADS_CleanProcess.bAcknowledgeError := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mChangeState" Id="{4a15456f-d812-4e22-a8f9-e583db3e09a8}">
+      <Declaration><![CDATA[METHOD mChangeState
+VAR_INPUT
+	sI_NextState	: EN_Cleaning_State;
+END_VAR
+
+VAR
+  	sL_PrevState	: POINTER TO FB_CleaningProcessStateBase;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//Exit action
+sL_CurrentState^.mExitAction();
+
+//Switch state
+sL_PrevState:=sL_CurrentState;
+
+CASE sI_NextState OF
+	EN_Cleaning_State.Init:
+		sL_CurrentState:=ADR(fB_StateInit);
+	EN_Cleaning_State.Production:
+		sL_CurrentState:=ADR(fB_StateProduction);
+	EN_Cleaning_State.Service:
+		sL_CurrentState:=ADR(fB_StateService);
+	EN_Cleaning_State.Capping:
+		sL_CurrentState:=ADR(fB_StateCapping);
+	EN_Cleaning_State.CappingExit:
+		sL_CurrentState:=ADR(fB_StateCappingExit);
+	EN_Cleaning_State.Cleaning:
+		sL_CurrentState:=ADR(fB_StateCleaning);
+	EN_Cleaning_State.Error:
+		sL_CurrentState:=ADR(fB_StateError);	
+END_CASE
+
+//Entry action
+sL_CurrentState^.mEntryAction();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mDeviceAbort" Id="{4855f457-57e5-4854-8cd0-a132d0e5298a}">
+      <Declaration><![CDATA[METHOD mDeviceAbort : BOOL
+
+VAR
+  bL_Success       : BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bL_Success := TRUE;
+
+//Populate command
+FOR iL_CdCount := 1 TO iL_CleanDeviceCount DO
+	bL_Success := bL_Success AND I_CleanDeviceList[iL_CdCount].mAbort();
+END_FOR
+
+mDeviceAbort:=TRUE;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mDeviceAckError" Id="{aff317e5-0f35-4a46-b96b-3156c0ceb834}">
+      <Declaration><![CDATA[METHOD mDeviceAckError
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//Populate command
+FOR iL_CdCount := 1 TO iL_CleanDeviceCount DO
+	I_CleanDeviceList[iL_CdCount].mAckError();
+END_FOR]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mDeviceOperation" Id="{84d8a2b3-d7cd-49ce-82d9-96108bf19ab4}">
+      <Declaration><![CDATA[METHOD mDeviceOperation : BOOL
+VAR_INPUT
+  iI_Step    : INT;	
+END_VAR
+
+VAR
+  bL_Success : BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bL_Success := TRUE;
+
+//Populate command
+FOR iL_CdCount := 1 TO iL_CleanDeviceCount DO
+	bL_Success := bL_Success AND I_CleanDeviceList[iL_CdCount].mOperation(iI_Step);
+END_FOR
+
+//Return result
+mDeviceOperation := bL_Success;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mDeviceStatus" Id="{1bac84c6-bd63-4847-8ad8-99d5246c9a7b}">
+      <Declaration><![CDATA[METHOD PROTECTED mDeviceStatus : ST_CLEANING_DEV_STATUS
+VAR
+  sL_GlobalStatus : ST_CLEANING_DEV_STATUS;
+  sL_DeviceStatus : ST_CLEANING_DEV_STATUS;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[sL_GlobalStatus.bBusy     := FALSE;
+sL_GlobalStatus.bError    := FALSE;
+sL_GlobalStatus.bReady    := TRUE;
+sL_GlobalStatus.bRefKnown := TRUE;
+
+//Get status
+FOR iL_CdCount := 1 TO iL_CleanDeviceCount DO
+	sL_DeviceStatus := I_CleanDeviceList[iL_CdCount].sStatus;
+	
+	sL_GlobalStatus.bBusy     := sL_GlobalStatus.bBusy      OR sL_DeviceStatus.bBusy;
+	sL_GlobalStatus.bError    := sL_GlobalStatus.bError     OR sL_DeviceStatus.bError;
+	sL_GlobalStatus.bReady    := sL_GlobalStatus.bReady    AND sL_DeviceStatus.bReady;
+	sL_GlobalStatus.bRefKnown := sL_GlobalStatus.bRefKnown AND sL_DeviceStatus.bRefKnown;
+END_FOR
+
+//Return result
+mDeviceStatus := sL_GlobalStatus;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mInit" Id="{9975b10c-8406-434b-9d44-f4dda2cf156c}">
+      <Declaration><![CDATA[METHOD PUBLIC mInit : BOOL
+VAR_INPUT
+	
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//Init states
+fB_StateInit       .mInit(I_MachineStatus, THIS^);		
+fB_StateProduction .mInit(I_MachineStatus, THIS^);	 
+fB_StateService    .mInit(I_MachineStatus, THIS^);	 	
+fB_StateCapping    .mInit(I_MachineStatus, THIS^);	 	
+fB_StateCappingExit.mInit(I_MachineStatus, THIS^);	 	
+fB_StateCleaning   .mInit(I_MachineStatus, THIS^);	 	
+fB_StateError      .mInit(I_MachineStatus, THIS^);	 		
+
+//State names
+fB_StateInit       .pName := 'Init';
+fB_StateProduction .pName := 'Production';
+fB_StateService    .pName := 'Service';
+fB_StateCapping    .pName := 'CappingEnter';
+fB_StateCappingExit.pName := 'CappingExit';
+fB_StateCleaning   .pName := 'Cleaning';
+fB_StateError      .pName := 'Error';
+
+//Set initial state
+sL_CurrentState := ADR(fB_StateInit);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mRegisterDevice" Id="{a079a887-466a-4fa8-b53d-ddbfda7e21da}">
+      <Declaration><![CDATA[METHOD PUBLIC mRegisterDevice : BOOL
+VAR_INPUT
+  I_NewDevice : I_CleanDevice;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF iL_CleanDeviceCount < cI_MAXCLEANDEVICES AND I_NewDevice <> 0 THEN
+  iL_CleanDeviceCount := iL_CleanDeviceCount + 1;
+  I_CleanDeviceList[iL_CleanDeviceCount] := I_NewDevice;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mSetMode" Id="{ae20c98d-79ab-45a9-af58-374c08e6baff}">
+      <Declaration><![CDATA[METHOD mSetMode : BOOL
+VAR_INPUT
+  sI_CleanMode     : EN_CLEANING_OP;
+END_VAR
+
+VAR
+  bL_Success       : BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bL_Success := TRUE;
+
+//Populate command
+FOR iL_CdCount := 1 TO iL_CleanDeviceCount DO
+	bL_Success := bL_Success AND I_CleanDeviceList[iL_CdCount].mSetMode(sI_CleanMode);
+END_FOR
+
+//Return result
+mSetMode := bL_Success;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mUserCommand" Id="{ce35d3a3-688f-46be-8cfc-90b1ee2a15b2}">
+      <Declaration><![CDATA[METHOD mUserCommand
+VAR_INPUT
+END_VAR
+
+VAR
+	bL_ServiceResult     : BOOL;
+  bL_CleanProcessCanEx : BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(*Abort command*)
+IF    ((bI_UsrAbort OR sADS_CleanProcess.bI_Abort) AND NOT bL_Abort)  //Rising edge of abort command
+   OR NOT I_MachineStatus.pSafetyOk
+THEN
+  bL_Abort             := TRUE;
+  bL_AbortExec         := TRUE;
+  bL_ServiceResult     := sL_CurrentState^.mAbort();
+
+  (*Reset commands*)
+  bL_UsrProductionRequest := FALSE;
+  bL_UsrServiceRequest    := FALSE;
+  sADS_CleanProcess.ResetCommands();
+ELSE
+  IF NOT (bI_UsrAbort OR sADS_CleanProcess.bI_Abort) THEN
+    bL_Abort           := FALSE;
+  END_IF
+  bL_AbortExec         := FALSE;
+END_IF
+
+  
+(*Select Operation*) 
+IF bI_UsrAutoMode THEN
+  IF sADS_CleanProcess.bI_Maintenance THEN
+    bL_ServiceResult := sL_CurrentState^.mService();
+  ELSIF bL_UsrProductionRequest THEN
+    bL_ServiceResult := sL_CurrentState^.mProduction();
+    IF bL_ServiceResult THEN
+      bL_UsrProductionRequest := FALSE;
+    END_IF
+  ELSIF (bI_CappingCommand OR sADS_CleanProcess.bI_StartCapping OR bL_UsrServiceRequest) AND NOT bI_CappingEnterPosReached THEN
+    bL_ServiceResult := sL_CurrentState^.mCleaningOp(EN_CLEANING_OP.eOPCAPENTER);
+    IF bL_ServiceResult THEN
+      bL_UsrServiceRequest := FALSE;
+    END_IF
+  ELSIF sADS_CleanProcess.bI_StopCapping THEN
+    bL_ServiceResult := sL_CurrentState^.mCleaningOp(EN_CLEANING_OP.eOPCAPEXIT);
+  ELSIF (bI_CleanCommand OR sADS_CleanProcess.bI_Clean) AND NOT bI_CleanLocked THEN
+    bL_ServiceResult := sL_CurrentState^.mCleaningOp(EN_CLEANING_OP.eOPCLEAN);
+  (*
+  ELSIF sADS_CleanProcess.bI_Maintenance THEN
+    bL_ServiceResult := sL_CurrentState^.mCleaningOp(EN_CLEANING_OP.eOPMAINT);
+  *)
+  ELSIF (bI_PurgeCommand OR sADS_CleanProcess.bI_Purge) AND NOT bI_CleanLocked THEN
+    bL_PurgeExec := TRUE;
+    IF NOT bI_CappingPosReached THEN
+      bL_ServiceResult := sL_CurrentState^.mCleaningOp(EN_CLEANING_OP.eOPPURGE);
+    END_IF
+  (*
+  ELSIF sADS_CleanProcess.bI_OpenShutter THEN
+    bL_ServiceResult := sL_CurrentState^.mCleaningOp(EN_CLEANING_OP.eOPSHUTTEROPEN);
+  *)
+  END_IF
+END_IF
+
+//Error handling
+IF NOT bL_ServiceResult THEN
+	; //TODO Implement error message
+END_IF
+
+//ACK Error from cleaning GUI
+IF sADS_CleanProcess.bI_AcknowledgeError THEN
+  mAckError();
+END_IF
+
+//Command handshake
+//TODO: HANDLE PURGE CanEx Ex properly
+
+bL_CleanProcessCanEx := bI_UsrAutoMode  AND bI_UsrService AND NOT sL_DeviceStatus.bBusy;
+
+sADS_CleanProcess.setFeedback( bStartCappingCanEx       := bL_CleanProcessCanEx
+                             , bStartCappingExec        := fB_StateCapping.bL_DevOpActive
+          
+                             , bStopCappingCanEx        := bL_CleanProcessCanEx
+                             , bStopCappingExec         := fB_StateCappingExit.bL_DevOpActive
+          
+                             , bPurgeCanEx              := bL_CleanProcessCanEx
+                             , bPurgeExec               := bL_PurgeExec
+          
+                             , bCleanCanEx              := bL_CleanProcessCanEx AND NOT bI_CleanLocked
+                             , bCleanExec               := fB_StateCleaning.bL_DevOpActive
+          
+                             , bMaintenanceCanEx        := bL_CleanProcessCanEx
+                             , bMaintenanceExec         := fB_StateService.bL_DevOpActive
+          
+                             , bOpenShutterCanEx        := FALSE  (*DEM: not exists*)
+                             , bOpenShutterExec         := FALSE  (*DEM: not exists*)
+          
+                             , bAbortCanEx              := sL_DeviceStatus.bBusy OR sL_DeviceStatus.bError
+                             , bAbortExec               := bL_AbortExec
+          
+                             , bAcknowledgeErrorCanEx   := sL_DeviceStatus.bError OR NOT sL_DeviceStatus.bRefKnown OR (sL_CurrentState^.sL_StateName = fB_StateError.pName)
+                             , bAcknowledgeErrorExec    := FALSE
+          
+                             , bBusy                    := sL_DeviceStatus.bBusy
+                             , bReady                   := TRUE
+                             , bServiceEnabled          := FALSE
+                             , bAxisProcessMovingVisible:= TRUE
+          
+                             , wErrorCode               := 0
+                             );
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="pDeviceStatus" Id="{a51f6fab-3e78-4d77-8567-6f8faa91ea73}">
+      <Declaration><![CDATA[PROPERTY pDeviceStatus : ST_CLEANING_DEV_STATUS
+]]></Declaration>
+      <Get Name="Get" Id="{b6ca66fe-4e8c-4864-8286-ca9a5a32bc77}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[pDeviceStatus := sL_DeviceStatus;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="pPurgeExec" Id="{98eba2cb-ed86-4952-98a5-6f395de02226}">
+      <Declaration><![CDATA[PROPERTY pPurgeExec : BOOL]]></Declaration>
+      <Get Name="Get" Id="{993f2a46-0ed2-46b6-a146-1400a430708e}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[pPurgeExec := bL_PurgeExec;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{77a45faa-fc1c-4ff5-8303-590d156d670a}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bL_PurgeExec := pPurgeExec;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <LineIds Name="FB_CleaningProcess">
+      <LineId Id="208" Count="1" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="210" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="50" Count="1" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="213" Count="0" />
+      <LineId Id="273" Count="2" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="66" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcess.mAckError">
+      <LineId Id="21" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="23" Count="1" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="15" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcess.mChangeState">
+      <LineId Id="10" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="25" Count="1" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="41" Count="1" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="51" Count="1" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcess.mDeviceAbort">
+      <LineId Id="3" Count="8" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcess.mDeviceAckError">
+      <LineId Id="6" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcess.mDeviceOperation">
+      <LineId Id="14" Count="1" />
+      <LineId Id="8" Count="2" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcess.mDeviceStatus">
+      <LineId Id="19" Count="2" />
+      <LineId Id="17" Count="1" />
+      <LineId Id="6" Count="2" />
+      <LineId Id="11" Count="1" />
+      <LineId Id="14" Count="2" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="24" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcess.mInit">
+      <LineId Id="6" Count="0" />
+      <LineId Id="13" Count="2" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="21" Count="3" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcess.mRegisterDevice">
+      <LineId Id="12" Count="1" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="14" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcess.mSetMode">
+      <LineId Id="8" Count="7" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcess.mUserCommand">
+      <LineId Id="147" Count="1" />
+      <LineId Id="267" Count="0" />
+      <LineId Id="266" Count="0" />
+      <LineId Id="150" Count="0" />
+      <LineId Id="310" Count="0" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="257" Count="0" />
+      <LineId Id="251" Count="0" />
+      <LineId Id="250" Count="0" />
+      <LineId Id="276" Count="0" />
+      <LineId Id="152" Count="8" />
+      <LineId Id="239" Count="0" />
+      <LineId Id="161" Count="11" />
+      <LineId Id="174" Count="1" />
+      <LineId Id="177" Count="7" />
+      <LineId Id="320" Count="0" />
+      <LineId Id="323" Count="0" />
+      <LineId Id="322" Count="0" />
+      <LineId Id="186" Count="3" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="190" Count="13" />
+      <LineId Id="308" Count="1" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="277" Count="0" />
+      <LineId Id="279" Count="28" />
+      <LineId Id="311" Count="0" />
+      <LineId Id="229" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcess.pDeviceStatus.Get">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcess.pPurgeExec.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcess.pPurgeExec.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

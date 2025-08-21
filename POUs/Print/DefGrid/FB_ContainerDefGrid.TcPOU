@@ -186,10 +186,10 @@ bAborted := fBImageDeformation.bAborted;
 ]]></ST>
       </Implementation>
     </Method>
-    <Property Name="LogLevel" Id="{6da142c4-2927-48a5-bf2d-7c92ac17257e}">
+    <Property Name="LogLevel" Id="{6521040d-f6ea-43c0-b1a9-6a87279cde66}">
       <Declaration><![CDATA[PROPERTY LogLevel : E_LogSeverity
 ]]></Declaration>
-      <Get Name="Get" Id="{af22db1f-f37b-4270-8a86-db0b24381a58}">
+      <Get Name="Get" Id="{151a89f0-c791-4576-ba47-7dcb1a83e585}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -197,7 +197,7 @@ END_VAR
           <ST><![CDATA[LogLevel := SUPER^.LogLevel;]]></ST>
         </Implementation>
       </Get>
-      <Set Name="Set" Id="{91e587a8-a7c8-4ad5-958d-75e401c184d9}">
+      <Set Name="Set" Id="{a8c5af53-bd67-4015-bb27-3e11a4cbb2b7}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>

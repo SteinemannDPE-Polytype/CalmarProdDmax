@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
-  <POU Name="FB_ADS_DVTSHEETALIGNMENT" Id="{767ea748-f391-4f32-9fdd-aa405f60b0a7}" SpecialFunc="None">
+  <POU Name="FB_ADS_DVTSHEETALIGNMENT" Id="{94504623-f6fe-4cfa-b05f-033fba99a534}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_ADS_DVTSHEETALIGNMENT EXTENDS FB_AdsBlockBase
 VAR
   // ---------------------------------
@@ -128,7 +128,7 @@ bR_UsePrintMark := bUsePrintMark;   // update remanent variable ]]></ST>
         </Implementation>
       </Set>
     </Property>
-    <Method Name="config" Id="{310c53a1-bb03-42bc-8be5-9521b96a931e}">
+    <Method Name="config" Id="{bc806f02-cd7b-4c65-b0ab-7d786b025328}">
       <Declaration><![CDATA[METHOD config
 VAR_INPUT
   bPrintMarkSizeX_Exist : BOOL;
@@ -334,9 +334,9 @@ METHOD  setup]]></Declaration>
         <ST><![CDATA[init(aVersion:='01.00.10', aType:='DvtSheetAlignment', nType:=ePr_BLK_SA, eLayer:=E_AdsLayer.Structural);]]></ST>
       </Implementation>
     </Method>
-    <Property Name="sMsgInterface" Id="{3007b5f4-968d-44ed-a66b-c0ffb62b246d}" FolderPath="Ads\">
+    <Property Name="sMsgInterface" Id="{471e282b-232f-47dc-9810-b55f92eb878d}" FolderPath="Ads\">
       <Declaration><![CDATA[PROPERTY sMsgInterface : POINTER TO ST_ADS_MSG_IF]]></Declaration>
-      <Get Name="Get" Id="{4e5925a9-bdb0-4bf9-8e26-de5a5ded8c3b}">
+      <Get Name="Get" Id="{25875ed7-7137-471c-b704-d48feb67edb5}">
         <Declaration><![CDATA[]]></Declaration>
         <Implementation>
           <ST><![CDATA[sMsgInterface := ADR(sO_Message);]]></ST>

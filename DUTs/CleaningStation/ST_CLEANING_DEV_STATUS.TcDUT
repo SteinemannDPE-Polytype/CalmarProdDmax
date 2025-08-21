@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_CLEANING_DEV_STATUS" Id="{d6af5f73-c01a-4736-b667-e7681b46ee7d}">
+    <Declaration><![CDATA[TYPE ST_CLEANING_DEV_STATUS :
+(*************************************************************************************************)
+(*  FILENAME:    ST_CLEANING_DEV_STATUS.EXP                                                      *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*     Feedback from cleaning axis.                                                              *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+  bBusy      : BOOL;  (*The axis has a pending command*)
+  bReady     : BOOL;  (*The axis is ready for a new command*)
+  bError     : BOOL;  (*The axis has an error*)
+  bRefKnown  : BOOL;  (*The axis is initialized*)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

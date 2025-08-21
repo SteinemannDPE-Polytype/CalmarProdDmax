@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_CleaningProcessStateInit" Id="{a55095e6-860c-4efa-856e-cb8067d8bb0a}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CleaningProcessStateInit EXTENDS FB_CleaningProcessStateBase
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	bL_InitActive : BOOL := TRUE;;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="mProduction" Id="{35189b17-d1e9-461b-b9d3-b92e546fd14c}">
+      <Declaration><![CDATA[METHOD mProduction : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//Switch to production mode if no operation active
+IF I_MachineStatus.pSafetyOk AND I_MachineStatus.pMachineReady AND NOT bL_DevOpActive THEN
+	I_ParentCallback.mChangeState(EN_Cleaning_State.Production);
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mService" Id="{3dc8b5d8-515f-448f-a35b-e96ce5aaca40}">
+      <Declaration><![CDATA[METHOD mService : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//Switch to service mode
+IF NOT bL_DevOpActive THEN
+	I_ParentCallback.mChangeState(EN_Cleaning_State.Service);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mStateAction" Id="{6d503729-6c6e-4f3b-aff2-4647bb02de1d}">
+      <Declaration><![CDATA[METHOD mStateAction
+VAR_INPUT
+END_VAR
+
+VAR
+	sL_DeviceStatus : ST_CLEANING_DEV_STATUS;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[sL_DeviceStatus := I_ParentCallback.pDeviceStatus;
+
+//If safety ok try to reference axes
+IF I_MachineStatus.pSafetyOk AND I_MachineStatus.pMachineReady AND NOT bL_DevOpActive THEN
+	//Set mode and start process when successful
+	bL_DevOpActive := I_ParentCallback.mSetMode(EN_CLEANING_OP.eOPSTARTUP);
+END_IF
+
+IF bL_DevOpActive THEN
+	mDevOp();	
+END_IF
+
+//If all axes referenced go to service mode
+IF sL_DeviceStatus.bError THEN
+	I_ParentCallback.mChangeState(EN_Cleaning_State.Error);
+ELSIF sL_DeviceStatus.bRefKnown AND NOT sL_DeviceStatus.bBusy THEN
+	//I_ParentCallback.mChangeState(EN_Cleaning_State.Service);
+	I_ParentCallback.mChangeState(EN_Cleaning_State.Capping);
+
+  bL_InitActive    := FALSE;
+  SUPER^.pInitDone := TRUE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="pInitDone" Id="{b8abe1ef-6c95-448c-a587-42e0a1d74ad8}">
+      <Declaration><![CDATA[PROPERTY pInitDone : BOOL]]></Declaration>
+      <Get Name="Get" Id="{c9887c10-2bbb-4c28-a217-59ccce7a9cf1}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[pInitDone := NOT bL_InitActive;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <LineIds Name="FB_CleaningProcessStateInit">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateInit.mProduction">
+      <LineId Id="8" Count="0" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateInit.mService">
+      <LineId Id="10" Count="1" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateInit.mStateAction">
+      <LineId Id="13" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="22" Count="1" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="28" Count="1" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="52" Count="1" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="46" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateInit.pInitDone.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

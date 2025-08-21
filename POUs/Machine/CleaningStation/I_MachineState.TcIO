@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <Itf Name="I_MachineState" Id="{bac40632-c17c-472a-97e7-abab33b12475}">
+    <Declaration><![CDATA[INTERFACE I_MachineState EXTENDS I_MachineStateBase
+]]></Declaration>
+    <Property Name="pError" Id="{009c385d-455c-4afb-a6e0-10ff3531264f}">
+      <Declaration><![CDATA[PROPERTY pError : BOOL]]></Declaration>
+      <Get Name="Get" Id="{5d5bc70f-4203-4b8c-a99c-cc2381697881}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="pMaintenance" Id="{bb672cd4-20bf-4284-a9a0-e2ebc77ed960}">
+      <Declaration><![CDATA[PROPERTY pMaintenance : BOOL]]></Declaration>
+      <Get Name="Get" Id="{f1f0e6f5-688b-4947-9e15-1bc8df866436}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="pProduction" Id="{19312532-02a1-4b47-adc0-8ff4bfad76a7}">
+      <Declaration><![CDATA[PROPERTY pProduction : BOOL]]></Declaration>
+      <Get Name="Get" Id="{cdd59bb9-d04e-4495-b9de-363a4c2c1dd5}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="pSleep" Id="{77450687-3853-4f8f-af57-153b8da2f6fc}">
+      <Declaration><![CDATA[PROPERTY pSleep : BOOL]]></Declaration>
+      <Get Name="Get" Id="{075f4ebd-f641-4f6c-8685-8325113f3bd8}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+  </Itf>
+</TcPlcObject>

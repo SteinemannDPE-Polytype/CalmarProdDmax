@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_CH_MVT_STATUS" Id="{26a86ef2-bd04-4d75-a0f8-58607214b93a}">
+    <Declaration><![CDATA[TYPE ST_CH_MVT_STATUS :
+(*************************************************************************************************)
+(*  FILENAME:    ST_CH_MVT_STATUS                                                                *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    Information feedback about the mouvement cycle and the position.                           *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+  bO_Active                  : BOOL;  (*Cleaning Head is powered up*)
+  bO_Ready                   : BOOL;  (*Cleaning Head is ready for new command*)
+  bO_Busy                    : BOOL;  (*Cleaning Head has a work in progress*)
+  bO_Finished                : BOOL;  (*Cleaning Head is finished*)
+
+  iO_OperationType           : INT;   (*0-Standby ; 1-Cleaning*)
+
+  fO_ClnHead_Position        : REAL;  (*Estimation in mm (speed*time)*)
+  bO_Error                   : BOOL;
+  wO_FaultCode               : WORD;
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_ADS_MOTION_XYR_CONTROLLER" Id="{b921457b-14e7-4696-a3e5-0174d6211e1d}">
+    <Declaration><![CDATA[TYPE ST_ADS_MOTION_XYR_CONTROLLER :
+(*************************************************************************************************)
+(*  FILENAME:    ST_ADS_MOTION_XYR_CONTROLLER.EXP                                                *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*     Add description                                                                           *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+  iO_Version        : INT :=  010000;  (*1.0.0*)
+  aO_Type           : STRING := 'MotionXyrController';
+  aO_Name           : STRING := 'MotionXYRController';
+
+  aO_IpAddress      : STRING;
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

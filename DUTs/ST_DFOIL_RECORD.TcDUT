@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_DFOIL_RECORD" Id="{0d79c39b-a400-4b79-9cc1-45536fd8ee28}">
+    <Declaration><![CDATA[TYPE ST_DFOIL_RECORD :
+(*************************************************************************************************)
+(*  FILENAME:    ST_DFOIL_RECORD                                                                 *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2019)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    Record for dFoil system.                                                                   *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+STRUCT
+  lI_StartOffset           : UDINT;       (*Start offset [µm], dFoil not used*)
+  lI_PrintedZoneLength     : UDINT;       (*Printed zone length [µm], dFoil used*)
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

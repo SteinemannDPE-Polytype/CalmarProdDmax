@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_CleaningProcessStateService" Id="{f161f18f-ce22-46b1-89bb-5fb825c88fd5}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CleaningProcessStateService EXTENDS FB_CleaningProcessStateBase
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+
+END_VAR
+
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="mCleaningOp" Id="{265d2af1-1567-4a03-8d71-f8ddf131a9da}">
+      <Declaration><![CDATA[METHOD mCleaningOp : BOOL
+VAR_INPUT
+	sI_Operation : EN_CLEANING_OP;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//Switch to production mode if no operation active
+IF I_MachineStatus.pSafetyOk AND I_MachineStatus.pMachineReady AND NOT bL_DevOpActive THEN
+  IF sI_Operation = eOPCAPENTER THEN
+    I_ParentCallback.mChangeState(EN_Cleaning_State.Capping);
+  ELSIF sI_Operation = eOPCAPEXIT THEN
+    I_ParentCallback.mChangeState(EN_Cleaning_State.CappingExit);
+  ELSIF sI_Operation = eOPCLEAN THEN
+    I_ParentCallback.mChangeState(EN_Cleaning_State.Cleaning);
+  ELSIF sI_Operation = eOPPURGE THEN
+    I_ParentCallback.mChangeState(EN_Cleaning_State.Capping);
+  END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mEntryAction" Id="{f5c06c97-7d74-47e7-a6f2-14abd905009e}">
+      <Declaration><![CDATA[METHOD mEntryAction
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[iL_CurrentStep := 0;
+
+// Launch initial command to bring system to service mode
+bL_DevOpActive := I_ParentCallback.mSetMode(EN_CLEANING_OP.eOPPREPSERVICE);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mProduction" Id="{08cb4085-fb61-4152-a337-485e6ec842f1}">
+      <Declaration><![CDATA[METHOD mProduction : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//Switch to production mode if no operation active
+IF I_MachineStatus.pSafetyOk AND I_MachineStatus.pMachineReady AND NOT bL_DevOpActive THEN
+	I_ParentCallback.mChangeState(EN_Cleaning_State.Production);
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mService" Id="{79305885-ba2e-4106-942a-baddb62d084c}">
+      <Declaration><![CDATA[METHOD mService : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//Request service mode - implement in SubClass
+mService := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mStateAction" Id="{6653e122-5fa0-49a0-b970-3a08c73622d9}">
+      <Declaration><![CDATA[METHOD mStateAction
+VAR_INPUT
+END_VAR
+
+VAR
+	sL_DeviceStatus: ST_CLEANING_DEV_STATUS;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[sL_DeviceStatus := I_ParentCallback.pDeviceStatus;
+
+IF bL_DevOpActive THEN
+	mDevOp();
+END_IF
+
+//If error go to error mode
+IF sL_DeviceStatus.bError THEN
+	I_ParentCallback.mChangeState(EN_Cleaning_State.Error);
+END_IF
+
+SUPER^.pInitDone := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CleaningProcessStateService">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateService.mCleaningOp">
+      <LineId Id="29" Count="3" />
+      <LineId Id="42" Count="1" />
+      <LineId Id="33" Count="4" />
+      <LineId Id="28" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateService.mEntryAction">
+      <LineId Id="5" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateService.mProduction">
+      <LineId Id="8" Count="0" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateService.mService">
+      <LineId Id="9" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateService.mStateAction">
+      <LineId Id="43" Count="11" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

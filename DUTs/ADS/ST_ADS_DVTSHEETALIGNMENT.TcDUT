@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="ST_ADS_DVTSHEETALIGNMENT" Id="{2c1d81c5-6693-4720-89cf-e7613409a858}">
+    <Declaration><![CDATA[TYPE ST_ADS_DVTSHEETALIGNMENT :
+(*************************************************************************************************)
+(*  FILENAME:     ST_ADS_DVTSHEETALIGNMENT.EXP                                                   *)
+(*  PROJECT:      CALMAR Print System                                                            *)
+(*  COPYRIGHT:    Wifag//Polytype Fribourg                                                       *)
+(*  ENVIRONMENT:  TwinCAT PLC / CoDeSys                                                          *)
+(*  VERSION:      1.0                                                                            *)
+(*  DESCRIPTION:  User settings for DVT sheet alignment                                          *)
+(*                                                                                               *)
+(*  AUTHOR:       FAF                                                                            *)
+(*************************************************************************************************)
+(*  MODIFICATIONS:                                                                               *)
+(*************************************************************************************************)
+(*  Date      Author  Comments                                                                   *)
+(*  30.04.14  FAF     Created for general use                                                    *)
+(*                                                                                               *)
+(*************************************************************************************************)
+
+STRUCT
+  iO_Version         : INT :=  010010;  (*1.0.10*)
+  aO_Type            : STRING := 'DvtSheetAlignment';
+  aO_Name            : STRING :='';
+  sO_Message         : ST_ADS_MSG_IF;
+
+  (*In*)
+  bI_Enable          : BOOL := FALSE;   (*Enable processing*)
+
+  bI_UsePrintMark    : BOOL := TRUE;    (*Enable processing of print marks*)
+  sI_PrintMarkSizeX  : ST_VAR_IN_REAL;  (*Print mark X size [mm]*)
+  sI_PrintMarkSizeY  : ST_VAR_IN_REAL;  (*Print mark Y size [mm]*)
+
+  sI_HeadGap         : ST_VAR_IN_REAL;  (*Gap between head and substrate [mm]*)
+
+  lI_SegmentSize     : UDINT;           (*Distance between two images in pixel*)
+  lI_SegmentCount    : UDINT;           (*Number of images*)
+  fI_SegmentAngle    : REAL;            (*Angle between two segments in deg*)
+
+  sI_DeltaX          : ST_VAR_IN_REAL;  (*X offset between camera marks [mm]*)
+
+  bI_IsMaintenanceJob: BOOL;            (*Maintenance job: disable shift and rotation*)
+
+  (*Out*)
+  sO_CurrentAngle    : ST_VAR_OUT_REAL; (*Last measured angle in deg*)
+  lO_CurrentYShift   : UDINT;           (*Last measured Y Shift in Pixel*)
+
+  bO_RangeErrorAngle : BOOL;            (*Measured angle out of range*)
+  bO_RangeErrorShift : BOOL;            (*Measured shift out of range*)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

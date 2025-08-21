@@ -1,0 +1,336 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_CleaningProcessStateBase" Id="{1fb880ed-fc4b-4d4a-9b77-4e59ea92aa38}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CleaningProcessStateBase
+VAR_INPUT
+  I_ParentCallback : I_CleaningStateCallback;
+  I_MachineStatus  : I_MachineStateBase;
+END_VAR
+
+VAR_OUTPUT
+END_VAR
+
+VAR
+  sL_StateName	 : STRING;
+	
+  //Device operation
+  iL_CurrentStep : INT;
+  iL_State       : INT := 1;
+  bL_DevOpActive : BOOL;
+  bL_AbortPend   : BOOL;
+END_VAR
+
+VAR_STAT
+  bL_InitDone    : BOOL := FALSE;
+END_VAR	
+
+VAR CONSTANT
+  //Device operation
+  cL_SEND    : INT := 1;
+  cL_WAIT    : INT := 2;	
+  cL_NEXT    : INT := 3;	
+  cL_DONE    : INT := 4;
+  cL_ERROR   : INT := 5;
+
+  cL_MaxStep : INT := 15; //Make dynamic one day	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//No code here, use mStateAction]]></ST>
+    </Implementation>
+    <Method Name="mAbort" Id="{9f866fbb-56cd-423a-b16e-c4d36a2d605e}">
+      <Declaration><![CDATA[METHOD mAbort : BOOL
+VAR_INPUT
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bL_AbortPend THEN
+  I_ParentCallback.mDeviceAbort();
+  bL_AbortPend:=TRUE;
+  
+  IF NOT bL_DevOpActive THEN
+    bL_DevOpActive := TRUE; //Set to relaunch process
+    iL_CurrentStep := 0;
+	END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mAckError" Id="{ea120e02-a1f3-4acb-85c1-240606f9feb6}">
+      <Declaration><![CDATA[METHOD mAckError : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mCleaningOp" Id="{162a8e04-79dc-42e2-9dd4-60348bfcb196}">
+      <Declaration><![CDATA[METHOD mCleaningOp : BOOL
+VAR_INPUT
+	sI_Operation : EN_CLEANING_OP;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//Service not implemented
+mCleaningOp:=FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mDevOp" Id="{c833d6e1-8c3d-4004-b63e-6c9f6b825475}">
+      <Declaration><![CDATA[METHOD mDevOp
+VAR_INPUT
+END_VAR
+
+VAR
+  sL_Status : ST_CLEANING_DEV_STATUS;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[sL_Status := I_ParentCallback.pDeviceStatus;
+I_ParentCallback.mDeviceOperation(iL_CurrentStep);
+
+CASE iL_State OF
+  // Send command to devices
+  cL_SEND:
+    iL_State := cL_WAIT;  
+    
+  // Wait until operation completed  
+  cL_WAIT:
+    IF sL_Status.bError THEN
+      iL_State := cL_ERROR;
+    ELSIF NOT sL_Status.bBusy THEN
+      iL_State := cL_NEXT;
+    END_IF
+    
+  // Next state 
+  cL_NEXT:
+    IF iL_CurrentStep < cL_MaxStep AND NOT sL_Status.bReady THEN
+      iL_CurrentStep := iL_CurrentStep + 1;  
+
+      iL_State := cL_SEND;
+    ELSE
+      iL_State := cL_DONE;
+    END_IF
+    
+  // Done
+  cL_DONE:
+    bL_DevOpActive := FALSE; //Clear cleaning flag
+    iL_State       := cL_SEND; //Init for next operation
+    iL_CurrentStep := 0;
+    I_ParentCallback.mSetMode(EN_CLEANING_OP.eNOP);
+    mDevOpDone();
+  
+  // Error
+  cL_ERROR:
+    bL_DevOpActive := FALSE; //Clear cleaning flag
+    iL_State       := cL_SEND; //Init for next operation
+    iL_CurrentStep := 0;
+END_CASE
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mDevOpDone" Id="{f0fd9669-d5d5-409f-bfec-43a15199ad59}">
+      <Declaration><![CDATA[METHOD mDevOpDone : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//Optional action when device operation completed
+
+//Operation (incl. Abort) terminated
+bL_AbortPend:=FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mEntryAction" Id="{21d00247-c914-4e71-914f-52455a25ef34}">
+      <Declaration><![CDATA[METHOD mEntryAction
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mExitAction" Id="{5d83e7e7-be2f-435f-abe0-05fbca3be7d2}">
+      <Declaration><![CDATA[METHOD mExitAction
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mInit" Id="{837d1fff-8b3b-4ef1-933c-4d65379c6f1f}">
+      <Declaration><![CDATA[METHOD mInit : BOOL
+VAR_INPUT
+  I_parentMachineState : I_MachineStateBase;
+  I_Callback           : I_CleaningStateCallback;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[I_MachineStatus  := I_parentMachineState;
+I_ParentCallback := I_Callback;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mProduction" Id="{0cef4a27-1757-4a47-80ff-460f155c9faa}">
+      <Declaration><![CDATA[METHOD mProduction : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//Request production mode - implement in SubClass
+mProduction := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mService" Id="{d60fbf11-a87b-4469-9b01-8e2871003aa3}">
+      <Declaration><![CDATA[METHOD mService : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//Request service mode - implement in SubClass
+mService := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="mStateAction" Id="{5a6548cd-2198-4689-be2a-fb5211cee55b}">
+      <Declaration><![CDATA[METHOD mStateAction
+VAR_INPUT
+END_VAR
+
+VAR
+	sL_DeviceStatus: ST_CLEANING_DEV_STATUS;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[sL_DeviceStatus := I_ParentCallback.pDeviceStatus;
+
+//If a device has an error go to error state
+IF sL_DeviceStatus.bError THEN
+	I_ParentCallback.mChangeState(EN_Cleaning_State.Error);
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="pInitDone" Id="{5f863ae9-b141-45ca-b4b3-809572b1454a}">
+      <Declaration><![CDATA[PROPERTY pInitDone : BOOL]]></Declaration>
+      <Get Name="Get" Id="{5089d33b-e2fe-4875-b68e-88d13700f128}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[pInitDone := bL_InitDone;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{2db54f43-1a25-4343-8aab-a5d475c3efe5}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bL_InitDone := pInitDone;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="pName" Id="{1760e0d2-5f53-4226-89bc-29af38ecde9f}">
+      <Declaration><![CDATA[PROPERTY pName : STRING]]></Declaration>
+      <Get Name="Get" Id="{d3bc9210-7205-4570-9297-6047746ffa83}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[pName := sL_StateName;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{ee01f5fa-ae1e-45d6-999f-d63c2db63bc4}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sL_StateName := pName;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <LineIds Name="FB_CleaningProcessStateBase">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateBase.mAbort">
+      <LineId Id="3" Count="7" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateBase.mAckError">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateBase.mCleaningOp">
+      <LineId Id="10" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateBase.mDevOp">
+      <LineId Id="37" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="60" Count="1" />
+      <LineId Id="30" Count="2" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="46" Count="1" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="43" Count="1" />
+      <LineId Id="53" Count="2" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="56" Count="1" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="23" Count="1" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateBase.mDevOpDone">
+      <LineId Id="9" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateBase.mEntryAction">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateBase.mExitAction">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateBase.mInit">
+      <LineId Id="5" Count="0" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateBase.mProduction">
+      <LineId Id="9" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateBase.mService">
+      <LineId Id="9" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateBase.mStateAction">
+      <LineId Id="18" Count="4" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateBase.pInitDone.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateBase.pInitDone.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateBase.pName.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningProcessStateBase.pName.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

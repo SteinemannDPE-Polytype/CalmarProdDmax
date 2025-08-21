@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="EN_EL7201_STATE" Id="{b1de9339-3677-493d-a1a1-66d9d5de437e}">
+    <Declaration><![CDATA[TYPE EN_EL7201_STATE :
+(*************************************************************************************************)
+(*  FILENAME:    EN_EL7201_STATE.EXP                                                             *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2016)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*     Add description                                                                           *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+(
+  eNotReadyToSwitchON  := 16#0000,
+  eSwitchONDisabled    := 16#0040,
+  eReadyToSwitchON     := 16#0021,
+  eSwitchedON          := 16#0023,
+  eEnabled             := 16#0027,
+  eFaultReactionActive := 16#000F,
+  eFault               := 16#0008,
+  eEstopped            := 16#9999
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

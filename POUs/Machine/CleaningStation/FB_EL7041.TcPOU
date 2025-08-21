@@ -1,0 +1,199 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_EL7041" Id="{ef6d95ce-e6f6-45a6-9df5-f36029bf5814}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_EL7041
+(*************************************************************************************************)
+(*  FILENAME:    FB_EL7041                                                                       *)
+(*  PROJECT:     CALMAR PUPLC                                                                    *)
+(*  COPYRIGHT:   All rights reserved (c) Wifag//Polytype, Fribourg/Switzerland (2020)            *)
+(*  ENVIRONMENT: TwinCAT PLC                                                                     *)
+(*  VERSION:     <version>                                                                       *)
+(*************************************************************************************************)
+(*  DESCRIPTION:                                                                   <description> *)
+(*    This function transfers the movement commands to the motor.                                *)
+(*                                                                                </description> *)
+(*************************************************************************************************)
+
+{library PUBLIC}
+VAR_INPUT
+  fI_TargetPosition              : REAL;                         (*Target position [m]*)
+  fI_Tolerance                   : REAL := 0.0001;               (*Position tolerance [m]*)
+  fI_SpeedLimit                  : REAL;                         (*Speed limit [m/s]*)
+  bI_MoveEnable                  : BOOL;                         (*Enable movement*)
+  bI_RegActive                   : BOOL;                         (*Regulation active*)
+  bI_FaultReset                  : BOOL;                         (*Fault reset*)
+  bI_EStop                       : BOOL;                         (*Emergency stop*)
+  bI_SetPosition                 : BOOL;                         (*Set position*)
+
+  lI_EncoderValue                : DINT;                         (*Encoder value*)
+  fI_Microstepping               : REAL := 64;                   (*Microstepping*)
+  fI_LimitSpeedFullStep          : REAL := 37_500;               (*Limitb speed full step [U/m]*)
+  fI_PosControllerGain           : REAL := 10.0;                 (*Position controller gain*)
+  fI_EncoderScaling              : REAL := 12_800;               (*Encoder scaling [counts/rev]*)
+  fI_Axis_Scaling                : REAL := 0.00125;              (*Axis scaling [m/rev]*)
+  fI_SetPositionValue            : REAL := -0.001;               (*Set position value [m]*)
+  //fI_SpeedScaling                : REAL := 500;                  (*Speed scaling [counts/rev]*)
+END_VAR
+
+VAR_OUTPUT
+  iO_TargetVelocity              : DINT;                         (*Target velocity: 7010:21*)
+  fO_ActualPosition              : REAL;                         (*Actual position [m]*)
+  bO_MoveOk                      : BOOL;                         (*Movement ok*)
+  bO_Error                       : BOOL;                         (*Modul error*)
+END_VAR
+
+{library private}
+VAR
+  fL_Delta_P                     : REAL;                         (*Delta position*)
+  fL_CommandSignal               : REAL;                         (*Command signal*)
+
+  tL_TimerRampUP                 : TON;                          (*Timer ramp up*)
+  fL_PercentageRampUP            : REAL;                         (*Percentage ramp up*)
+  tL_TimerRampDN                 : TON;                          (*Timer ramp down*)
+  fL_PercentageRampDN            : REAL;                         (*Percentage ramp down*)
+
+  bL_memMoveEnable               : BOOL;                         (*Memory enable movement*)
+  bL_memSetPosition              : BOOL;                         (*Memory set position*)
+  fL_memTargetPosition           : REAL := 0.0;                  (*Memory target position*)
+  bL_StopRamp                    : BOOL;                         (*Stop ramp*)
+  bL_FirstRun                    : BOOL := TRUE;                 (*First run*)
+
+  fL_Divider                     : REAL;                         (*Divider for percent calculation*)
+END_VAR
+
+VAR PERSISTENT
+  fL_OffsetEncoder               : DINT;                         (*Offset encoder*)
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//Read inputs
+Input();
+
+tL_TimerRampUP.PT := T#300MS;
+tL_TimerRampUP();
+
+tL_TimerRampDN.PT := T#300MS;
+tL_TimerRampDN();
+
+IF NOT bI_MoveEnable AND bL_memMoveEnable THEN
+  bL_StopRamp := TRUE;
+END_IF;
+
+IF bI_MoveEnable AND NOT bL_memMoveEnable THEN
+  fL_memTargetPosition := fI_TargetPosition;
+  bO_MoveOK            := FALSE;
+ELSIF bL_FirstRun THEN
+  fL_memTargetPosition := fO_ActualPosition;
+END_IF;
+
+IF tL_TimerRampDN.Q THEN
+  bL_StopRamp := FALSE;
+END_IF;
+
+tL_TimerRampDN.IN := bL_StopRamp;
+
+fL_Divider := TIME_TO_REAL(tL_TimerRampDN.PT);
+IF fL_Divider <> 0 THEN
+  fL_PercentageRampDN := TIME_TO_REAL(tL_TimerRampDN.ET) / fL_Divider;
+END_IF;
+
+tL_TimerRampUP.IN := bI_MoveEnable AND bI_RegActive;
+
+fL_Divider := TIME_TO_REAL(tL_TimerRampUP.PT);
+IF fL_Divider <> 0 THEN
+  fL_PercentageRampUP := TIME_TO_REAL(tL_TimerRampUP.ET) / fL_Divider;
+END_IF;
+
+(* ---------------------- Calculation of the delta between the trget and the actual position -----------------*)
+fL_Delta_P := fI_TargetPosition - fO_ActualPosition;
+
+(* ---------------------- Calculation of the command signal for the target velocity  -------------------------*)
+fL_CommandSignal := fL_Delta_P * fI_PosControllerGain;
+
+(* ---------------------- Limitation of the command signal between +/- SpeedLimit ----------------------------*)
+IF fL_CommandSignal > (fI_SpeedLimit) THEN
+  fL_CommandSignal :=  fI_SpeedLimit;
+ELSIF fL_CommandSignal < (-fI_SpeedLimit) THEN
+  fL_CommandSignal := -fI_SpeedLimit;
+END_IF;
+
+IF bI_MoveEnable THEN
+  IF fI_Microstepping <> 0 THEN
+    iO_TargetVelocity := FC_REAL_TO_INT((fI_LimitSpeedFullStep / (fI_LimitSpeedFullStep / fI_Microstepping / 60 * fI_Axis_Scaling) * fL_CommandSignal * fL_PercentageRampUP)); 
+    //iO_TargetVelocity := FC_REAL_TO_INT((fI_SpeedScaling / fI_Axis_Scaling * fL_CommandSignal * fL_PercentageRampUP));      (* Send the Target velocity command to module *)
+  END_IF;
+ELSE
+  IF fI_Microstepping <> 0 THEN
+    iO_TargetVelocity := FC_REAL_TO_INT((fI_LimitSpeedFullStep / (fI_LimitSpeedFullStep / fI_Microstepping / 60 * fI_Axis_Scaling) * fL_CommandSignal * (1-fL_PercentageRampDN))); 
+    //iO_TargetVelocity := FC_REAL_TO_INT((fI_SpeedScaling / fI_Axis_Scaling * fL_CommandSignal * (1-fL_PercentageRampDN)));  (* Send the Target velocity command to module *)
+  END_IF;
+END_IF;
+
+IF NOT bI_EStop THEN
+  iO_TargetVelocity := 0;
+END_IF;
+
+
+(* ---------------------- Encoder Offset Calibration ----------------- *)
+
+IF bI_SetPosition AND NOT bL_memSetPosition AND NOT bI_MoveEnable THEN
+  IF fI_Axis_Scaling <> 0 THEN
+    fL_OffsetEncoder := FC_REAL_TO_DINT((fI_SetPositionValue * fI_EncoderScaling / fI_Axis_Scaling - DINT_TO_REAL(lI_EncoderValue)));
+  END_IF;
+
+  fL_memTargetPosition := fO_ActualPosition;
+END_IF;
+
+(* ---------------------- Memory ----------------- *)
+bL_memSetPosition := bI_SetPosition;
+bL_memMoveEnable  := bI_MoveEnable;
+bL_FirstRun       := FALSE;
+
+(********************************* END OF FB *****************************************************)]]></ST>
+    </Implementation>
+    <Method Name="Input" Id="{651ad3e9-1df7-4eb4-9610-8f424a561f57}">
+      <Declaration><![CDATA[METHOD PRIVATE Input
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(*EL7041 Standard: 20 Singleturn bits and 12 Multiturn bits*)
+IF (fI_EncoderScaling <> 0) THEN
+	fO_ActualPosition := (DINT_TO_REAL(lI_EncoderValue) + DINT_TO_REAL(fL_OffsetEncoder)) * fI_Axis_Scaling / fI_EncoderScaling;
+END_IF;
+
+(*Movement done?*)
+IF bI_MoveEnable THEN
+	IF ABS(fL_memTargetPosition - fO_ActualPosition) < fI_Tolerance * 0.2 THEN
+		bO_MoveOK := TRUE;
+	ELSE
+		bO_MoveOK := FALSE;
+	END_IF;
+ELSE
+	IF ABS(fL_memTargetPosition - fO_ActualPosition) < fI_Tolerance THEN
+		bO_MoveOK := TRUE;
+	ELSE
+		bO_MoveOK := FALSE;
+	END_IF;
+END_IF;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_EL7041">
+      <LineId Id="3" Count="19" />
+      <LineId Id="24" Count="32" />
+      <LineId Id="196" Count="0" />
+      <LineId Id="57" Count="3" />
+      <LineId Id="198" Count="0" />
+      <LineId Id="61" Count="2" />
+      <LineId Id="139" Count="3" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="68" Count="14" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_EL7041.Input">
+      <LineId Id="3" Count="17" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

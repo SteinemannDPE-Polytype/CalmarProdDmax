@@ -1,0 +1,272 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_ADS_CleanProcess" Id="{02fdcc45-2cbf-46ed-b4e2-51b235b39c44}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ADS_CleanProcess EXTENDS FB_AdsBlockBase
+VAR
+  // ---------------------------------
+  // ADS interface block specific
+  sO_Message                 : ST_ADS_MSG_IF;    (*Messaging*)
+
+  (*User commands - Trigger operation*)
+  bI_StartCapping            : BOOL := FALSE;
+  bO_StartCappingCanEx       : BOOL := FALSE;
+  bO_StartCappingExec        : BOOL := FALSE;
+                             
+  bI_StopCapping             : BOOL := FALSE;
+  bO_StopCappingCanEx        : BOOL := FALSE;
+  bO_StopCappingExec         : BOOL := FALSE;
+                             
+  bI_Purge                   : BOOL := FALSE;
+  bO_PurgeCanEx              : BOOL := FALSE;
+  bO_PurgeExec               : BOOL := FALSE;
+                             
+  bI_Clean                   : BOOL := FALSE;
+  bO_CleanCanEx              : BOOL := FALSE;
+  bO_CleanExec               : BOOL := FALSE;
+                             
+  bI_Maintenance             : BOOL := FALSE;
+  bO_MaintenanceCanEx        : BOOL := FALSE;
+  bO_MaintenanceExec         : BOOL := FALSE;
+                             
+  bI_OpenShutter             : BOOL := FALSE;
+  bO_OpenShutterCanEx        : BOOL := FALSE;
+  bO_OpenShutterExec         : BOOL := FALSE;
+                             
+  bI_Abort                   : BOOL := FALSE;
+  bO_AbortCanEx              : BOOL := FALSE;
+  bO_AbortExec               : BOOL := FALSE;
+
+  bI_AcknowledgeError        : BOOL := FALSE;
+  bO_AcknowledgeErrorCanEx   : BOOL := FALSE;
+  bO_AcknowledgeErrorExec    : BOOL := FALSE;
+
+  (*User settings - State operation*)
+  bI_AutoMode                : BOOL := TRUE;  (*del*)
+  bI_CleanAfterCapp          : BOOL := FALSE;
+  bI_CleanAfterPurge         : BOOL := FALSE;
+  bI_PurgeAfterCapp          : BOOL := FALSE; (*del*)
+  bI_MaintenanceMode         : BOOL := FALSE;
+                             
+  (*Flags*)                  
+  bO_Busy                    : BOOL;
+  bO_Ready                   : BOOL;
+  bO_ServiceEnabled          : BOOL;
+  bO_AxisProcessMovingVisible: BOOL := TRUE;  (*Cleaning process axis moving is shown at PUC*)
+                             
+  (*Message Queue - TODO update*)
+  bI_FaultAck                : BOOL := FALSE;
+  wO_ErrorCode               : WORD;
+END_VAR
+
+VAR PERSISTENT
+  nR_Pattern                 : UDINT;  (*check pattern for rem validity*)
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Property Name="bAcknowledgeError" Id="{c8a7df29-9919-4093-857e-372271473b5c}">
+      <Declaration><![CDATA[PROPERTY bAcknowledgeError : BOOL]]></Declaration>
+      <Set Name="Set" Id="{bb358ce5-b877-433a-8189-23e41fdc691a}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bI_AcknowledgeError := bAcknowledgeError;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="config" Id="{cfff9820-f309-44a9-b29f-f4982e59276f}">
+      <Declaration><![CDATA[METHOD config
+VAR_INPUT
+  aName                     : STRING;
+  bAxisProcessMovingVisible : BOOL;  
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[aO_Name                     := aName;
+
+bO_AxisProcessMovingVisible := bAxisProcessMovingVisible; 
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="initRemVar" Id="{e2282e57-c61f-4d5e-be3d-ba65f82a666a}">
+      <Declaration><![CDATA[METHOD PROTECTED initRemVar
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(*load default initial values if pattern was invalid*)
+IF nR_Pattern <> 16#ABCD THEN
+  ;
+ELSE  
+  nR_Pattern      := 16#ABCD;
+END_IF
+
+(*Init values*)
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ResetCommands" Id="{b16dda10-aded-4d78-a0a9-f4273d287851}">
+      <Declaration><![CDATA[METHOD ResetCommands : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bI_StartCapping := FALSE;
+bI_StopCapping  := FALSE;
+bI_Maintenance  := FALSE;
+bI_Clean        := FALSE;
+bI_Purge        := FALSE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="setFeedback" Id="{8d8f3ff0-5d37-4971-8db5-60faacc470bd}">
+      <Declaration><![CDATA[METHOD setFeedback
+VAR_INPUT
+  bStartCappingCanEx       : BOOL; 
+  bStartCappingExec        : BOOL;  
+
+  bStopCappingCanEx        : BOOL;  
+  bStopCappingExec         : BOOL;  
+
+  bPurgeCanEx              : BOOL; 
+  bPurgeExec               : BOOL;  
+
+  bCleanCanEx              : BOOL; 
+  bCleanExec               : BOOL;  
+
+  bMaintenanceCanEx        : BOOL;  
+  bMaintenanceExec         : BOOL;  
+
+  bOpenShutterCanEx        : BOOL;  
+  bOpenShutterExec         : BOOL;  
+
+  bAbortCanEx              : BOOL; 
+  bAbortExec               : BOOL;  
+
+  bAcknowledgeErrorCanEx   : BOOL;  
+  bAcknowledgeErrorExec    : BOOL;  
+
+  bBusy                    : BOOL; 
+  bReady                   : BOOL; 
+  bServiceEnabled          : BOOL; 
+  bAxisProcessMovingVisible: BOOL; 
+
+  wErrorCode               : WORD; 
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bO_StartCappingCanEx       := bStartCappingCanEx;
+bO_StartCappingExec        := bStartCappingExec;
+
+bO_StopCappingCanEx        := bStopCappingCanEx;
+bO_StopCappingExec         := bStopCappingExec;
+
+bO_PurgeCanEx              := bPurgeCanEx;
+bO_PurgeExec               := bPurgeExec;
+
+bO_CleanCanEx              := bCleanCanEx;
+bO_CleanExec               := bCleanExec;
+
+bO_MaintenanceCanEx        := bMaintenanceCanEx;
+bO_MaintenanceExec         := bMaintenanceExec;
+
+bO_OpenShutterCanEx        := bOpenShutterCanEx;
+bO_OpenShutterExec         := bOpenShutterExec;
+
+bO_AbortCanEx              := bAbortCanEx;
+bO_AbortExec               := bAbortExec;
+
+bO_AcknowledgeErrorCanEx   := bAcknowledgeErrorCanEx;
+bO_AcknowledgeErrorExec    := bAcknowledgeErrorExec;
+
+bO_Busy                    := bBusy;
+bO_Ready                   := bReady;
+bO_ServiceEnabled          := bServiceEnabled;
+bO_AxisProcessMovingVisible:= bAxisProcessMovingVisible;
+
+wO_ErrorCode               := wErrorCode;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="setup" Id="{b9929b56-48a6-4347-b167-83c786449c9c}">
+      <Declaration><![CDATA[(*
+  Setup constant ADS Block definitions.
+  HOWTO: in abstract implmentation call
+      init(aVersion:=, aType:=, nType:=, eLayer:=);
+*)
+METHOD  setup]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[init( aVersion := '01.00.01'
+    , aType    := 'CleanProcess'
+    , nType    := eMa_BLK_MACHINE
+    , eLayer   := E_AdsLayer.Structural);]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="sMsgInterface" Id="{de7432b2-f6d5-4a61-83ad-17a5b2f39c40}">
+      <Declaration><![CDATA[PROPERTY sMsgInterface : POINTER TO ST_ADS_MSG_IF]]></Declaration>
+      <Get Name="Get" Id="{71c74738-03e2-4406-9a78-18e6ba115832}">
+        <Declaration><![CDATA[]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sMsgInterface := ADR(sO_Message);]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <LineIds Name="FB_ADS_CleanProcess">
+      <LineId Id="35" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CleanProcess.bAcknowledgeError.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CleanProcess.config">
+      <LineId Id="102" Count="1" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CleanProcess.initRemVar">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="20" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CleanProcess.ResetCommands">
+      <LineId Id="6" Count="4" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CleanProcess.setFeedback">
+      <LineId Id="75" Count="0" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="157" Count="0" />
+      <LineId Id="124" Count="1" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="130" Count="1" />
+      <LineId Id="159" Count="0" />
+      <LineId Id="134" Count="1" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="132" Count="1" />
+      <LineId Id="161" Count="0" />
+      <LineId Id="145" Count="1" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="150" Count="1" />
+      <LineId Id="163" Count="0" />
+      <LineId Id="152" Count="1" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="164" Count="3" />
+      <LineId Id="176" Count="0" />
+      <LineId Id="175" Count="0" />
+      <LineId Id="100" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CleanProcess.setup">
+      <LineId Id="7" Count="0" />
+      <LineId Id="13" Count="2" />
+    </LineIds>
+    <LineIds Name="FB_ADS_CleanProcess.sMsgInterface.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
