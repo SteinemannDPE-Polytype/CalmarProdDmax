@@ -57,8 +57,11 @@ VAR
   _sJobDef           : BOOL;
   PaStartTimeout     : TON;
   rTrigHwSync        : R_TRIG;
-  _bForceDefGridOff  : BOOL;    // force deformation grid stream to ph off (send 0)
   bBuffStopBit : BOOL;
+  _bForceDefGridOff  : BOOL;    // force deformation grid stream to ph off (send 0)
+  _bForceGlobalYShift: BOOL;
+  _fGlobal_YShift_px : LREAL;
+  _fGlobal_YShift    : LREAL;   // [m] global y- shift (special mode if no correction is active)
   
   // grid settings
   _iPhGrid           : I_Correction_Grid;
@@ -198,7 +201,14 @@ _nPosXDelta :=   F_MeterToSubPixel(fPrintStartOffset, _fPrintResolution*_fSubPxR
 _nPosXS := _nPosX0 + _nPosXDelta;   // XS effective print start position
 //  > Y Position ---
 //   y position (with or whithout applied global y shift from correction grid)
-_fPosY :=   F_MeterToSubPixel(fPosMeter:=fPrintYOffset, fResoSubPx:=_fPrintResolution);
+
+IF _bForceDefGridOff AND _bForceGlobalYShift THEN   // special mode to force deformation grid stream off and use "mean" y-Correction as Y-shift     
+  _fGlobal_YShift_px := _pNewAttached^.fDyShift;
+  _fGlobal_YShift := _fGlobal_YShift_px / _fPrintResolution * 0.0254;   // px -> m
+ELSE
+  _fGlobal_YShift := 0;
+END_IF
+_fPosY :=   F_MeterToSubPixel(fPosMeter:=fPrintYOffset, fResoSubPx:=_fPrintResolution) + _fGlobal_YShift;
 
 // error checks on position
 bCheckErr := checkPrintposTiming(nStartPos:=_nPosXS, nCurrentPos:=nPrintPos);
@@ -254,6 +264,25 @@ sRepeatHistory[nRepeatCt].fLenEffective  := _nPosXS - sRepeatHistory[SEL(nRepeat
 ]]></ST>
       </Implementation>
     </Method>
+    <Property Name="bForceNoCorrectionButShiftMode" Id="{0e805a25-53a1-4446-82ba-bdcca0a95608}">
+      <Declaration><![CDATA[PROPERTY bForceNoCorrectionButShiftMode : BOOL]]></Declaration>
+      <Set Name="Set" Id="{4741b186-fe43-4db5-94de-23698d755f67}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[// special mode for LabelExpo  
+// (disable deformation but use y-shift from deformation (mean) and send it via CB global y-Shift.
+IF bForceNoCorrectionButShiftMode THEN
+  _bForceDefGridOff := TRUE;
+  _bForceGlobalYShift := TRUE;
+ELSE
+  _bForceDefGridOff := FALSE;
+  _bForceGlobalYShift := FALSE;
+END_IF]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
     <Property Name="bGridWasLimited" Id="{cba7a0fa-4cf6-47aa-9516-8de8a7c89812}" FolderPath="Grid\">
       <Declaration><![CDATA[PROPERTY bGridWasLimited : BOOL]]></Declaration>
       <Get Name="Get" Id="{4693dddc-f428-4e62-b783-d362d65e30e9}">
@@ -1179,7 +1208,13 @@ sim();]]></ST>
       <LineId Id="542" Count="0" />
       <LineId Id="424" Count="0" />
       <LineId Id="415" Count="0" />
-      <LineId Id="420" Count="1" />
+      <LineId Id="420" Count="0" />
+      <LineId Id="611" Count="0" />
+      <LineId Id="610" Count="0" />
+      <LineId Id="624" Count="0" />
+      <LineId Id="607" Count="0" />
+      <LineId Id="612" Count="2" />
+      <LineId Id="421" Count="0" />
       <LineId Id="418" Count="1" />
       <LineId Id="392" Count="0" />
       <LineId Id="438" Count="0" />
@@ -1216,6 +1251,14 @@ sim();]]></ST>
       <LineId Id="6" Count="0" />
       <LineId Id="112" Count="1" />
       <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Print_WEU.bForceNoCorrectionButShiftMode.Set">
+      <LineId Id="12" Count="1" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="2" />
+      <LineId Id="6" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print_WEU.bGridWasLimited.Get">
       <LineId Id="2" Count="0" />
