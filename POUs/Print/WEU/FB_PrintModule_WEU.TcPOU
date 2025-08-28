@@ -160,6 +160,7 @@ VAR_INPUT
   iPrintGlobal          : I_PrintGlobal;        // interface for module to master (main) communication
   pMachineInputs        : POINTER TO ST_ModuleMachineInterface_IN;
   pMachineOutputs       : POINTER TO ST_ModuleMachineInterface_OUT;
+  bForceNoCorrButYShift : BOOL := TRUE;
 END_VAR
 VAR
   nCtr : UDINT;
@@ -227,6 +228,11 @@ fbMsgWeu[ 4].iI_MsgNumber      := eC_STAG_CAM_TEACH_ERROR;            // teach e
 fbMsgWeu[ 5].iI_MsgNumber      := eC_STAG_IMAGELENGTH_NOT_SUPPORTED;  // image length not supported (out of supported range)
 fbMsgWeu[ 6].iI_MsgNumber      := eC_STAG_DEFORMATION_LIMITED;        // deformation calculated was limited to min/max before sending
 
+{warning 'ACHTUNG: Special mode Expo, TODO remove or set to FALSE'}
+LogWarning('ACHTUNG: Special mode for Expo active');
+FOR nCtr := 1 TO GVL_WEU.nC_MaxWorkerPrintPerPm 
+  fbWorkerPrint[nCtr].bForceNoCorrectionButShiftMode := bForceNoCorrButYShift;
+END_FOR 
 
 Init := bInit;   // set in the SUPER class]]></ST>
       </Implementation>
@@ -433,7 +439,11 @@ LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
       <LineId Id="432" Count="2" />
       <LineId Id="454" Count="1" />
       <LineId Id="474" Count="0" />
-      <LineId Id="431" Count="0" />
+      <LineId Id="493" Count="0" />
+      <LineId Id="497" Count="0" />
+      <LineId Id="499" Count="0" />
+      <LineId Id="495" Count="1" />
+      <LineId Id="494" Count="0" />
       <LineId Id="287" Count="0" />
       <LineId Id="286" Count="0" />
     </LineIds>

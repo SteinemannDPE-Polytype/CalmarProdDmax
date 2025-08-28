@@ -58,8 +58,9 @@ VAR
   PaStartTimeout     : TON;
   rTrigHwSync        : R_TRIG;
   bBuffStopBit : BOOL;
-  _bForceDefGridOff  : BOOL;    // force deformation grid stream to ph off (send 0)
-  _bForceGlobalYShift: BOOL;
+  {warning 'ACHTUNG Messe mode, TODO remove -> set to false'}
+  _bForceDefGridOff  : BOOL:=TRUE;    // force deformation grid stream to ph off (send 0)
+  _bForceGlobalYShift: BOOL:=TRUE;
   _fGlobal_YShift_px : LREAL;
   _fGlobal_YShift    : LREAL;   // [m] global y- shift (special mode if no correction is active)
   
