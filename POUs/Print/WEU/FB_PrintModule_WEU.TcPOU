@@ -144,6 +144,19 @@ SimUpdate();
     </Implementation>
     <Folder Name="I_PositionEvent_ovrd" Id="{212612fd-c98f-4fcb-8ea9-fac5585d1647}" />
     <Folder Name="Simulation" Id="{ff45cf45-269f-4fec-ab1d-0aca9951a18d}" />
+    <Property Name="bForceNoCorrectionButYShiftMode" Id="{b65a9350-831c-45ea-8f78-0fa9026ef73e}">
+      <Declaration><![CDATA[PROPERTY bForceNoCorrectionButYShiftMode : BOOL]]></Declaration>
+      <Set Name="Set" Id="{3d096227-cb0c-4e6c-ae20-0ca9a6fd3412}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[FOR nCtr := 1 TO GVL_WEU.nC_MaxWorkerPrintPerPm DO
+  fbWorkerPrint[nCtr].bForceNoCorrectionButShiftMode := bForceNoCorrectionButYShiftMode;
+END_FOR ]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
     <Method Name="Init" Id="{fba0a279-e9f9-46b1-8f8f-0e7a0e308a34}">
       <Declaration><![CDATA[METHOD Init : BOOL
 VAR_INPUT
@@ -160,7 +173,6 @@ VAR_INPUT
   iPrintGlobal          : I_PrintGlobal;        // interface for module to master (main) communication
   pMachineInputs        : POINTER TO ST_ModuleMachineInterface_IN;
   pMachineOutputs       : POINTER TO ST_ModuleMachineInterface_OUT;
-  bForceNoCorrButYShift : BOOL := TRUE;
 END_VAR
 VAR
   nCtr : UDINT;
@@ -227,12 +239,6 @@ fbMsgWeu[ 3].iI_MsgNumber      := eCPr_SHEET_MARK_DETECTION;          // mark er
 fbMsgWeu[ 4].iI_MsgNumber      := eC_STAG_CAM_TEACH_ERROR;            // teach error
 fbMsgWeu[ 5].iI_MsgNumber      := eC_STAG_IMAGELENGTH_NOT_SUPPORTED;  // image length not supported (out of supported range)
 fbMsgWeu[ 6].iI_MsgNumber      := eC_STAG_DEFORMATION_LIMITED;        // deformation calculated was limited to min/max before sending
-
-{warning 'ACHTUNG: Special mode Expo, TODO remove or set to FALSE'}
-LogWarning('ACHTUNG: Special mode for Expo active');
-FOR nCtr := 1 TO GVL_WEU.nC_MaxWorkerPrintPerPm 
-  fbWorkerPrint[nCtr].bForceNoCorrectionButShiftMode := bForceNoCorrButYShift;
-END_FOR 
 
 Init := bInit;   // set in the SUPER class]]></ST>
       </Implementation>
@@ -394,6 +400,10 @@ LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
       <LineId Id="285" Count="2" />
       <LineId Id="19" Count="0" />
     </LineIds>
+    <LineIds Name="FB_PrintModule_WEU.bForceNoCorrectionButYShiftMode.Set">
+      <LineId Id="7" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
     <LineIds Name="FB_PrintModule_WEU.Init">
       <LineId Id="273" Count="0" />
       <LineId Id="281" Count="4" />
@@ -439,11 +449,6 @@ LogLvl(Lvl:=E_LogSeverity.Debug, Msg:=F_Concat3(
       <LineId Id="432" Count="2" />
       <LineId Id="454" Count="1" />
       <LineId Id="474" Count="0" />
-      <LineId Id="493" Count="0" />
-      <LineId Id="497" Count="0" />
-      <LineId Id="499" Count="0" />
-      <LineId Id="495" Count="1" />
-      <LineId Id="494" Count="0" />
       <LineId Id="287" Count="0" />
       <LineId Id="286" Count="0" />
     </LineIds>
