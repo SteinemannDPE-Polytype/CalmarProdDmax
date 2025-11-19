@@ -5,6 +5,10 @@
 
 ---
 
+### changes `3.0.4` HOA
+* CHG: adapt Maxliner machine
+
+
 ## `3.0.x` master for future releases on all steinemann machines
 
 **Renamed !** library to  `CalmarProductSteinemann`

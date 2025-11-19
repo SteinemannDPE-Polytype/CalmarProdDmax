@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <GVL Name="GVL_Maxliner" Id="{3e7956a8-1642-44a2-ae34-2ac92c85be69}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL CONSTANT
+  nC_MaxWorkerPrintPerPm  : UDINT := 1;
+  nC_MaxPcPerPm           : UDINT := 4;
+  nC_MaxPhPerPm           : UDINT := 11;
+  
+  fC_MaxMachineSpeed      : LREAL := TO_LREAL(100)/60;   // max module speed (100 m/min) in [m/s]
+  
+  aC_PlcProjectCfgPath    : T_MaxString := 'C:\ProgramData\WifagPolytype\DMAXPrintUnitPlc\02_Plc\DP-ST-1044-Steinemann\Steinemann\PlcProject\Configuration\';
+
+  // compensations
+  nC_CurrentTimeStampComp : UDINT := 2_000;   // [us] current timestamp compensation for timestamp input
+  nC_SensorTimeStampComp  : UDINT := 150;     // [us] time compensation for input edge
+END_VAR
+]]></Declaration>
+  </GVL>
+</TcPlcObject>

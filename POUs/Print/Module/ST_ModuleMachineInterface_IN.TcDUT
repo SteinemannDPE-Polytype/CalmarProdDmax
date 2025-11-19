@@ -4,46 +4,53 @@
     <Declaration><![CDATA[TYPE ST_ModuleMachineInterface_IN :
 STRUCT
   // Inputs (from machine)
-  bEStop                  : BOOL;             // EStop active
-  bSleep                  : BOOL;             // Sleep active
-  bShutdown               : BOOL;             // Shutdown active
-  bMachineCommErr         : BOOL;             // Machine communication error
-  bSafetyCoverOk          : BOOL;             // Safety cover OK (closed)
-  bServiceDoorsOk         : BOOL;             // Safety Doors OK (closed)
-  bSafetyOk               : BOOL;             // generic safety hardware ok
-  bDriftControlError      : BOOL;             // (obsolete) remove?
-  bDriftControlMissMarks  : BOOL;             // (obsolete) remove?
+  bEStop                            : BOOL;             // EStop active
+  bSleep                            : BOOL;             // Sleep active
+  bShutdown                         : BOOL;             // Shutdown active
+  bMachineCommErr                   : BOOL;             // Machine communication error
+  bSafetyCoverOk                    : BOOL;             // Safety cover OK (closed)
+  bServiceDoorsOk                   : BOOL;             // Safety Doors OK (closed)
+  bSafetyOk                         : BOOL;             // generic safety hardware ok
+  bDriftControlError                : BOOL;             // (obsolete) remove?
+  bDriftControlMissMarks            : BOOL;             // (obsolete) remove?
   
   // new
-  bUnitInPrintPosition    : BOOL;             // Print module in print position
-  bUnitInMaintPosition    : BOOL;             // Print module in maintenance position
-  bUnitInCappingPosition  : BOOL;             // Print module in capping position
-  bEngaged                : BOOL;             // Print module engaged
-  bPrintActivated         : BOOL;             // Printing enabled (PrintON)
-  bStopRequest            : BOOL;             // Synced print stop, finish printing current actual repeat
-  bFastStopRequest        : BOOL;             // Fast print stop request
-  bPrintDirection         : BOOL;             // normal = 0, reverse = 1
+  bUnitInPrintPosition              : BOOL;             // Print module in print position
+  bUnitInMaintPosition              : BOOL;             // Print module in maintenance position
+  bUnitInCappingPosition            : BOOL;             // Print module in capping position
+  bEngaged                          : BOOL;             // Print module engaged
+  bPrintActivated                   : BOOL;             // Printing enabled (PrintON)
+  bStopRequest                      : BOOL;             // Synced print stop, finish printing current actual repeat
+  bFastStopRequest                  : BOOL;             // Fast print stop request
+  bPrintDirection                   : BOOL;             // normal = 0, reverse = 1
   
   // other
-  fSubstrateThickness     : LREAL := 0.000_1; // Substrate thickness [m]
-  fSubstrateLen           : LREAL;            // Substrate length [m]
-  fWebStretchCalculated   : LREAL;            // Web strech factor converted
-  fLateralRegister        : LREAL;            // Lateral regster [m]
-  fDistanceToPrevModule   : LREAL;            // Distance to previous PrintModule [m] (dist to prev mark sensor, which is pm reference pos) 
-  fInspectionDistToPrint  : LREAL;            // Inspection distance to PrintModule [m}
-  bTargetSpeedReached     : BOOL;             // Target speed reached
-  fTargetSpeed            : LREAL;            // Target speed [m/s]
-  bPrintMarkExist         : BOOL;             // Print markus exist
-  fMarkToPrintdataCenterY : LREAL;            // mark distance from print data center Y [m]
-  fMarkBaseSize           : LREAL;            // mark base "a" size (square side) [m]
-  fMarkDistToStartMark    : LREAL;            // mark distance repeat to start mark [m}
-  nUsePerRepeatInLine     : UDINT;            // Number of Uses per Repead in printing direction
+  fSubstrateThickness               : LREAL := 0.000_1; // Substrate thickness [m]
+  fSubstrateLen                     : LREAL;            // Substrate length [m]
+  fSubstrateWidth                   : LREAL;            // Substrate width [m]
+  fWebStretchCalculated             : LREAL;            // Web strech factor converted
+  fLateralRegister                  : LREAL;            // Lateral regster [m]
+  fDistanceToPrevModule             : LREAL;            // Distance to previous PrintModule [m] (dist to prev mark sensor, which is pm reference pos) 
+  fInspectionDistToPrint            : LREAL;            // Inspection distance to PrintModule [m}
+  bTargetSpeedReached               : BOOL;             // Target speed reached
+  fTargetSpeed                      : LREAL;            // Target speed [m/s]
+  bPrintMarkExist                   : BOOL;             // Print markus exist
+  fMarkToPrintdataCenterY           : LREAL;            // mark distance from print data center Y [m]
+  fMarkBaseSize                     : LREAL;            // mark base "a" size (square side) [m]
+  fMarkDistToStartMark              : LREAL;            // mark distance repeat to start mark [m}
+  nUsePerRepeatInLine               : UDINT;            // Number of Uses per Repead in printing direction
   
-  fEncoderResolution      : LREAL;            // Effective Encoder resolution to be used [pulse/um]
-  fEncoderDetectPulseMin  : LREAL;            // Encoder step measurement minimum pulse 
-  fEncoderDetectPulseMax  : LREAL;            // Encoder step measurement maximum pulse
-  nEncoderDetectFilterSz  : UDINT;            // Mean filter size for measured encoder pulse output
+  fEncoderResolution                : LREAL;            // Effective Encoder resolution to be used [pulse/um]
+  fEncoderDetectPulseMin            : LREAL;            // Encoder step measurement minimum pulse 
+  fEncoderDetectPulseMax            : LREAL;            // Encoder step measurement maximum pulse
+  nEncoderDetectFilterSz            : UDINT;            // Mean filter size for measured encoder pulse output
   
+  nDistanceSheetDetIMCToNip_um      : UDINT;            // Distance from SheetDetection IMC to Nip [µm]
+  nDistanceSheetDetCRToNip_um       : UDINT;            // Distance from SheetDetection CodeReader to Nip [µm]
+  nDistanceSheetDetCoronaToNip_um   : UDINT;            // Distance from SheetDetection Corona to Nip [µm]
+  nDistanceSheetDetPrintToNip_um    : UDINT;            // Distance from SheetDetection StartEdgePrintLine to Nip [µm]
+  bMaintenanceActive                : BOOL;             // Z-Axis is on Position Maintenance and the Ink-Jet Tub is in Service Position
+  nMachineType                      : UDINT;            // 0 = DM-Maxliner 3D B1 (dmax), 1 = DM-Uniliner (Concept 4), 2, 3 = DM-Maxliner 2D B3, DM-Maxliner 2D B2 (BigBob)
 END_STRUCT
 END_TYPE
 ]]></Declaration>

@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_LineCamera585" Id="{dd79afc7-31bd-4c3b-a5bf-decdb17a1dbd}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+  QualiVision line camera system
+  DMAX76.   
+*)
+FUNCTION_BLOCK FB_LineCamera585 EXTENDS FB_LineCamera
+
+VAR CONSTANT
+  cCameraWidth585            : DINT := 9216;     (*Camera width [px]*)
+  cCameraMechOffsetTC585     : REAL := 101.5;    (*Camera mechanical offset at calibration temp [mm]*)
+  cMechOffsetCameraToPU585   : REAL :=  13.039;  (*Camera mechanical offset to PrintUnit [mm]*)
+  cPrintUnitMechOffsetTC585  : REAL :=  32.9869; (*PrintUnit mechanical offset at calibration temp [mm]*)
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[SUPER^();]]></ST>
+    </Implementation>
+    <Method Name="InitLineCamera" Id="{079361ff-ddae-4fc1-baae-418716f6e04d}">
+      <Declaration><![CDATA[METHOD InitLineCamera
+VAR_INPUT
+  nPrintUnitResolution         : UDINT;    (*printhead pixel resolution [dpi]*)
+  nPrintUnitSubPx              : UDINT;    (*print unit subPixel resolution [SubPx]*)
+  nPrintUnitWidth              : UDINT;    (*print unit width in [px]*)
+  iCameraTrigger               : I_CameraTrigger;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(*Init for dmax type*)
+_nCameraWidth           := cCameraWidth585;
+_fCameraMechOffsetTC    := cCameraMechOffsetTC585;
+_fMechOffsetCameraToPU  := cMechOffsetCameraToPU585;
+_fPrintUnitMechOffsetTC := cPrintUnitMechOffsetTC585;
+
+SUPER^.InitLineCamera( nPrintUnitResolution := nPrintUnitResolution
+                     , nPrintUnitSubPx      := nPrintUnitSubPx
+                     , nPrintUnitWidth      := nPrintUnitWidth
+                     , iCameraTrigger       := iCameraTrigger
+                     );]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="sName" Id="{6e1c9c73-2e52-4371-9700-c13bcaafc3f2}">
+      <Declaration><![CDATA[{attribute 'monitoring':='variable'}
+PROPERTY sName : STRING
+]]></Declaration>
+      <Get Name="Get" Id="{ec506e30-b063-48c2-9272-19fc1383ccfb}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sName := 'LineCam 585';]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <LineIds Name="FB_LineCamera585">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LineCamera585.InitLineCamera">
+      <LineId Id="28" Count="0" />
+      <LineId Id="13" Count="3" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="53" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LineCamera585.sName.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

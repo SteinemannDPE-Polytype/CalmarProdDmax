@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
   <POU Name="FB_WorkerDefGrid_Print" Id="{5c870379-68b9-432c-b249-d1d8463ffca6}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Print EXTENDS FB_WorkerDefGrid
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_WorkerDefGrid_Print EXTENDS FB_WorkerDefGrid IMPLEMENTS I_PrintSubsystem
 VAR_INPUT
   nEncoderPos           : DINT;   // Absolute virtual encoder
   bHardwareSync         : BOOL;
@@ -17,11 +17,17 @@ VAR_INPUT
 END_VAR
 
 VAR_OUTPUT
+  bPrintActive          : BOOL;   // A print is activated / started
 END_VAR
 
 VAR
-  // references
-  _iParamMediator : I_ParamMediator;
+  // print
+  // - references
+  _pAdsPg            : POINTER TO FB_ADS_PG;      // pg ads reference (for pa)
+
+  // grid specific
+  // - references
+  _iParamMediator    : I_ParamMediator;
     
   sDefGridSettings   : ST_DefGridSettings;  
   fCurrentColumnPos  : LREAL; // Currently column position
@@ -39,6 +45,7 @@ VAR
   _nPosXS            : DINT;    // XS for last attached CT (shifted print start position)
   _nPosXDelta        : DINT;    // Shift value X0 -> XS
   _fPosY             : LREAL;   // Y shift for last attached CT
+  _fCurrentImgDepth  : LREAL;   // Job: current image length [m]
   _nPosDeltaToPrint  : DINT;    // delta pos in [SbuPx] from attach to print
   _bPaStarted        : BOOL;
   _bPaStartRequested : BOOL;
@@ -53,6 +60,7 @@ VAR
   (*grid limit*)
   _fLimitCorrectionX : LREAL;     // correction limit in y (abs) [px]
   _fLimitCorrectionY : LREAL;     // correction limit in y (abs) [px]
+  _bGridWasLimited   : BOOL;      // streamed grid was limited
     
   (*Messaging*)
   _bMsgInitialized   : BOOL;
@@ -106,9 +114,10 @@ END_IF
 ]]></ST>
     </Implementation>
     <Folder Name="I_PrintStatusClient" Id="{adecc86c-91cf-457b-8558-66ae01f4fccc}" />
-    <Property Name="aPaState" Id="{d33311ae-cbcc-4c92-8b46-ba9298176777}">
+    <Folder Name="I_PrintSubsystem" Id="{a68dd35d-4970-4857-8aad-7fbdcdf3b34c}" />
+    <Property Name="aPaState" Id="{8277eafa-828e-4ad9-be12-5c8f18987f2f}" FolderPath="I_PrintSubsystem\">
       <Declaration><![CDATA[PROPERTY aPaState : STRING]]></Declaration>
-      <Get Name="Get" Id="{bd1c86fe-132b-41d1-bebb-2a87f1fec851}">
+      <Get Name="Get" Id="{f28d5da8-5c38-4a68-a1b8-bd73b2061b0b}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
@@ -203,6 +212,111 @@ ELSE
 END_IF]]></ST>
       </Implementation>
     </Method>
+    <Property Name="bJobActive" Id="{0f130ac5-4fa6-4d4e-a60c-b14d0fe3f121}">
+      <Declaration><![CDATA[PROPERTY bJobActive : BOOL]]></Declaration>
+      <Get Name="Get" Id="{9dd0f7e8-ef05-4a9c-8e95-c4357c48b689}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bJobActive := _bJobActive;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bPausePrintCanEx" Id="{fc8ca1a7-bd3d-4044-a463-56985b17d985}" FolderPath="I_PrintSubsystem\">
+      <Declaration><![CDATA[PROPERTY bPausePrintCanEx : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{d8a07260-2504-4cd8-97de-f992e45b0e83}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bPausePrintCanEx := FALSE; //Not implemented]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bPcEnabled" Id="{e4e94f7a-4bc5-47ed-8bd0-b7d95ad8c13c}" FolderPath="I_PrintSubsystem\">
+      <Declaration><![CDATA[PROPERTY bPcEnabled : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{8b30e1b0-4c01-42d7-9ba4-f31325198759}">
+        <Declaration><![CDATA[]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bPcEnabled := fB_PcAdapter.bPcEnable;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bPrintEnabled" Id="{6601b143-9fdc-40da-97b7-5089254c3b6f}" FolderPath="I_PrintSubsystem\">
+      <Declaration><![CDATA[PROPERTY bPrintEnabled : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{834b81fc-78f2-42d9-b906-9418a6ef5cd1}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bPrintEnabled := _bEnable;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bPrinting" Id="{3b2594a7-a798-47a4-ba68-13a750e5c77c}" FolderPath="I_PrintSubsystem\">
+      <Declaration><![CDATA[PROPERTY bPrinting : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{cc528192-85ca-4f86-abf6-7a2aa4ffa2c1}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bPrinting := fbPa.bPrinting;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bPrintReady" Id="{8d8743f6-0958-49a3-a457-af3368c3eb7f}" FolderPath="I_PrintSubsystem\">
+      <Declaration><![CDATA[PROPERTY bPrintReady : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{f2c2526d-9dcf-429f-a492-22479800378e}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bPrintReady := fbPa.bReady;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bQueueEmpty" Id="{7253139b-ba1f-4ca2-b7d3-9950edd5b701}" FolderPath="I_PrintSubsystem\">
+      <Declaration><![CDATA[PROPERTY bQueueEmpty : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{4cbd9fe6-8fe2-4010-b3cb-c601dbe7bc21}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bQueueEmpty := NOT fB_PcAdapter.bJobValid;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bStartPrintCanEx" Id="{e8fd11ba-424d-419e-9fee-4f0bbc0762cb}" FolderPath="I_PrintSubsystem\">
+      <Declaration><![CDATA[PROPERTY bStartPrintCanEx : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{e57138f0-b201-478b-9c57-e9005567e73e}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bStartPrintCanEx := fbPa.bStartCanEx;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="bStopPrintCanEx" Id="{84821c34-30bf-4ad5-8b9a-e08f38c9de98}" FolderPath="I_PrintSubsystem\">
+      <Declaration><![CDATA[PROPERTY bStopPrintCanEx : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{60bd2eaf-bc9a-410f-b98a-1ae22d9006fc}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[bStopPrintCanEx := fbPa.bStopCanEx;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
     <Method Name="checkGridTiming" Id="{3c550058-b5da-4dae-8fa1-4b3726d81082}">
       <Declaration><![CDATA[METHOD PRIVATE checkGridTiming : BOOL
 VAR
@@ -251,9 +365,52 @@ IF bLimited THEN
                                                      F_Concat4('dx:', TO_STRING(nExeedX), ' dy:', TO_STRING(nExeedY)),
                                                      ' correction exceeded limit')); 
 END_IF
+
+_bGridWasLimited := SEL(bLimited, FALSE, TRUE);
 correctionLimit := bLimited;]]></ST>
       </Implementation>
     </Method>
+    <Property Name="fImageLength" Id="{c7986870-deda-4662-9bc9-0b4eeefa6db4}">
+      <Declaration><![CDATA[// current job image length in [m]
+PROPERTY fImageLength : LREAL]]></Declaration>
+      <Get Name="Get" Id="{9ef06e73-bf26-4508-8157-61ff708014e1}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fImageLength := _fCurrentImgDepth;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="fMaxPrintSpeed" Id="{a4007cd9-e34f-4c46-9bb7-1e39bd18c200}" FolderPath="I_PrintSubsystem\">
+      <Declaration><![CDATA[PROPERTY fMaxPrintSpeed : LREAL
+]]></Declaration>
+      <Get Name="Get" Id="{7a7a4434-0cc7-4663-aefd-3729d3d9a2d2}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[fMaxPrintSpeed := 0;  // TODO: when i_pc_adapter has the info from pc/ph]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="fMaxSpeed" Id="{c9dd287e-496f-4791-b9bb-4527b1b7a25b}">
+      <Declaration><![CDATA[(*
+  Max. supported speed [m/s], 0 if not available
+*)
+{attribute 'monitoring':='call'}
+PROPERTY fMaxSpeed : LREAL]]></Declaration>
+      <Get Name="Get" Id="{74cc7c44-c173-45fd-af8b-de901eaa27e7}">
+        <Declaration><![CDATA[VAR
+  nSpeedMpMin : DINT;
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[nSpeedMpMin := SEL(bWorkerEnable AND _pAdsPg <> 0, 0, _pAdsPg^.lMaxPrintSpeed);
+fMaxSpeed := TO_LREAL(nSpeedMpMin)/60;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
     <Property Name="fStartShiftFactor" Id="{5b817e72-fc10-4a5c-bb03-f73451d2d422}">
       <Declaration><![CDATA[{attribute 'monitoring':='call'}
 PROPERTY fStartShiftFactor : LREAL]]></Declaration>
@@ -411,17 +568,20 @@ _bMsgInitialized := TRUE;]]></ST>
     <Method Name="InitWorkerPrint" Id="{4fecd085-052c-4b8b-bc2f-cc4dcd5f16f0}">
       <Declaration><![CDATA[METHOD InitWorkerPrint : BOOL
 VAR_INPUT
+  pAdsPg                : POINTER TO FB_ADS_PG;       // pg ads reference (worker prints ads)
   iDefGridParamMediator : I_ParamMediator;
-  fPrintUnitWidth   : LREAL;     // print unit width [m]
-  fLimitCorrectionX : LREAL;     // correction limit in y (abs) [px]
-  fLimitCorrectionY : LREAL;     // correction limit in y (abs) [px]
+  fPrintUnitWidth       : LREAL;     // print unit width [m]
+  fLimitCorrectionX     : LREAL;     // correction limit in y (abs) [px]
+  fLimitCorrectionY     : LREAL;     // correction limit in y (abs) [px]
 END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF NOT bInitialized THEN LogError('Base Worker not initialized! call init() before'); RETURN; END_IF
+IF pAdspg = 0 THEN LogError('InitWorkerPrint: invalid parameter proviced'); RETURN; END_IF
 IF iDefGridParamMediator = 0 THEN bInitialized := FALSE; LogError('Invalid parameter, no valid param mediator'); RETURN; END_IF
 
 // worker specific init
+_pAdsPg := pAdsPg;
 _iParamMediator := iDefGridParamMediator;
 
 //Print Aggregate
@@ -450,6 +610,7 @@ IF NOT bWorkerEnable THEN RETURN; END_IF  // only if enabled
 fbPa.jobStart(bEndless:=sJobDef.isEndless());
 
 _bJobActive := TRUE;
+_fCurrentImgDepth := sJobDef.fImageDepth/1000;
 
 // grid settings update
 IF _iPhGrid <> 0 THEN _sPhGridHwCfg := _iPhGrid.getGridHwCfg(); END_IF ]]></ST>
@@ -466,6 +627,17 @@ END_VAR
 _bJobActive := FALSE;]]></ST>
       </Implementation>
     </Method>
+    <Property Name="pMsgConfig" Id="{97761b2e-bfc2-48b5-bdcb-4823af33e473}">
+      <Declaration><![CDATA[PROPERTY pMsgConfig : POINTER TO ST_MSG_CONFIG]]></Declaration>
+      <Get Name="Get" Id="{393ac733-648a-4161-b289-1177fa7d60a3}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[pMsgConfig := ADR(sL_MsgConfig);]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
     <Method Name="registerPc" Id="{d97e5338-e71f-481e-a982-44f26169e2b1}">
       <Declaration><![CDATA[METHOD registerPc : BOOL
 VAR_INPUT
@@ -608,6 +780,8 @@ IF _pAttachedCt <> 0 AND bWorkerEnable THEN // Work only with attached container
 	END_IF
 END_IF  
 
+bPrintActive := _bPaStarted;
+
 (*Logging config*)
 fbPa.LogLevel := LogLevel;
 fB_PcAdapter.LogLevel := LogLevel;
@@ -706,6 +880,33 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="172" Count="0" />
       <LineId Id="6" Count="0" />
     </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Print.bJobActive.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Print.bPausePrintCanEx.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Print.bPcEnabled.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Print.bPrintEnabled.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Print.bPrinting.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Print.bPrintReady.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Print.bQueueEmpty.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Print.bStartPrintCanEx.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Print.bStopPrintCanEx.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.checkGridTiming">
       <LineId Id="6" Count="0" />
       <LineId Id="16" Count="1" />
@@ -723,7 +924,18 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="37" Count="0" />
       <LineId Id="35" Count="0" />
       <LineId Id="8" Count="0" />
+      <LineId Id="49" Count="1" />
       <LineId Id="27" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Print.fImageLength.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Print.fMaxPrintSpeed.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Print.fMaxSpeed.Get">
+      <LineId Id="2" Count="0" />
+      <LineId Id="6" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.fStartShiftFactor.Get">
       <LineId Id="2" Count="0" />
@@ -776,9 +988,11 @@ fB_PcAdapter.LogLevel := LogLevel;
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.InitWorkerPrint">
       <LineId Id="7" Count="0" />
+      <LineId Id="68" Count="0" />
       <LineId Id="57" Count="0" />
       <LineId Id="45" Count="0" />
       <LineId Id="15" Count="0" />
+      <LineId Id="66" Count="0" />
       <LineId Id="58" Count="0" />
       <LineId Id="10" Count="1" />
       <LineId Id="36" Count="0" />
@@ -797,6 +1011,7 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="53" Count="0" />
       <LineId Id="34" Count="1" />
       <LineId Id="22" Count="0" />
+      <LineId Id="99" Count="0" />
       <LineId Id="93" Count="0" />
       <LineId Id="81" Count="0" />
       <LineId Id="94" Count="0" />
@@ -804,6 +1019,9 @@ fB_PcAdapter.LogLevel := LogLevel;
     <LineIds Name="FB_WorkerDefGrid_Print.mJobStop">
       <LineId Id="6" Count="0" />
       <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_WorkerDefGrid_Print.pMsgConfig.Get">
+      <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_WorkerDefGrid_Print.registerPc">
       <LineId Id="5" Count="0" />
@@ -851,7 +1069,9 @@ fB_PcAdapter.LogLevel := LogLevel;
       <LineId Id="445" Count="0" />
       <LineId Id="404" Count="7" />
       <LineId Id="443" Count="0" />
-      <LineId Id="413" Count="8" />
+      <LineId Id="413" Count="3" />
+      <LineId Id="451" Count="1" />
+      <LineId Id="417" Count="4" />
       <LineId Id="10" Count="0" />
     </LineIds>
   </POU>

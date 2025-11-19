@@ -17,7 +17,7 @@
     <Implicit_Jitter_Distribution>{83d4ad81-1518-48b1-8f5d-e4f72756726b}</Implicit_Jitter_Distribution>
     <LibraryReferences>{b142593d-9d56-4366-a694-28266b38dd63}</LibraryReferences>
     <Released>false</Released>
-    <ProjectVersion>3.0.3</ProjectVersion>
+    <ProjectVersion>3.0.4</ProjectVersion>
     <Company>WIFAG-Polytype</Company>
     <Title>CalmarProductSteinemann</Title>
     <Author>Wifag//Polytype</Author>
@@ -181,6 +181,10 @@ Fribourg/Switzerland (2021)</Description>
       <LinkAlways>true</LinkAlways>
     </Compile>
     <Compile Include="GVLs\GVL_WEU.TcGVL">
+      <SubType>Code</SubType>
+      <LinkAlways>true</LinkAlways>
+    </Compile>
+    <Compile Include="GVLs\GVL_Maxliner.TcGVL">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
@@ -449,6 +453,9 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\Print\Camera\LineCamera\FB_LineCamera76.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Print\Camera\LineCamera\FB_LineCamera585.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\Print\Camera\LineCamera\_VISU_LineCamera.TcVIS">
@@ -843,6 +850,25 @@ Fribourg/Switzerland (2021)</Description>
     <Compile Include="POUs\Print\Global\I_PrintGlobal.TcIO">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="POUs\Print\Maxliner\FB_PrintModule_Maxliner.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Print\Maxliner\_VISU_PmEnable_Maxliner.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="POUs\Print\Maxliner\_VISU_Pm_Maxliner_Worker.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="POUs\Print\Maxliner\_VISU_Pm_Maxliner_mini_Worker.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="POUs\Print\Maxliner\_VISU_Pm_Maxliner_Debug.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
     <Compile Include="POUs\Print\Module\FB_PrintModule_Base.TcPOU">
       <SubType>Code</SubType>
     </Compile>
@@ -1095,8 +1121,8 @@ Fribourg/Switzerland (2021)</Description>
   <ProjectExtensions>
     <PlcProjectOptions>
       <XmlArchive>
-  <Data>
-    <o xml:space="preserve" t="OptionKey">
+        <Data>
+          <o xml:space="preserve" t="OptionKey">
       <v n="Name">"&lt;ProjectRoot&gt;"</v>
       <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
         <v>{535658C0-5AF5-460d-99A4-BFFB984A829A}</v>
@@ -1259,16 +1285,16 @@ Fribourg/Switzerland (2021)</Description>
       </d>
       <d n="Values" t="Hashtable" />
     </o>
-  </Data>
-  <TypeList>
-    <Type n="Boolean">System.Boolean</Type>
-    <Type n="Hashtable">System.Collections.Hashtable</Type>
-    <Type n="Int32">System.Int32</Type>
-    <Type n="NewestVersionConstraintToSave">{af9bafe2-ba31-4b15-a2b9-48a0f2cd09fb}</Type>
-    <Type n="OptionKey">{54dd0eac-a6d8-46f2-8c27-2f43c7e49861}</Type>
-    <Type n="String">System.String</Type>
-  </TypeList>
-</XmlArchive>
+        </Data>
+        <TypeList>
+          <Type n="Boolean">System.Boolean</Type>
+          <Type n="Hashtable">System.Collections.Hashtable</Type>
+          <Type n="Int32">System.Int32</Type>
+          <Type n="NewestVersionConstraintToSave">{af9bafe2-ba31-4b15-a2b9-48a0f2cd09fb}</Type>
+          <Type n="OptionKey">{54dd0eac-a6d8-46f2-8c27-2f43c7e49861}</Type>
+          <Type n="String">System.String</Type>
+        </TypeList>
+      </XmlArchive>
     </PlcProjectOptions>
   </ProjectExtensions>
 </Project>

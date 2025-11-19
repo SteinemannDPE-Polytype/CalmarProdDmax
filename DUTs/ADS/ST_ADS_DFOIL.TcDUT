@@ -20,7 +20,7 @@ STRUCT
   aO_Name            : STRING := 'dFoil';
 
   bI_Enable          : BOOL := TRUE;      (*Enable this device*)
-  iO_MaxNbRecords    : INT  := GVL_MachineDef.cC_DFOIL_MAX_NB_RECORDS;
+  iO_MaxNbRecords    : INT  := BYTE_TO_INT(GVL_MachineDef.cC_DFOIL_MAX_NB_RECORDS);
 
   iI_UsedNbRecords   : INT;
   sI_dFoilUsagePos   : ARRAY[1..GVL_MachineDef.cC_DFOIL_MAX_NB_RECORDS] OF ST_DFOIL_RECORD;
