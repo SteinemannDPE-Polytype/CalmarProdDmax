@@ -35,6 +35,8 @@ VAR
   nChargedColumns    : UDINT; // Already charged columns
 
   fbDropSpeedComp    : FB_DropSpeedComp;  
+  bShowDropSpeedSetup: BOOL;
+
   fbPs               : FB_PS;
   fbPa               : FB_PA;
   fB_PcAdapter       : FB_PC_Adapter;

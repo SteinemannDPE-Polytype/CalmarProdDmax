@@ -11,6 +11,7 @@ VAR_INPUT
   IbMachineStopped                              : BOOL;            // Machine stopped
   IbInhibitSheetTrigger                         : BOOL;            // inhibit trigger signals for substrate length
   IbCameraTrigger                               : BOOL;            // Camera trigger
+  IbMachineSleep                                : BOOL;            // Machine is in Sleep mode
 END_VAR
 
 VAR_OUTPUT
@@ -69,7 +70,7 @@ fbSheetDetectRingbuffer02();
 RemSheetDetectSupervisionPar.nR_SheetDetectRange01_SubPx := F_MeterToSubPixel(REAL_TO_LREAL(RemSheetDetectSupervisionPar.fR_SheetDetectRange01_m), UDINT_TO_LREAL(_PrintSubPixelResolution));
 RemSheetDetectSupervisionPar.nR_SheetDetectRange02_SubPx := F_MeterToSubPixel(REAL_TO_LREAL(RemSheetDetectSupervisionPar.fR_SheetDetectRange02_m), UDINT_TO_LREAL(_PrintSubPixelResolution));
 
-IF RemSheetDetectSupervisionPar.bR_Enable THEN
+IF RemSheetDetectSupervisionPar.bR_Enable AND NOT IbMachineSleep THEN
   (*Masking sheet detection of camera system*)
   ObCameraTriggerEnable     :=     (InCurrentPos > (fbSheetDetectRingbuffer01.iO_ShiftOffset_X0 - RemSheetDetectSupervisionPar.nR_SheetDetectRange01_SubPx)) 
                                AND (InCurrentPos < (fbSheetDetectRingbuffer01.iO_ShiftOffset_X0 + RemSheetDetectSupervisionPar.nR_SheetDetectRange01_SubPx));
@@ -143,7 +144,9 @@ END_VAR
       <LineId Id="546" Count="1" />
       <LineId Id="370" Count="0" />
       <LineId Id="372" Count="9" />
-      <LineId Id="383" Count="16" />
+      <LineId Id="383" Count="11" />
+      <LineId Id="598" Count="0" />
+      <LineId Id="396" Count="3" />
       <LineId Id="507" Count="0" />
       <LineId Id="401" Count="20" />
       <LineId Id="423" Count="5" />

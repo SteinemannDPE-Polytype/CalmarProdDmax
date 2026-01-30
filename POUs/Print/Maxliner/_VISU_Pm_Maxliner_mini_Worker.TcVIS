@@ -1727,7 +1727,7 @@
                         <l n="TypeNodeChildren" t="ArrayList" cet="BasicTypeNode">
                           <o>
                             <v n="Flags">2L</v>
-                            <n n="BasicTypeNodeValue" />
+                            <v n="BasicTypeNodeValue">"mInst"</v>
                             <v n="BasicTypeNodeAcceptsExpression">true</v>
                             <n n="BasicTypeNodeFastAccess" />
                             <a n="BasicTypeNodeEnumValues" et="String" />
@@ -1780,6 +1780,10 @@
                         <n n="DescriptionTextID" />
                         <v n="DescriptionUseParent">false</v>
                       </o>
+                    </o>
+                    <o>
+                      <v n="Id">1027537303L</v>
+                      <v n="Value">"mInst"</v>
                     </o>
                   </l>
                 </o>
@@ -8634,10 +8638,10 @@
               <d n="FbMethods" t="CaseInsensitiveHashtable_1" ckt="String" cvt="Guid">
                 <v>FB_Init</v>
                 <v>b425df1f-0e17-4544-8dd0-3dd9dd8d0bac</v>
-                <v>FB_Reinit</v>
-                <v>fd6cbea2-1329-47d5-b80e-07447e7148ed</v>
                 <v>FB_Exit</v>
                 <v>fc817f35-5caf-4b5e-962a-a1d954b8b600</v>
+                <v>FB_Reinit</v>
+                <v>fd6cbea2-1329-47d5-b80e-07447e7148ed</v>
               </d>
               <v n="FbName">"NotImportant"</v>
               <v n="FbGuid">{30e7fb00-34db-4213-b3f6-e088376ed74e}</v>

@@ -387,6 +387,10 @@ Fribourg/Switzerland (2021)</Description>
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>
+    <Compile Include="POUs\Machine\SheetDetectSupervision\VISU_SheetDetectSupervision.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
     <Compile Include="POUs\Machine\UV_LED_Modul\FB_UvLedModule.TcPOU">
       <SubType>Code</SubType>
     </Compile>
@@ -853,7 +857,14 @@ Fribourg/Switzerland (2021)</Description>
     <Compile Include="POUs\Print\Maxliner\FB_PrintModule_Maxliner.TcPOU">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="POUs\Print\Maxliner\FB_PrintModule_Maxliner_View.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="POUs\Print\Maxliner\_VISU_PmEnable_Maxliner.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="POUs\Print\Maxliner\_VISU_Pm_Maxliner_ImgLengthCheck.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
@@ -866,6 +877,14 @@ Fribourg/Switzerland (2021)</Description>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
     <Compile Include="POUs\Print\Maxliner\_VISU_Pm_Maxliner_Debug.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="POUs\Print\Maxliner\_VISU_Pm_Maxliner.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="POUs\Print\Maxliner\_VISU_Pm_Maxliner_Settings.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
@@ -1121,8 +1140,8 @@ Fribourg/Switzerland (2021)</Description>
   <ProjectExtensions>
     <PlcProjectOptions>
       <XmlArchive>
-        <Data>
-          <o xml:space="preserve" t="OptionKey">
+  <Data>
+    <o xml:space="preserve" t="OptionKey">
       <v n="Name">"&lt;ProjectRoot&gt;"</v>
       <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
         <v>{535658C0-5AF5-460d-99A4-BFFB984A829A}</v>
@@ -1168,7 +1187,7 @@ Fribourg/Switzerland (2021)</Description>
                   <d n="SubKeys" t="Hashtable" />
                   <d n="Values" t="Hashtable" ckt="String" cvt="Boolean">
                     <v>bActive</v>
-                    <v>False</v>
+                    <v>True</v>
                   </d>
                 </o>
                 <v>4</v>
@@ -1254,13 +1273,18 @@ Fribourg/Switzerland (2021)</Description>
           <d n="Values" t="Hashtable" ckt="String" cvt="Boolean">
             <v>ReplaceConstants</v>
             <v>True</v>
+            <v>Utf8Encoding</v>
+            <v>True</v>
           </d>
         </o>
         <v>{F66C7017-BDD8-4114-926C-81D6D687E35F}</v>
         <o>
           <v n="Name">"{F66C7017-BDD8-4114-926C-81D6D687E35F}"</v>
           <d n="SubKeys" t="Hashtable" />
-          <d n="Values" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String" cvt="Boolean">
+            <v>CalcActiveTransOnly</v>
+            <v>True</v>
+          </d>
         </o>
         <v>{246001F4-279D-43AC-B241-948EB31120E1}</v>
         <o>
@@ -1277,7 +1301,7 @@ Fribourg/Switzerland (2021)</Description>
             <v>ExtendedSettings</v>
             <v>false</v>
             <v>GlobalVisuImageFilePath</v>
-            <v>"%APPLICATIONPATH%\"</v>
+            <v>".\"</v>
             <v>GeneralPropertySupport</v>
             <v>false</v>
           </d>
@@ -1285,16 +1309,16 @@ Fribourg/Switzerland (2021)</Description>
       </d>
       <d n="Values" t="Hashtable" />
     </o>
-        </Data>
-        <TypeList>
-          <Type n="Boolean">System.Boolean</Type>
-          <Type n="Hashtable">System.Collections.Hashtable</Type>
-          <Type n="Int32">System.Int32</Type>
-          <Type n="NewestVersionConstraintToSave">{af9bafe2-ba31-4b15-a2b9-48a0f2cd09fb}</Type>
-          <Type n="OptionKey">{54dd0eac-a6d8-46f2-8c27-2f43c7e49861}</Type>
-          <Type n="String">System.String</Type>
-        </TypeList>
-      </XmlArchive>
+  </Data>
+  <TypeList>
+    <Type n="Boolean">System.Boolean</Type>
+    <Type n="Hashtable">System.Collections.Hashtable</Type>
+    <Type n="Int32">System.Int32</Type>
+    <Type n="NewestVersionConstraintToSave">{af9bafe2-ba31-4b15-a2b9-48a0f2cd09fb}</Type>
+    <Type n="OptionKey">{54dd0eac-a6d8-46f2-8c27-2f43c7e49861}</Type>
+    <Type n="String">System.String</Type>
+  </TypeList>
+</XmlArchive>
     </PlcProjectOptions>
   </ProjectExtensions>
 </Project>

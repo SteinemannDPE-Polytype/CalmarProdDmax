@@ -1,0 +1,160 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_PrintModule_Maxliner_View" Id="{2ad0e6b7-ad20-4ace-9a03-41412c687652}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_PrintModule_Maxliner_View
+VAR
+  // helper
+  bInit               : BOOL;
+  
+  // config
+  _pModule            : POINTER TO FB_PrintModule_Maxliner;
+  _pPositioning       : POINTER TO FB_PrintPositionDmax;
+  
+  fbCTTrackerView     : FB_CTTrackerView;
+  
+  // view selections
+  nSelWorkerPrint     : UDINT := 1;
+  bShowFineAlignement : BOOL;
+  // hardware view
+  bShowPhDetail       : BOOL;
+  nSelPhDetail        : UDINT := 1;
+  bShowPcDetail       : BOOL;
+  nSelPcDetail        : UDINT := 1;
+  
+  // motion and position view
+  bShowPositionDetail : BOOL;
+  bMovingInd          : BOOL;
+  fSpeed              : LREAL;
+  fbBlink_Moving      : FB_BLINK;
+  
+  // debug view
+  bShowDebugAndSim    : BOOL;
+  
+  fbBlink_Printing    : FB_BLINK;
+  bBlinkPrint         : BOOL;
+  bPrintInd           : ARRAY[1..GVL_Maxliner.nC_MaxWorkerPrintPerPm] OF BOOL;
+  fMaxPos             : LREAL;
+  t                   : TIME;
+  zPos_PM             : UDINT;
+  i                   : UDINT;
+END_VAR
+
+VAR CONSTANT
+  nC_MAX_WORKER_VIEWS : UINT := 10;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT checkConfig() THEN RETURN; END_IF    // check config
+
+// -- show moving -----------------------
+fSpeed := _pPositioning^.getSpeed();
+IF LrealIsNaN(x:=fSpeed) THEN
+  fSpeed := 0;
+END_IF
+t := LREAL_TO_TIME(1000-fSpeed*900);
+fbBlink_Moving(bI_Enable:=SEL(fSpeed > 0, FALSE, TRUE), tI_Time:=t, bO_Out=>bMovingInd);
+
+t := T#400MS;
+fbBlink_Moving(bI_Enable:=TRUE, tI_Time:=t, bO_Out=>bBlinkPrint);
+FOR i:=1 TO GVL_Maxliner.nC_MaxWorkerPrintPerPm DO
+  bPrintInd[i] := _pModule^.fbWorkerPrint[i].bPrinting AND bBlinkPrint;
+  fMaxPos      := MAX(_pModule^.fbWorkerPrint[i].fPosition, fMaxPos);
+END_FOR
+
+
+// -- show pm module position
+zPos_PM := SEL(_pModule^._pModuleMachineState^.bUnitInPrintPosition, 0, 40);
+
+// -- show pg in p,
+nSelWorkerPrint := LIMIT(1, nSelWorkerPrint, GVL_Maxliner.nC_MaxWorkerPrintPerPm);
+
+// -- show ph detail
+nSelPhDetail := LIMIT(1, nSelPhDetail, _pModule^._nPh);
+nSelPcDetail := LIMIT(1, nSelPcDetail, _pModule^._nPc);
+
+// -- CTTracker overview view
+fbCTTrackerView.fX_m           := fMaxPos + 0.1;
+fbCTTrackerView.fY_m           := 1;
+fbCTTrackerView.nX_px          := 300;
+fbCTTrackerView.nY_px          := 100;
+fbCTTrackerView.fPxToMRatio    := fbCTTrackerView.nX_px / fbCTTrackerView.fX_m;
+fbCTTrackerView.iPrintPosition :=_pPositioning^;
+fbCTTrackerView();
+]]></ST>
+    </Implementation>
+    <Method Name="checkConfig" Id="{d12bacb0-d7a8-452c-9ee7-b95abffa3ba8}">
+      <Declaration><![CDATA[METHOD checkConfig : BOOL
+VAR_INPUT
+END_VAR
+VAR_INST
+  _fX_m, _fY_m   : LREAL;
+  _nX_px, _nY_px : DINT; 
+END_VAR
+VAR
+  bOK : BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bInit THEN RETURN; END_IF
+
+checkConfig := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="init" Id="{70e7c933-aefa-4bfe-ab80-b75365c9bad4}">
+      <Declaration><![CDATA[METHOD init : BOOL
+VAR_INPUT
+  pModule : POINTER TO FB_PrintModule_WEU;
+  pPositioning : POINTER TO FB_PrintPositionDmax;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF pPositioning = 0 OR pModule = 0 THEN RETURN; END_IF
+
+_pModule      := pModule;
+_pPositioning := pPositioning;
+
+// cttracker overview
+fbCTTrackerView.init(pCTTracker:=ADR(_pModule^.fbCTTracker));
+
+bInit := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_PrintModule_Maxliner_View">
+      <LineId Id="671" Count="8" />
+      <LineId Id="703" Count="0" />
+      <LineId Id="699" Count="0" />
+      <LineId Id="706" Count="0" />
+      <LineId Id="698" Count="0" />
+      <LineId Id="702" Count="0" />
+      <LineId Id="851" Count="0" />
+      <LineId Id="701" Count="0" />
+      <LineId Id="697" Count="0" />
+      <LineId Id="680" Count="2" />
+      <LineId Id="745" Count="0" />
+      <LineId Id="683" Count="0" />
+      <LineId Id="747" Count="0" />
+      <LineId Id="746" Count="0" />
+      <LineId Id="684" Count="1" />
+      <LineId Id="577" Count="0" />
+      <LineId Id="792" Count="0" />
+      <LineId Id="791" Count="0" />
+      <LineId Id="803" Count="4" />
+      <LineId Id="809" Count="0" />
+      <LineId Id="793" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_PrintModule_Maxliner_View.checkConfig">
+      <LineId Id="26" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PrintModule_Maxliner_View.init">
+      <LineId Id="5" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="11" Count="1" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="14" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -189,11 +189,11 @@
                               <o>
                                 <v n="VisuNodeReferenceGuid">{00000000-0000-0000-0000-000000000000}</v>
                                 <n n="VisuNodeReference" />
-                                <v n="VisNodeRefs33">"_VISU_WorkerPrint_WEU"</v>
+                                <v n="VisNodeRefs33">"_VISU_WorkerDefGrid_Print"</v>
                                 <l n="TypeNodeChildren" t="ArrayList" cet="BasicTypeNode">
                                   <o>
                                     <v n="Flags">2L</v>
-                                    <n n="BasicTypeNodeValue" />
+                                    <v n="BasicTypeNodeValue">"mInst.fbWorkerPrint[mInst.fbView.nSelWorkerPrint]"</v>
                                     <v n="BasicTypeNodeAcceptsExpression">true</v>
                                     <n n="BasicTypeNodeFastAccess" />
                                     <a n="BasicTypeNodeEnumValues" et="String" />
@@ -204,8 +204,8 @@
                                     <l n="TypeNodeChildren" t="ArrayList" />
                                     <o n="TypeNodeType" t="TypeNodeType">
                                       <v n="TypeClass" t="TypeClass">Reference</v>
-                                      <v n="QualifiedName">"FB_WorkerDefGrid_Print_WEU"</v>
-                                      <v n="Name">"FB_WorkerDefGrid_Print_WEU"</v>
+                                      <v n="QualifiedName">"FB_WorkerDefGrid_Print"</v>
+                                      <v n="Name">"FB_WorkerDefGrid_Print"</v>
                                     </o>
                                     <v n="TypeNodeName">"m_Inst"</v>
                                     <o n="TypeNodeAttributes" t="TypeNodeAttributes2">
@@ -398,7 +398,7 @@
                       <o n="Value" t="VisualizationNode">
                         <v n="VisuNodeReferenceGuid">{00000000-0000-0000-0000-000000000000}</v>
                         <n n="VisuNodeReference" />
-                        <v n="VisNodeRefs33">"_VISU_WorkerPrint_WEU"</v>
+                        <v n="VisNodeRefs33">"_VISU_WorkerDefGrid_Print"</v>
                         <l n="TypeNodeChildren" t="ArrayList" cet="BasicTypeNode">
                           <o>
                             <v n="Flags">2L</v>
@@ -413,8 +413,8 @@
                             <l n="TypeNodeChildren" t="ArrayList" />
                             <o n="TypeNodeType" t="TypeNodeType">
                               <v n="TypeClass" t="TypeClass">Reference</v>
-                              <v n="QualifiedName">"FB_WorkerDefGrid_Print_WEU"</v>
-                              <v n="Name">"FB_WorkerDefGrid_Print_WEU"</v>
+                              <v n="QualifiedName">"FB_WorkerDefGrid_Print"</v>
+                              <v n="Name">"FB_WorkerDefGrid_Print"</v>
                             </o>
                             <v n="TypeNodeName">"m_Inst"</v>
                             <o n="TypeNodeAttributes" t="TypeNodeAttributes2">
@@ -460,6 +460,69 @@
                       <v n="Id">1657156087L</v>
                       <v n="Value">"mInst.fbWorkerPrint[mInst.fbView.nSelWorkerPrint]"</v>
                     </o>
+                    <o>
+                      <v n="Id">2322814029L</v>
+                      <o n="Value" t="VisualizationNode">
+                        <v n="VisuNodeReferenceGuid">{00000000-0000-0000-0000-000000000000}</v>
+                        <n n="VisuNodeReference" />
+                        <v n="VisNodeRefs33">"_VISU_WorkerDefGrid_Print"</v>
+                        <l n="TypeNodeChildren" t="ArrayList" cet="BasicTypeNode">
+                          <o>
+                            <v n="Flags">2L</v>
+                            <v n="BasicTypeNodeValue">"mInst.fbWorkerPrint[mInst.fbView.nSelWorkerPrint]"</v>
+                            <v n="BasicTypeNodeAcceptsExpression">true</v>
+                            <n n="BasicTypeNodeFastAccess" />
+                            <a n="BasicTypeNodeEnumValues" et="String" />
+                            <n n="EnumValueDisplayTextIds" />
+                            <n n="EnumValueVisibilityAttributeValues" />
+                            <n n="EnumValueLibraryId" />
+                            <n n="DynamicEnumMemberVisibilityCheckerTypeGuid" />
+                            <l n="TypeNodeChildren" t="ArrayList" />
+                            <o n="TypeNodeType" t="TypeNodeType">
+                              <v n="TypeClass" t="TypeClass">Reference</v>
+                              <v n="QualifiedName">"FB_WorkerDefGrid_Print"</v>
+                              <v n="Name">"FB_WorkerDefGrid_Print"</v>
+                            </o>
+                            <v n="TypeNodeName">"m_Inst"</v>
+                            <o n="TypeNodeAttributes" t="TypeNodeAttributes2">
+                              <v n="AttrFlags">0UL</v>
+                              <d n="TypeNodeAttributesData" t="CaseInsensitiveHashtable" />
+                              <v n="ConvDone">true</v>
+                            </o>
+                            <v n="TypeNodeId" t="Int16">255</v>
+                            <v n="TypeNodeIdLong">1657156087L</v>
+                            <n n="LibraryId" />
+                            <n n="DisplayTextId" />
+                            <n n="DescriptionTextID" />
+                            <v n="DescriptionUseParent">false</v>
+                          </o>
+                        </l>
+                        <o n="TypeNodeType" t="TypeNodeType">
+                          <v n="TypeClass" t="TypeClass">Userdef</v>
+                          <v n="QualifiedName">"IVisualisation"</v>
+                          <v n="Name">"IVisualisation"</v>
+                        </o>
+                        <v n="TypeNodeName">"[0]"</v>
+                        <o n="TypeNodeAttributes" t="TypeNodeAttributes2">
+                          <v n="AttrFlags">0UL</v>
+                          <d n="TypeNodeAttributesData" t="CaseInsensitiveHashtable" ckt="String" cvt="String">
+                            <v>ieccodeconversion_useexistinginterface</v>
+                            <v>_3S.CoDeSys.VisuGenerated.IVisualisationIEC</v>
+                            <v>conditionalshow</v>
+                            <v>visu_elemdev</v>
+                            <v>''NORMAL__COMMENT</v>
+                            <v> interface contains additional methods to IVisualElement</v>
+                          </d>
+                          <v n="ConvDone">true</v>
+                        </o>
+                        <v n="TypeNodeId" t="Int16">1</v>
+                        <v n="TypeNodeIdLong">2473092364L</v>
+                        <n n="LibraryId" />
+                        <n n="DisplayTextId" />
+                        <n n="DescriptionTextID" />
+                        <v n="DescriptionUseParent">false</v>
+                      </o>
+                    </o>
                   </l>
                 </o>
                 <v n="VisualElementName">"Frame"</v>
@@ -471,7 +534,7 @@
                   <l n="ContainedGuids" t="ArrayList" />
                   <l n="ContainedVisualizations" t="ArrayList" />
                   <a n="ContainedVisualizations33" cet="String">
-                    <v>_VISU_WorkerPrint_WEU</v>
+                    <v>_VISU_WorkerDefGrid_Print</v>
                   </a>
                 </o>
                 <d n="VisualElementInputActions" t="Hashtable" />
@@ -2986,10 +3049,10 @@
               <d n="FbMethods" t="CaseInsensitiveHashtable_1" ckt="String" cvt="Guid">
                 <v>FB_Init</v>
                 <v>c1fee367-666f-448c-b2e5-ba61cc574520</v>
-                <v>FB_Reinit</v>
-                <v>177d4fd5-984c-49fe-9eed-9d4474f07510</v>
                 <v>FB_Exit</v>
                 <v>6d57027b-f399-4e00-ac73-ac72e13ab86f</v>
+                <v>FB_Reinit</v>
+                <v>177d4fd5-984c-49fe-9eed-9d4474f07510</v>
               </d>
               <v n="FbName">"NotImportant"</v>
               <v n="FbGuid">{41141903-93d0-472e-8d10-a1002b63f40f}</v>
