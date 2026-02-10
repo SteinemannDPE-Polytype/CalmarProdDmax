@@ -25,7 +25,7 @@ VAR
   _pAdsCam           : POINTER TO ST_ADS_CAMERA;  // camera interface PUC
 
   // - instances
-  fbPs               : FB_PS_NewJetmap;
+  fbPs               : FB_PS_PrintBuffer;
   fbPa               : FB_PA;
   fB_PcAdapter       : FB_PC_Adapter;
   

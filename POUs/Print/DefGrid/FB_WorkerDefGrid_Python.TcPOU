@@ -219,7 +219,7 @@ END_VAR
       <Implementation>
         <ST><![CDATA[SUPER^.work();
 
-IF _iParamMediator <> 0 THEN F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); RETURN; END_IF
+IF _iParamMediator = 0 THEN F_Report_Error(ErrType:=EN_REPORT_ERROR_TYPE.Report_Error_0Pointer); RETURN; END_IF
 _CamGridSettings := _iParamMediator.sCameraGridSettings;
 _DefGridSettings := _iParamMediator.sDeformationGridSettings;
 
