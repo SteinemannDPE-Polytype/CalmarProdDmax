@@ -7,8 +7,11 @@ VAR_INPUT
   iI_VacuumMeasurement               AT %I* : UINT;   (*Analog input: vacuum measurement*)
   bPrintActive                              : BOOL;   (*Printing active*)
 END_VAR
+
 VAR_OUTPUT
   bO_FUActivate                      AT %Q* : BOOL;   (*FU activation*)
+  OnExhaustSetpoint                  AT %Q* : UINT;   (*Analog output: pump setpoint*)
+
   bExhaustError                             : BOOL;   (*Exhaust system ok and ready*)
   // detailed status (for messages)
   bFUReady                                  : BOOL;   (*FU ready*)
@@ -32,12 +35,14 @@ VAR PERSISTENT
   tR_VacuumCheckDelay                       : TIME := T#10S;  (*Vacuum check delay time*)
 
   iR_VacuumAnalogMinDigit                   : UINT := 0;      (*Min value analog-input in digit*)
-  iR_VacuumAnalogMaxDigit                   : UINT := 32737;  (*Max value analog-input in digit*)
+  iR_VacuumAnalogMaxDigit                   : UINT := 32767;  (*Max value analog-input in digit*)
   fR_VacuumAnalogMinMBar                    : REAL := 0;      (*Min value analog-input in mBar*)
   fR_VacuumAnalogMaxMBar                    : REAL := 50.0;   (*Max value analog-input in mBar*)
   fR_VacuumWarningLevelMBar                 : REAL := 20.0;   (*Warning level in mBar*)
   fR_VacuumErrorLevelMBar                   : REAL := 10.0;   (*Error level in mBar*)
 
+  iR_VacuumPumpSetPercent                   : UINT := 0;      (*Pump setpoinr [%]*)
+  iR_VacuumPumpSetpointMaxDigit             : UINT := 13762;  (*Max value analog-output in digit, max pump = 4.2V*)
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -61,7 +66,9 @@ IF fb_TonVacuumCheckDelay.Q THEN
 END_IF
 
 
-bExhaustError := NOT bFUReady OR (bVacuumErrorLevel AND bO_FUActivate);]]></ST>
+bExhaustError := NOT bFUReady OR (bVacuumErrorLevel AND bO_FUActivate);
+
+OnExhaustSetpoint := REAL_TO_UINT(UINT_TO_REAL(iR_VacuumPumpSetpointMaxDigit) / 100 * iR_VacuumPumpSetPercent);]]></ST>
     </Implementation>
     <Method Name="checkMapping" Id="{cc586209-65da-4391-8b61-ef801610bd07}">
       <Declaration><![CDATA[METHOD PRIVATE checkMapping
@@ -87,6 +94,8 @@ bVacuumErrorLevel   := FALSE;]]></ST>
     <LineIds Name="FB_ExhaustSystemPrint">
       <LineId Id="466" Count="19" />
       <LineId Id="103" Count="0" />
+      <LineId Id="530" Count="0" />
+      <LineId Id="529" Count="0" />
     </LineIds>
     <LineIds Name="FB_ExhaustSystemPrint.checkMapping">
       <LineId Id="5" Count="0" />
