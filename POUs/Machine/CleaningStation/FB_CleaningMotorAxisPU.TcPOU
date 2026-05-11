@@ -144,7 +144,11 @@ ELSIF  fB_Axis.fO_ActualPosition >= ((fI_PositionClean1 / 1000) - fI_PositionTol
 THEN
   bL_InPosService := FALSE;
   bL_InPosClean1  := TRUE;
-  bL_InPosClean2  := FALSE;
+  IF fI_PositionClean1 = fI_PositionClean2 THEN
+    bL_InPosClean2  := TRUE;
+  ELSE
+    bL_InPosClean2  := FALSE;
+	END_IF
   bL_InPosWait    := FALSE;
   bL_InPosPrint   := FALSE;
 ELSIF  fB_Axis.fO_ActualPosition >= ((fI_PositionClean2 / 1000) - fI_PositionTolerance)
@@ -905,10 +909,27 @@ END_VAR
         </Implementation>
       </Set>
     </Property>
+    <Property Name="setPlaceSpeed" Id="{eafd13a3-f3cb-4d85-b6d0-3232d8fe5984}">
+      <Declaration><![CDATA[PROPERTY setPlaceSpeed : REAL]]></Declaration>
+      <Set Name="Set" Id="{8c60a24e-7718-40f0-b8d4-97724126928a}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sI_SpeedDef.fP_PlaceSpeed := setPlaceSpeed;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
     <LineIds Name="FB_CleaningMotorAxisPU">
       <LineId Id="733" Count="22" />
       <LineId Id="1079" Count="0" />
-      <LineId Id="756" Count="48" />
+      <LineId Id="756" Count="30" />
+      <LineId Id="1309" Count="0" />
+      <LineId Id="1313" Count="0" />
+      <LineId Id="1310" Count="0" />
+      <LineId Id="1312" Count="0" />
+      <LineId Id="1311" Count="0" />
+      <LineId Id="788" Count="16" />
       <LineId Id="925" Count="0" />
       <LineId Id="805" Count="7" />
       <LineId Id="1002" Count="0" />
@@ -1123,6 +1144,9 @@ END_VAR
       <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_CleaningMotorAxisPU.pPositionPrint.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CleaningMotorAxisPU.setPlaceSpeed.Set">
       <LineId Id="2" Count="0" />
     </LineIds>
   </POU>
